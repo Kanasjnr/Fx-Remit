@@ -1,0 +1,46 @@
+{
+  "author": "kanas",
+  "bugs": {
+    "url": "https://github.com/celo-org/celo-composer/issues"
+  },
+  "description": "Custom Celo Composer project.",
+  "homepage": "https://github.com/celo-org/celo-composer/blob/main/README.md",
+  "keywords": [
+    "celo-composer",
+    "celo"
+  ],
+  "license": "MIT",
+  "name": "fx-remit",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/celo-org/celo-composer.git"
+  },
+  "resolutions": {
+    "@wagmi/connectors": "5.7.7",
+    "@wagmi/core": "2.16.7",
+    "@walletconnect/utils": "^2.19.1",
+    "elliptic": "6.6.1",
+    "viem": "2.23.2",
+    "wagmi": "2.14.11"
+  },
+  "scripts": {
+    "react-app:dev": "yarn workspace @fx-remit/react-app dev",
+    "react-app:build": "yarn workspace @fx-remit/react-app build",
+    "react-app:start": "yarn workspace @fx-remit/react-app start",
+    "react-app:lint": "yarn workspace @fx-remit/react-app lint",
+    "hardhat:postinstall": "yarn workspace @fx-remit/hardhat postinstall",
+    "hardhat:compile": "yarn workspace @fx-remit/hardhat compile",
+    "hardhat:tsc": "yarn workspace @fx-remit/hardhat tsc",
+    "hardhat:build": "yarn workspace @fx-remit/hardhat build",
+    "hardhat:clean": "yarn workspace @fx-remit/hardhat clean",
+    "hardhat:run:node": "yarn workspace @fx-remit/hardhat run:node",
+    "hardhat:test": "yarn workspace @fx-remit/hardhat test",
+    "hardhat:prettier": "yarn workspace @fx-remit/hardhat prettier",
+    "hardhat:sync:abis": "yarn workspace @fx-remit/hardhat sync:abis"
+  },
+  "version": "1.0.0",
+  "workspaces": [
+    "packages/*"
+  ]
+}
