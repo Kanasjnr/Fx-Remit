@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -21,52 +21,55 @@ interface Transaction {
   recipient: string;
 }
 
+// Separate component to handle individual remittance details
+function RemittanceItem({ remittanceId, onTransactionReady }: { 
+  remittanceId: bigint; 
+  onTransactionReady: (transaction: Transaction | null) => void 
+}) {
+  const { remittance, isLoading } = useRemittanceDetails(remittanceId);
+  
+  useMemo(() => {
+    if (remittance) {
+      const tx: Transaction = {
+        id: remittance.id.toString(),
+        from: remittance.fromCurrency as Currency,
+        to: remittance.toCurrency as Currency,
+        amount: parseFloat(remittance.amountSent),
+        received: parseFloat(remittance.amountReceived),
+        fee: parseFloat(remittance.platformFee),
+        status: 'completed',
+        date: remittance.timestamp.toLocaleDateString(),
+        time: remittance.timestamp.toLocaleTimeString(),
+        hash: remittance.mentoTxHash,
+        recipient: remittance.recipient,
+      };
+      onTransactionReady(tx);
+    } else {
+      onTransactionReady(null);
+    }
+  }, [remittance, onTransactionReady]);
+  
+  return null; // This component doesn't render anything
+}
+
 export default function HistoryPage() {
   const { address, isConnected } = useAccount();
   const [filter, setFilter] = useState('all');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   
   const { remittanceIds, isLoading: isLoadingIds } = useUserRemittances(address);
   
-  // Get details for each remittance
-  const remittanceDetails = remittanceIds.map(id => useRemittanceDetails(id));
-  
-  const isLoadingDetails = remittanceDetails.some(detail => detail.isLoading);
-  const isLoading = isLoadingIds || isLoadingDetails;
-
-  const transactions = useMemo(() => {
-    const validTransactions: Transaction[] = [];
-    
-    remittanceDetails.forEach((detail) => {
-      if (detail.remittance) {
-        const tx = detail.remittance;
-        validTransactions.push({
-          id: tx.id.toString(),
-          from: tx.fromCurrency as Currency,
-          to: tx.toCurrency as Currency,
-          amount: parseFloat(tx.amountSent),
-          received: parseFloat(tx.amountReceived),
-          fee: parseFloat(tx.platformFee),
-          status: 'completed', // All logged remittances are completed
-          date: tx.timestamp.toISOString().split('T')[0],
-          time: tx.timestamp.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          hash: tx.mentoTxHash,
-          recipient: tx.recipient,
-        });
-      }
+  const handleTransactionReady = (id: string) => (transaction: Transaction | null) => {
+    setTransactions(prev => {
+      const filtered = prev.filter(t => t.id !== id);
+      return transaction ? [...filtered, transaction] : filtered;
     });
-    
-    return validTransactions.sort((a, b) => 
-      new Date(b.date + ' ' + b.time).getTime() - new Date(a.date + ' ' + a.time).getTime()
-    );
-  }, [remittanceDetails]);
+  };
 
-  const filteredTransactions = transactions.filter(tx => {
-    if (filter === 'all') return true;
-    return tx.status === filter;
-  });
+  const filteredTransactions = useMemo(() => {
+    if (filter === 'all') return transactions;
+    return transactions.filter(tx => tx.status === filter);
+  }, [transactions, filter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -86,7 +89,17 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20">
+    <>
+      {/* Render RemittanceItem components to handle data loading */}
+      {remittanceIds.map(id => (
+        <RemittanceItem
+          key={id.toString()}
+          remittanceId={id}
+          onTransactionReady={handleTransactionReady(id.toString())}
+        />
+      ))}
+      
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20">
       {/* Header */}
       <header className="px-6 py-6 bg-white/10 backdrop-blur-sm border-b border-white/20">
         <div className="flex items-center justify-between">
@@ -151,7 +164,7 @@ export default function HistoryPage() {
           {/* Transaction List */}
           <div className="space-y-4">
             {/* Loading State */}
-            {isLoading && (
+            {isLoadingIds && (
               <div className="text-center py-12">
                 <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-slate-300 text-lg">Loading transactions...</p>
@@ -159,7 +172,7 @@ export default function HistoryPage() {
             )}
 
             {/* Connected but no transactions */}
-            {!isLoading && isConnected && filteredTransactions.length === 0 && (
+            {!isLoadingIds && isConnected && filteredTransactions.length === 0 && (
               <div className="text-center py-12">
                 <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20">
                   <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +185,7 @@ export default function HistoryPage() {
             )}
 
             {/* Not connected */}
-            {!isLoading && !isConnected && (
+            {!isLoadingIds && !isConnected && (
               <div className="text-center py-12">
                 <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20">
                   <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +198,7 @@ export default function HistoryPage() {
             )}
 
             {/* Actual transactions */}
-            {!isLoading && filteredTransactions.map((transaction) => (
+            {!isLoadingIds && filteredTransactions.map((transaction) => (
               <div key={transaction.id} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                 {/* Transaction Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -243,5 +256,6 @@ export default function HistoryPage() {
 
       <BottomNavigation />
     </div>
+    </>
   );
 } 
