@@ -81,7 +81,10 @@ export type Currency = keyof typeof MENTO_TOKENS[SupportedChainId];
 
 export function getTokenAddress(chainId: SupportedChainId, currency: Currency): string {
   const address = MENTO_TOKENS[chainId][currency];
+  console.log(`Getting token address for ${currency} on chain ${chainId}:`, address);
   if (!address) {
+    console.error(`Token address not configured for ${currency} on chain ${chainId}`);
+    console.error('Available tokens:', Object.keys(MENTO_TOKENS[chainId]));
     throw new Error(`Token address not configured for ${currency} on chain ${chainId}`);
   }
   return address;

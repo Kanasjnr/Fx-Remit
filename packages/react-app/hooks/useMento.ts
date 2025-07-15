@@ -5,21 +5,21 @@ import { parseEther, formatEther } from 'viem';
 import { providers, Wallet, Signer } from 'ethers';
 import { Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
 
-// Custom adapter to convert wagmi wallet client to ethers signer
-class WagmiSigner extends Signer {
+// Create a proper ethers signer that wraps wagmi wallet client
+class WagmiEthersSigner extends Signer {
   private walletClient: any;
-  private address: string;
+  private userAddress: string;
   public provider: providers.Provider;
 
-  constructor(walletClient: any, address: string, provider: providers.Provider) {
+  constructor(walletClient: any, userAddress: string, provider: providers.Provider) {
     super();
     this.walletClient = walletClient;
-    this.address = address;
+    this.userAddress = userAddress;
     this.provider = provider;
   }
 
   async getAddress(): Promise<string> {
-    return this.address;
+    return this.userAddress;
   }
 
   async signMessage(message: string): Promise<string> {
@@ -31,12 +31,21 @@ class WagmiSigner extends Signer {
   }
 
   async sendTransaction(transaction: any): Promise<providers.TransactionResponse> {
-    const hash = await this.walletClient.sendTransaction(transaction);
+    // Convert ethers transaction to wagmi format
+    const wagmiTx = {
+      to: transaction.to as `0x${string}`,
+      data: transaction.data as `0x${string}`,
+      value: transaction.value ? BigInt(transaction.value.toString()) : undefined,
+      gas: transaction.gasLimit ? BigInt(transaction.gasLimit.toString()) : undefined,
+      gasPrice: transaction.gasPrice ? BigInt(transaction.gasPrice.toString()) : undefined,
+    };
+
+    const hash = await this.walletClient.sendTransaction(wagmiTx);
     return this.provider.getTransaction(hash);
   }
 
   connect(provider: providers.Provider): Signer {
-    return new WagmiSigner(this.walletClient, this.address, provider);
+    return new WagmiEthersSigner(this.walletClient, this.userAddress, provider);
   }
 }
 
@@ -46,6 +55,7 @@ export function useMento() {
   const publicClient = usePublicClient();
   const [mento, setMento] = useState<Mento | null>(null);
   const [mentoWithSigner, setMentoWithSigner] = useState<Mento | null>(null);
+  const [signer, setSigner] = useState<WagmiEthersSigner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,23 +69,25 @@ export function useMento() {
           publicClient.transport.url || 'https://alfajores-forno.celo-testnet.org'
         );
         
-        // Initialize Mento with provider for read-only operations
+        // Initialize Mento with provider only (for read-only operations like quotes)
         const mentoSDK = await Mento.create(ethersProvider);
         setMento(mentoSDK);
         
-        // Initialize Mento with signer for state-changing operations if wallet is connected
+        // Create Mento with signer for state-changing operations (exactly like docs)
         if (walletClient && address) {
           try {
-            // Create a custom signer from the wallet client
-            const signer = new WagmiSigner(walletClient, address, ethersProvider);
-            const mentoWithSigner = await Mento.create(signer);
+            const wagmiSigner = new WagmiEthersSigner(walletClient, address, ethersProvider);
+            const mentoWithSigner = await Mento.create(wagmiSigner);
             setMentoWithSigner(mentoWithSigner);
+            setSigner(wagmiSigner);
           } catch (signerError) {
             console.warn('Failed to create signer, state-changing operations will not be available:', signerError);
             setMentoWithSigner(null);
+            setSigner(null);
           }
         } else {
           setMentoWithSigner(null);
+          setSigner(null);
         }
         
         setError(null);
@@ -93,6 +105,7 @@ export function useMento() {
   return {
     mento,
     mentoWithSigner,
+    signer,
     isLoading,
     error,
     isConnected: !!address && !!walletClient,
@@ -149,8 +162,7 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
 }
 
 export function useTokenSwap() {
-  const { mento, mentoWithSigner, isConnected } = useMento();
-  const { data: walletClient } = useWalletClient();
+  const { mento, mentoWithSigner, signer, isConnected } = useMento();
   const publicClient = usePublicClient();
   const [isSwapping, setIsSwapping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -162,7 +174,7 @@ export function useTokenSwap() {
     recipient: string,
     minAmountOut?: string
   ) => {
-    if (!mento || !mentoWithSigner || !walletClient || !publicClient || !isConnected) {
+    if (!mento || !mentoWithSigner || !signer || !publicClient || !isConnected) {
       throw new Error('Wallet not connected or Mento not initialized');
     }
 
@@ -175,36 +187,37 @@ export function useTokenSwap() {
       const fromTokenAddress = getTokenAddress(supportedChainId, fromCurrency);
       const toTokenAddress = getTokenAddress(supportedChainId, toCurrency);
       
+      console.log('Swap parameters:', {
+        fromCurrency,
+        toCurrency,
+        fromTokenAddress,
+        toTokenAddress,
+        chainId,
+        supportedChainId
+      });
+      
       const amountInWei = parseEther(amountIn);
       
       // Get quote for minimum amount out if not provided
       const quote = await mento.getAmountOut(fromTokenAddress, toTokenAddress, amountInWei);
       const quoteBigInt = BigInt(quote.toString());
       
-      // Apply slippage (1% default)
+      // Apply slippage (1% default) - exactly like docs
       const expectedAmountOut = minAmountOut ? parseEther(minAmountOut) : quoteBigInt * BigInt(99) / BigInt(100);
       
-      // Step 1: Approve the broker to spend tokens
+      // Step 1: Increase trading allowance (exactly like docs)
       console.log('Approving token allowance...');
       const allowanceTxObj = await mentoWithSigner.increaseTradingAllowance(
         fromTokenAddress,
         amountInWei
       );
       
-      // Send allowance transaction using wallet client
-      const allowanceTxHash = await walletClient.sendTransaction({
-        to: allowanceTxObj.to as `0x${string}`,
-        data: allowanceTxObj.data as `0x${string}`,
-        value: allowanceTxObj.value ? BigInt(allowanceTxObj.value.toString()) : undefined,
-        gas: allowanceTxObj.gasLimit ? BigInt(allowanceTxObj.gasLimit.toString()) : undefined,
-        gasPrice: allowanceTxObj.gasPrice ? BigInt(allowanceTxObj.gasPrice.toString()) : undefined,
-      });
+      // Send allowance transaction using signer (exactly like docs)
+      const allowanceTx = await signer.sendTransaction(allowanceTxObj);
+      const allowanceReceipt = await allowanceTx.wait();
+      console.log('Allowance tx receipt:', allowanceReceipt);
       
-      // Wait for allowance transaction to be mined
-      console.log('Waiting for allowance transaction to be mined...');
-      await publicClient.waitForTransactionReceipt({ hash: allowanceTxHash });
-      
-      // Step 2: Execute the swap
+      // Step 2: Execute swap (exactly like docs)
       console.log('Executing swap...');
       const swapTxObj = await mentoWithSigner.swapIn(
         fromTokenAddress,
@@ -213,29 +226,22 @@ export function useTokenSwap() {
         expectedAmountOut
       );
       
-      // Send swap transaction using wallet client
-      const swapTxHash = await walletClient.sendTransaction({
-        to: swapTxObj.to as `0x${string}`,
-        data: swapTxObj.data as `0x${string}`,
-        value: swapTxObj.value ? BigInt(swapTxObj.value.toString()) : undefined,
-        gas: swapTxObj.gasLimit ? BigInt(swapTxObj.gasLimit.toString()) : undefined,
-        gasPrice: swapTxObj.gasPrice ? BigInt(swapTxObj.gasPrice.toString()) : undefined,
-      });
-      
-      // Wait for swap transaction to be mined
-      const swapReceipt = await publicClient.waitForTransactionReceipt({ hash: swapTxHash });
+      // Send swap transaction using signer (exactly like docs)
+      const swapTx = await signer.sendTransaction(swapTxObj);
+      const swapTxReceipt = await swapTx.wait();
+      console.log('Swap tx receipt:', swapTxReceipt);
       
       return {
-        hash: swapTxHash,
+        hash: swapTx.hash,
         amountIn: amountIn,
         amountOut: formatEther(quoteBigInt),
         exchangeRate: formatEther(quoteBigInt * BigInt(1e18) / amountInWei),
         fromCurrency,
         toCurrency,
         recipient,
-        allowanceTxHash,
-        swapTxHash,
-        receipt: swapReceipt,
+        allowanceTxHash: allowanceTx.hash,
+        swapTxHash: swapTx.hash,
+        receipt: swapTxReceipt,
       };
     } catch (err) {
       console.error('Swap failed:', err);
@@ -383,4 +389,4 @@ export function useQuote(
     isLoading,
     error,
   };
-} 
+}

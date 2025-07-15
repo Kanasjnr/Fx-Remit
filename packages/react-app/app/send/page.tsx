@@ -220,7 +220,12 @@ export default function SendPage() {
               </div>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-sm text-slate-300">Platform fee (1.5%)</span>
-                <span className="text-sm font-medium text-white">{parseFloat(quote.platformFee).toFixed(2)} {fromCurrency}</span>
+                <span className="text-sm font-medium text-white">
+                  {parseFloat(quote.platformFee) < 0.01 && parseFloat(quote.platformFee) > 0
+                    ? `${parseFloat(quote.platformFee).toFixed(4)} ${fromCurrency}`
+                    : `${parseFloat(quote.platformFee).toFixed(2)} ${fromCurrency}`
+                  }
+                </span>
               </div>
               <div className="flex justify-between items-center border-t border-white/20 pt-3">
                 <span className="text-sm font-medium text-slate-300">Recipient gets</span>
