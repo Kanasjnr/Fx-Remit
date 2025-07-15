@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlatformStats } from '@/hooks/useContract';
+import Header from '@/components/Header';
 
 export default function LandingPage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -30,15 +31,8 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(139,92,246,0.1),transparent_50%)]"></div>
       </div>
       
-      {/* Header */}
-      <header className="relative z-10 px-6 py-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-lg">FX</span>
-          </div>
-          <span className="text-2xl font-bold text-white">FXRemit</span>
-        </div>
-      </header>
+      {/* Use Header component */}
+      <Header />
 
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center pt-8 pb-20">

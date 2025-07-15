@@ -1,15 +1,17 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
-import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO } from '../lib/contracts';
+import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO, isContractConfigured, SupportedChainId } from '../lib/contracts';
 
 export function useFXRemitContract() {
   const chainId = useChainId();
+  const address = getContractAddress(chainId);
   
   return {
-    address: getContractAddress(chainId),
+    address,
     abi: FXREMIT_CONTRACT.abi,
     chainId,
+    isConfigured: address !== null,
   };
 }
 
@@ -32,8 +34,16 @@ export function useLogRemittance() {
     mentoTxHash: string;
     corridor: string;
   }) => {
-    const fromTokenAddress = getTokenAddress(contract.chainId, params.fromCurrency);
-    const toTokenAddress = getTokenAddress(contract.chainId, params.toCurrency);
+    if (!contract.isConfigured) {
+      throw new Error('Contract not configured for this chain');
+    }
+    
+    if (!contract.isConfigured) {
+      throw new Error('Contract not configured for this chain');
+    }
+    
+    const fromTokenAddress = getTokenAddress(contract.chainId as SupportedChainId, params.fromCurrency);
+    const toTokenAddress = getTokenAddress(contract.chainId as SupportedChainId, params.toCurrency);
     
     writeContract({
       address: contract.address as `0x${string}`,
@@ -74,14 +84,14 @@ export function useUserRemittances(userAddress?: string) {
     functionName: 'getUserRemittances',
     args: [userAddress],
     query: {
-      enabled: !!userAddress,
+      enabled: !!userAddress && contract.isConfigured,
     },
   });
 
   return {
     remittanceIds: remittanceIds as bigint[] || [],
-    isLoading,
-    error,
+    isLoading: contract.isConfigured ? isLoading : false,
+    error: contract.isConfigured ? error : null,
   };
 }
 
@@ -94,31 +104,31 @@ export function useRemittanceDetails(remittanceId: bigint) {
     functionName: 'getRemittance',
     args: [remittanceId],
     query: {
-      enabled: !!remittanceId,
+      enabled: !!remittanceId && contract.isConfigured,
     },
   });
 
-  const formatted = remittance ? {
-    id: remittance.id,
-    sender: remittance.sender,
-    recipient: remittance.recipient,
-    fromToken: remittance.fromToken,
-    toToken: remittance.toToken,
-    fromCurrency: remittance.fromCurrency,
-    toCurrency: remittance.toCurrency,
-    amountSent: formatEther(remittance.amountSent),
-    amountReceived: formatEther(remittance.amountReceived),
-    exchangeRate: formatEther(remittance.exchangeRate),
-    platformFee: formatEther(remittance.platformFee),
-    timestamp: new Date(Number(remittance.timestamp) * 1000),
-    mentoTxHash: remittance.mentoTxHash,
-    corridor: remittance.corridor,
+  const formatted = remittance && Array.isArray(remittance) ? {
+    id: remittance[0],
+    sender: remittance[1],
+    recipient: remittance[2],
+    fromToken: remittance[3],
+    toToken: remittance[4],
+    fromCurrency: remittance[5],
+    toCurrency: remittance[6],
+    amountSent: formatEther(remittance[7]),
+    amountReceived: formatEther(remittance[8]),
+    exchangeRate: formatEther(remittance[9]),
+    platformFee: formatEther(remittance[10]),
+    timestamp: new Date(Number(remittance[11]) * 1000),
+    mentoTxHash: remittance[12],
+    corridor: remittance[13],
   } : null;
 
   return {
     remittance: formatted,
-    isLoading,
-    error,
+    isLoading: contract.isConfigured ? isLoading : false,
+    error: contract.isConfigured ? error : null,
   };
 }
 
@@ -129,19 +139,23 @@ export function usePlatformStats() {
     address: contract.address as `0x${string}`,
     abi: contract.abi,
     functionName: 'getPlatformStats',
+    query: {
+      enabled: contract.isConfigured, // Only run query if contract is configured
+    },
   });
 
-  const formatted = stats ? {
-    totalVolume: formatEther(stats[0]),
-    totalFees: formatEther(stats[1]),
+  const formatted = stats && Array.isArray(stats) ? {
+    totalVolume: formatEther(stats[0] as bigint),
+    totalFees: formatEther(stats[1] as bigint),
     totalTransactions: Number(stats[2]),
     totalRemittances: Number(stats[3]),
   } : null;
 
   return {
     stats: formatted,
-    isLoading,
-    error,
+    isLoading: contract.isConfigured ? isLoading : false,
+    error: contract.isConfigured ? error : null,
+    isConfigured: contract.isConfigured,
   };
 }
 
@@ -158,10 +172,10 @@ export function useUserStats(userAddress?: string, maxTransactions: number = 50)
     },
   });
 
-  const formatted = userStats ? {
-    totalSent: formatEther(userStats[0]),
+  const formatted = userStats && Array.isArray(userStats) ? {
+    totalSent: formatEther(userStats[0] as bigint),
     transactionsProcessed: Number(userStats[1]),
-    totalFees: formatEther(userStats[2]),
+    totalFees: formatEther(userStats[2] as bigint),
     totalTransactions: Number(userStats[3]),
   } : null;
 
@@ -186,7 +200,7 @@ export function useCorridorVolume(corridor: string) {
   });
 
   return {
-    volume: volume ? formatEther(volume) : '0',
+    volume: volume ? formatEther(volume as bigint) : '0',
     isLoading,
     error,
   };

@@ -1,14 +1,51 @@
 import { useState, useEffect } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { Mento, MentoSDK } from '@mento-protocol/mento-sdk';
+import { Mento } from '@mento-protocol/mento-sdk';
 import { parseEther, formatEther } from 'viem';
-import { Currency, getTokenAddress, CURRENCY_INFO } from '../lib/contracts';
+import { providers, Wallet, Signer } from 'ethers';
+import { Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
+
+// Custom adapter to convert wagmi wallet client to ethers signer
+class WagmiSigner extends Signer {
+  private walletClient: any;
+  private address: string;
+  public provider: providers.Provider;
+
+  constructor(walletClient: any, address: string, provider: providers.Provider) {
+    super();
+    this.walletClient = walletClient;
+    this.address = address;
+    this.provider = provider;
+  }
+
+  async getAddress(): Promise<string> {
+    return this.address;
+  }
+
+  async signMessage(message: string): Promise<string> {
+    return this.walletClient.signMessage({ message });
+  }
+
+  async signTransaction(transaction: any): Promise<string> {
+    throw new Error('signTransaction not implemented');
+  }
+
+  async sendTransaction(transaction: any): Promise<providers.TransactionResponse> {
+    const hash = await this.walletClient.sendTransaction(transaction);
+    return this.provider.getTransaction(hash);
+  }
+
+  connect(provider: providers.Provider): Signer {
+    return new WagmiSigner(this.walletClient, this.address, provider);
+  }
+}
 
 export function useMento() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
-  const [mento, setMento] = useState<MentoSDK | null>(null);
+  const [mento, setMento] = useState<Mento | null>(null);
+  const [mentoWithSigner, setMentoWithSigner] = useState<Mento | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,8 +54,30 @@ export function useMento() {
       try {
         if (!publicClient) return;
         
-        const mentoSDK = await Mento.create(publicClient);
+        // Create an ethers provider from the viem client
+        const ethersProvider = new providers.JsonRpcProvider(
+          publicClient.transport.url || 'https://alfajores-forno.celo-testnet.org'
+        );
+        
+        // Initialize Mento with provider for read-only operations
+        const mentoSDK = await Mento.create(ethersProvider);
         setMento(mentoSDK);
+        
+        // Initialize Mento with signer for state-changing operations if wallet is connected
+        if (walletClient && address) {
+          try {
+            // Create a custom signer from the wallet client
+            const signer = new WagmiSigner(walletClient, address, ethersProvider);
+            const mentoWithSigner = await Mento.create(signer);
+            setMentoWithSigner(mentoWithSigner);
+          } catch (signerError) {
+            console.warn('Failed to create signer, state-changing operations will not be available:', signerError);
+            setMentoWithSigner(null);
+          }
+        } else {
+          setMentoWithSigner(null);
+        }
+        
         setError(null);
       } catch (err) {
         console.error('Failed to initialize Mento SDK:', err);
@@ -29,10 +88,11 @@ export function useMento() {
     }
 
     initMento();
-  }, [publicClient]);
+  }, [publicClient, walletClient, address]);
 
   return {
     mento,
+    mentoWithSigner,
     isLoading,
     error,
     isConnected: !!address && !!walletClient,
@@ -58,14 +118,16 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
 
       try {
         const chainId = await publicClient.getChainId();
-        const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
-        const toTokenAddress = getTokenAddress(chainId, toCurrency);
+        const supportedChainId = chainId as SupportedChainId;
+        const fromTokenAddress = getTokenAddress(supportedChainId, fromCurrency);
+        const toTokenAddress = getTokenAddress(supportedChainId, toCurrency);
         
         // Get exchange rate for 1 unit of fromCurrency
         const amountIn = parseEther('1');
         const quote = await mento.getAmountOut(fromTokenAddress, toTokenAddress, amountIn);
         
-        const exchangeRate = formatEther(quote);
+        // Convert BigNumber to string for viem formatting
+        const exchangeRate = formatEther(BigInt(quote.toString()));
         setRate(exchangeRate);
       } catch (err) {
         console.error('Failed to fetch exchange rate:', err);
@@ -87,7 +149,7 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
 }
 
 export function useTokenSwap() {
-  const { mento, isConnected } = useMento();
+  const { mento, mentoWithSigner, isConnected } = useMento();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const [isSwapping, setIsSwapping] = useState(false);
@@ -100,7 +162,7 @@ export function useTokenSwap() {
     recipient: string,
     minAmountOut?: string
   ) => {
-    if (!mento || !walletClient || !publicClient || !isConnected) {
+    if (!mento || !mentoWithSigner || !walletClient || !publicClient || !isConnected) {
       throw new Error('Wallet not connected or Mento not initialized');
     }
 
@@ -109,33 +171,71 @@ export function useTokenSwap() {
 
     try {
       const chainId = await publicClient.getChainId();
-      const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
-      const toTokenAddress = getTokenAddress(chainId, toCurrency);
+      const supportedChainId = chainId as SupportedChainId;
+      const fromTokenAddress = getTokenAddress(supportedChainId, fromCurrency);
+      const toTokenAddress = getTokenAddress(supportedChainId, toCurrency);
       
       const amountInWei = parseEther(amountIn);
       
       // Get quote for minimum amount out if not provided
       const quote = await mento.getAmountOut(fromTokenAddress, toTokenAddress, amountInWei);
-      const minAmountOutWei = minAmountOut ? parseEther(minAmountOut) : quote * BigInt(95) / BigInt(100); // 5% slippage
+      const quoteBigInt = BigInt(quote.toString());
       
-      // Execute the swap
-      const tx = await mento.swapIn(
-        walletClient,
+      // Apply slippage (1% default)
+      const expectedAmountOut = minAmountOut ? parseEther(minAmountOut) : quoteBigInt * BigInt(99) / BigInt(100);
+      
+      // Step 1: Approve the broker to spend tokens
+      console.log('Approving token allowance...');
+      const allowanceTxObj = await mentoWithSigner.increaseTradingAllowance(
+        fromTokenAddress,
+        amountInWei
+      );
+      
+      // Send allowance transaction using wallet client
+      const allowanceTxHash = await walletClient.sendTransaction({
+        to: allowanceTxObj.to as `0x${string}`,
+        data: allowanceTxObj.data as `0x${string}`,
+        value: allowanceTxObj.value ? BigInt(allowanceTxObj.value.toString()) : undefined,
+        gas: allowanceTxObj.gasLimit ? BigInt(allowanceTxObj.gasLimit.toString()) : undefined,
+        gasPrice: allowanceTxObj.gasPrice ? BigInt(allowanceTxObj.gasPrice.toString()) : undefined,
+      });
+      
+      // Wait for allowance transaction to be mined
+      console.log('Waiting for allowance transaction to be mined...');
+      await publicClient.waitForTransactionReceipt({ hash: allowanceTxHash });
+      
+      // Step 2: Execute the swap
+      console.log('Executing swap...');
+      const swapTxObj = await mentoWithSigner.swapIn(
         fromTokenAddress,
         toTokenAddress,
         amountInWei,
-        minAmountOutWei,
-        recipient as `0x${string}`
+        expectedAmountOut
       );
-
+      
+      // Send swap transaction using wallet client
+      const swapTxHash = await walletClient.sendTransaction({
+        to: swapTxObj.to as `0x${string}`,
+        data: swapTxObj.data as `0x${string}`,
+        value: swapTxObj.value ? BigInt(swapTxObj.value.toString()) : undefined,
+        gas: swapTxObj.gasLimit ? BigInt(swapTxObj.gasLimit.toString()) : undefined,
+        gasPrice: swapTxObj.gasPrice ? BigInt(swapTxObj.gasPrice.toString()) : undefined,
+      });
+      
+      // Wait for swap transaction to be mined
+      const swapReceipt = await publicClient.waitForTransactionReceipt({ hash: swapTxHash });
+      
       return {
-        hash: tx,
+        hash: swapTxHash,
         amountIn: amountIn,
-        amountOut: formatEther(quote),
-        exchangeRate: formatEther(quote * BigInt(1e18) / amountInWei),
+        amountOut: formatEther(quoteBigInt),
+        exchangeRate: formatEther(quoteBigInt * BigInt(1e18) / amountInWei),
         fromCurrency,
         toCurrency,
         recipient,
+        allowanceTxHash,
+        swapTxHash,
+        receipt: swapReceipt,
       };
     } catch (err) {
       console.error('Swap failed:', err);
@@ -174,7 +274,8 @@ export function useTokenBalance(currency: Currency) {
 
       try {
         const chainId = await publicClient.getChainId();
-        const tokenAddress = getTokenAddress(chainId, currency);
+        const supportedChainId = chainId as SupportedChainId;
+        const tokenAddress = getTokenAddress(supportedChainId, currency);
         
         const balance = await publicClient.readContract({
           address: tokenAddress as `0x${string}`,
@@ -240,14 +341,17 @@ export function useQuote(
 
       try {
         const chainId = await publicClient.getChainId();
-        const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
-        const toTokenAddress = getTokenAddress(chainId, toCurrency);
+        const supportedChainId = chainId as SupportedChainId;
+        const fromTokenAddress = getTokenAddress(supportedChainId, fromCurrency);
+        const toTokenAddress = getTokenAddress(supportedChainId, toCurrency);
         
         const amountInWei = parseEther(amountIn);
         const amountOutWei = await mento.getAmountOut(fromTokenAddress, toTokenAddress, amountInWei);
         
-        const amountOut = formatEther(amountOutWei);
-        const exchangeRate = formatEther(amountOutWei * BigInt(1e18) / amountInWei);
+        // Convert BigNumber to bigint for viem formatting
+        const amountOutBigInt = BigInt(amountOutWei.toString());
+        const amountOut = formatEther(amountOutBigInt);
+        const exchangeRate = formatEther(amountOutBigInt * BigInt(1e18) / amountInWei);
         
         // Calculate platform fee (1.5% of amount sent)
         const platformFeeRate = 0.015;
