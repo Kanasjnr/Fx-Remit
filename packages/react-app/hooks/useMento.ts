@@ -4,6 +4,7 @@ import { Mento } from '@mento-protocol/mento-sdk';
 import { parseEther, formatEther } from 'viem';
 import { providers, Wallet, Signer } from 'ethers';
 import { Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
+import { useDivvi } from './useDivvi';
 
 // Create a proper ethers signer that wraps wagmi wallet client
 class WagmiEthersSigner extends Signer {
@@ -164,6 +165,7 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
 export function useTokenSwap() {
   const { mento, mentoWithSigner, signer, isConnected } = useMento();
   const publicClient = usePublicClient();
+  const { generateReferralTag, submitReferralTransaction, isReady: isDivviReady } = useDivvi();
   const [isSwapping, setIsSwapping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -205,12 +207,28 @@ export function useTokenSwap() {
       // Apply slippage (1% default) - exactly like docs
       const expectedAmountOut = minAmountOut ? parseEther(minAmountOut) : quoteBigInt * BigInt(99) / BigInt(100);
       
+      // Generate Divvi referral tag
+      let referralTag: string | null = null;
+      if (isDivviReady) {
+        try {
+          referralTag = generateReferralTag();
+          console.log('Generated Divvi referral tag:', referralTag);
+        } catch (error) {
+          console.warn('Failed to generate referral tag:', error);
+        }
+      }
+      
       // Step 1: Increase trading allowance (exactly like docs)
       console.log('Approving token allowance...');
       const allowanceTxObj = await mentoWithSigner.increaseTradingAllowance(
         fromTokenAddress,
         amountInWei
       );
+      
+      // Add referral tag to allowance transaction data if available
+      if (referralTag) {
+        allowanceTxObj.data = (allowanceTxObj.data || '0x') + referralTag.slice(2);
+      }
       
       // Send allowance transaction using signer (exactly like docs)
       const allowanceTx = await signer.sendTransaction(allowanceTxObj);
@@ -226,10 +244,26 @@ export function useTokenSwap() {
         expectedAmountOut
       );
       
+      // Add referral tag to swap transaction data if available
+      if (referralTag) {
+        swapTxObj.data = (swapTxObj.data || '0x') + referralTag.slice(2);
+      }
+      
       // Send swap transaction using signer (exactly like docs)
       const swapTx = await signer.sendTransaction(swapTxObj);
       const swapTxReceipt = await swapTx.wait();
       console.log('Swap tx receipt:', swapTxReceipt);
+      
+      // Submit referral to Divvi after transaction is confirmed
+      if (referralTag && isDivviReady) {
+        try {
+          await submitReferralTransaction(swapTx.hash);
+          console.log('Referral submitted to Divvi successfully');
+        } catch (error) {
+          console.warn('Failed to submit referral to Divvi:', error);
+          // Don't throw error here as the swap was successful
+        }
+      }
       
       return {
         hash: swapTx.hash,
