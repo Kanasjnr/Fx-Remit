@@ -1,12 +1,8 @@
 <!-- TITLE -->
 <p align="center">
-  <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-    <span style="color: white; font-size: 36px; font-weight: bold;">FX</span>
-  </div>
   <h2 align="center">FX-Remit</h2>
   <p align="center">🌍 Cross-border remittances made simple with blockchain technology</p>
 </p>
-
 
 ---
 
