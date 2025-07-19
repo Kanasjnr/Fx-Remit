@@ -38,7 +38,7 @@ export default function SendPage() {
 
   const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency);
   const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount);
-  const { swap } = useEthersSwap(); // Use the new pure ethers.js implementation
+  const { swap } = useEthersSwap(); 
   const { logRemittance, isPending: isLoggingRemittance } = useLogRemittance();
 
   const handleSwapCurrencies = () => {
@@ -73,7 +73,21 @@ export default function SendPage() {
       console.log('✅ Swap completed successfully:', swapResult);
 
       // Log the remittance to our contract
-      await logRemittance({
+      console.log('📝 Starting logRemittance call...');
+      console.log('📝 Detailed parameter check:');
+      console.log('  recipient:', recipient);
+      console.log('  fromCurrency:', fromCurrency);
+      console.log('  toCurrency:', toCurrency);
+      console.log('  amountSent:', amount);
+      console.log('  quote object:', quote);
+      console.log('  quote.amountOut:', quote?.amountOut);
+      console.log('  quote.exchangeRate:', quote?.exchangeRate);
+      console.log('  quote.platformFee:', quote?.platformFee);
+      console.log('  swapResult object:', swapResult);
+      console.log('  swapResult.hash:', swapResult?.hash);
+      console.log('  corridor calculation:', `${fromCurrency.replace('c', '')}-${toCurrency.replace('c', '')}`);
+      
+      console.log('📝 logRemittance params:', {
         recipient,
         fromCurrency,
         toCurrency,
@@ -81,9 +95,27 @@ export default function SendPage() {
         amountReceived: quote.amountOut,
         exchangeRate: quote.exchangeRate,
         platformFee: quote.platformFee,
-        mentoTxHash: swapResult.transactionHash,
+        mentoTxHash: swapResult.hash,
         corridor: `${fromCurrency.replace('c', '')}-${toCurrency.replace('c', '')}`,
       });
+      
+      try {
+        await logRemittance({
+          recipient,
+          fromCurrency,
+          toCurrency,
+          amountSent: amount,
+          amountReceived: quote.amountOut,
+          exchangeRate: quote.exchangeRate,
+          platformFee: quote.platformFee,
+          mentoTxHash: swapResult.hash, // Changed from transactionHash to hash
+          corridor: `${fromCurrency.replace('c', '')}-${toCurrency.replace('c', '')}`,
+        });
+        console.log('✅ logRemittance completed successfully!');
+      } catch (logError) {
+        console.error('❌ logRemittance failed:', logError);
+        // Don't throw the error - just log it so swap success isn't affected
+      }
 
       // Dismiss loading toast and show success toast
       toast.dismiss(loadingToast);
