@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -24,14 +24,31 @@ interface Transaction {
 // Separate component to handle individual remittance details
 function RemittanceItem({ remittanceId, onTransactionReady }: { 
   remittanceId: bigint; 
-  onTransactionReady: (transaction: Transaction | null) => void 
+  onTransactionReady: (id: string, transaction: Transaction | null) => void 
 }) {
   const { remittance, isLoading } = useRemittanceDetails(remittanceId);
+  const id = remittanceId.toString();
+  const processedRef = useRef<string | null>(null);
   
-  useMemo(() => {
-    if (remittance) {
+  useEffect(() => {
+    // Create a stable key for this remittance data
+    const dataKey = remittance ? `${remittance.id}-${remittance.fromCurrency}-${remittance.toCurrency}` : null;
+    
+    // Only process if we haven't processed this exact data before
+    if (remittance && remittance.fromCurrency && remittance.toCurrency && processedRef.current !== dataKey) {
+      console.log('💰 Fee debugging:', {
+        platformFee: remittance.platformFee,
+        parsedFee: parseFloat(remittance.platformFee),
+        allAmounts: {
+          amountSent: remittance.amountSent,
+          amountReceived: remittance.amountReceived,
+          exchangeRate: remittance.exchangeRate,
+          platformFee: remittance.platformFee
+        }
+      });
+      
       const tx: Transaction = {
-        id: remittance.id.toString(),
+        id: remittance.id ? remittance.id.toString() : id,
         from: remittance.fromCurrency as Currency,
         to: remittance.toCurrency as Currency,
         amount: parseFloat(remittance.amountSent),
@@ -43,12 +60,14 @@ function RemittanceItem({ remittanceId, onTransactionReady }: {
         hash: remittance.mentoTxHash,
         recipient: remittance.recipient,
       };
-      onTransactionReady(tx);
-    } else {
-      onTransactionReady(null);
+      processedRef.current = dataKey;
+      onTransactionReady(id, tx);
+    } else if (!isLoading && !remittance && processedRef.current !== 'null') {
+      processedRef.current = 'null';
+      onTransactionReady(id, null);
     }
-  }, [remittance, onTransactionReady]);
-  
+  }, [remittance?.id, remittance?.fromCurrency, remittance?.toCurrency, isLoading, id, onTransactionReady]);
+
   return null; // This component doesn't render anything
 }
 
@@ -56,15 +75,21 @@ export default function HistoryPage() {
   const { address, isConnected } = useAccount();
   const [filter, setFilter] = useState('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isClientMounted, setIsClientMounted] = useState(false);
   
+  useEffect(() => {
+    setIsClientMounted(true);
+  }, []);
+
   const { remittanceIds, isLoading: isLoadingIds } = useUserRemittances(address);
   
-  const handleTransactionReady = (id: string) => (transaction: Transaction | null) => {
+  // Use a single stable callback that handles all transactions
+  const handleTransactionReady = useCallback((id: string, transaction: Transaction | null) => {
     setTransactions(prev => {
       const filtered = prev.filter(t => t.id !== id);
       return transaction ? [...filtered, transaction] : filtered;
     });
-  };
+  }, []);
 
   const filteredTransactions = useMemo(() => {
     if (filter === 'all') return transactions;
@@ -91,11 +116,11 @@ export default function HistoryPage() {
   return (
     <>
       {/* Render RemittanceItem components to handle data loading */}
-      {remittanceIds.map(id => (
+      {remittanceIds.filter(id => id && typeof id === 'bigint').map(id => (
         <RemittanceItem
           key={id.toString()}
           remittanceId={id}
-          onTransactionReady={handleTransactionReady(id.toString())}
+          onTransactionReady={handleTransactionReady}
         />
       ))}
       
@@ -110,7 +135,7 @@ export default function HistoryPage() {
             <span className="text-2xl font-bold text-white">FXRemit</span>
           </div>
           <div className="flex items-center space-x-2">
-            {isConnected ? (
+            {isConnected && isClientMounted ? (
               <>
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-slate-300">Connected</span>
@@ -199,50 +224,76 @@ export default function HistoryPage() {
 
             {/* Actual transactions */}
             {!isLoadingIds && filteredTransactions.map((transaction) => (
-              <div key={transaction.id} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div key={transaction.id} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 shadow-lg">
                 {/* Transaction Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-xl">{getCurrencyFlag(transaction.from)}</span>
-                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                    <span className="text-xl">{getCurrencyFlag(transaction.to)}</span>
-                    <span className="text-sm font-medium text-slate-300">
-                      {transaction.from} → {transaction.to}
-                    </span>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-3xl">{getCurrencyFlag(transaction.from)}</span>
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                      <span className="text-3xl">{getCurrencyFlag(transaction.to)}</span>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-white">
+                        {transaction.from} → {transaction.to}
+                      </div>
+                      <div className="text-sm text-slate-400">
+                        {transaction.date} at {transaction.time}
+                      </div>
+                    </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(transaction.status)}`}>
-                    {transaction.status}
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${getStatusColor(transaction.status)}`}>
+                    {transaction.status.toUpperCase()}
                   </span>
                 </div>
 
-                {/* Transaction Details */}
-                <div className="space-y-3">
+                {/* Transaction Amount Highlight */}
+                <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl p-4 mb-4 border border-green-500/30">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Amount sent</span>
-                    <span className="text-sm font-medium text-white">{transaction.amount.toFixed(2)} {transaction.from}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Amount received</span>
-                    <span className="text-sm font-medium text-white">{transaction.received.toLocaleString()} {transaction.to}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Fee</span>
-                    <span className="text-sm font-medium text-white">{transaction.fee.toFixed(2)} {transaction.from}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">Date</span>
-                    <span className="text-sm font-medium text-white">{transaction.date} at {transaction.time}</span>
+                    <div>
+                      <div className="text-sm text-slate-300">You sent</div>
+                      <div className="text-2xl font-bold text-white">{transaction.amount.toFixed(2)} {transaction.from}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-slate-300">They received</div>
+                      <div className="text-2xl font-bold text-green-400">{transaction.received.toFixed(3)} {transaction.to}</div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Transaction Hash */}
-                <div className="mt-4 pt-4 border-t border-white/20">
+                {/* Transaction Details */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">Platform fee</span>
+                    <span className="text-sm font-medium text-white">{transaction.fee.toFixed(4)} {transaction.from}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-400">Recipient</span>
+                    <span className="text-sm font-mono text-slate-300">
+                      {transaction.recipient.slice(0, 6)}...{transaction.recipient.slice(-4)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Transaction Hash and Explorer Link */}
+                <div className="pt-4 border-t border-white/20">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Hash: {transaction.hash}</span>
-                    <button className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
-                      View Details
+                    <div className="flex-1 min-w-0 mr-4">
+                      <div className="text-xs text-slate-500 mb-1">Transaction Hash</div>
+                      <div className="text-xs font-mono text-slate-400 truncate">
+                        {transaction.hash}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => window.open(`https://celo-alfajores.blockscout.com/tx/${transaction.hash}`, '_blank')}
+                      className="flex items-center space-x-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-blue-300 rounded-lg transition-all duration-300 text-sm font-medium border border-blue-500/30 hover:border-blue-500/50"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-6m-7 1l8-8m0 0V8m0 0H8" />
+                      </svg>
+                      <span>View on Explorer</span>
                     </button>
                   </div>
                 </div>

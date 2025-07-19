@@ -2,10 +2,18 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 
 import { useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO, isContractConfigured, SupportedChainId } from '../lib/contracts';
+import { useEffect } from 'react';
 
 export function useFXRemitContract() {
   const chainId = useChainId();
   const address = getContractAddress(chainId);
+  
+  console.log('🏗️ FXRemit Contract Config:', {
+    chainId,
+    address,
+    isConfigured: address !== null,
+    envVar: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT_ALFAJORES
+  });
   
   return {
     address,
@@ -34,16 +42,66 @@ export function useLogRemittance() {
     mentoTxHash: string;
     corridor: string;
   }) => {
-    if (!contract.isConfigured) {
-      throw new Error('Contract not configured for this chain');
-    }
+    console.log('📝 logRemittance function called with params:', params);
+    console.log('📝 Contract configuration:', {
+      address: contract.address,
+      isConfigured: contract.isConfigured,
+      chainId: contract.chainId
+    });
     
     if (!contract.isConfigured) {
+      console.error('❌ Contract not configured for chain:', contract.chainId);
       throw new Error('Contract not configured for this chain');
     }
     
     const fromTokenAddress = getTokenAddress(contract.chainId as SupportedChainId, params.fromCurrency);
     const toTokenAddress = getTokenAddress(contract.chainId as SupportedChainId, params.toCurrency);
+    
+    console.log('📝 Individual parameter debugging:', {
+      recipient: params.recipient,
+      fromTokenAddress,
+      toTokenAddress,  
+      fromCurrency: params.fromCurrency,
+      toCurrency: params.toCurrency,
+      amountSent: params.amountSent,
+      amountReceived: params.amountReceived,
+      exchangeRate: params.exchangeRate,
+      platformFee: params.platformFee,
+      mentoTxHash: params.mentoTxHash,
+      corridor: params.corridor
+    });
+
+    // Check each value before parseEther
+    console.log('📝 Pre-parseEther check:');
+    console.log('  amountSent type/value:', typeof params.amountSent, params.amountSent);
+    console.log('  amountReceived type/value:', typeof params.amountReceived, params.amountReceived);
+    console.log('  exchangeRate type/value:', typeof params.exchangeRate, params.exchangeRate);
+    console.log('  platformFee type/value:', typeof params.platformFee, params.platformFee);
+    
+    // Safe parseEther with fallbacks
+    const safeParseEther = (value: string | undefined, fallback = '0') => {
+      const safeValue = value || fallback;
+      console.log(`📝 parseEther(${safeValue})`);
+      return parseEther(safeValue);
+    };
+    
+    console.log('📝 Calling writeContract with:', {
+      address: contract.address,
+      functionName: 'logRemittance',
+      args: [
+        params.recipient,
+        fromTokenAddress,
+        toTokenAddress,
+        params.fromCurrency,
+        params.toCurrency,
+        safeParseEther(params.amountSent),
+        safeParseEther(params.amountReceived),
+        safeParseEther(params.exchangeRate, '1'),
+        safeParseEther(params.platformFee),
+        params.mentoTxHash || '',
+        params.corridor,
+      ]
+    });
     
     writeContract({
       address: contract.address as `0x${string}`,
@@ -55,15 +113,34 @@ export function useLogRemittance() {
         toTokenAddress,
         params.fromCurrency,
         params.toCurrency,
-        parseEther(params.amountSent),
-        parseEther(params.amountReceived),
-        parseEther(params.exchangeRate),
-        parseEther(params.platformFee),
-        params.mentoTxHash,
+        safeParseEther(params.amountSent),
+        safeParseEther(params.amountReceived),
+        safeParseEther(params.exchangeRate, '1'),
+        safeParseEther(params.platformFee),
+        params.mentoTxHash || '',
         params.corridor,
       ],
     });
   };
+
+  // Debug logging for writeContract states
+  useEffect(() => {
+    if (error) {
+      console.error('❌ writeContract error:', error);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (hash) {
+      console.log('📤 writeContract hash:', hash);
+    }
+  }, [hash]);
+
+  useEffect(() => {
+    if (isConfirmed) {
+      console.log('✅ writeContract confirmed!');
+    }
+  }, [isConfirmed]);
 
   return {
     logRemittance,
@@ -89,7 +166,7 @@ export function useUserRemittances(userAddress?: string) {
   });
 
   return {
-    remittanceIds: remittanceIds as bigint[] || [],
+    remittanceIds: (remittanceIds as bigint[] || []).filter(id => id !== undefined && id !== null),
     isLoading: contract.isConfigured ? isLoading : false,
     error: contract.isConfigured ? error : null,
   };
@@ -98,35 +175,55 @@ export function useUserRemittances(userAddress?: string) {
 export function useRemittanceDetails(remittanceId: bigint) {
   const contract = useFXRemitContract();
   
-  const { data: remittance, isLoading, error } = useReadContract({
+  const { data: remittanceData, isLoading, error } = useReadContract({
     address: contract.address as `0x${string}`,
     abi: contract.abi,
     functionName: 'getRemittance',
     args: [remittanceId],
     query: {
-      enabled: !!remittanceId && contract.isConfigured,
+      enabled: contract.isConfigured && remittanceId !== undefined && remittanceId !== null,
     },
   });
 
-  const formatted = remittance && Array.isArray(remittance) ? {
-    id: remittance[0],
-    sender: remittance[1],
-    recipient: remittance[2],
-    fromToken: remittance[3],
-    toToken: remittance[4],
-    fromCurrency: remittance[5],
-    toCurrency: remittance[6],
-    amountSent: formatEther(remittance[7]),
-    amountReceived: formatEther(remittance[8]),
-    exchangeRate: formatEther(remittance[9]),
-    platformFee: formatEther(remittance[10]),
-    timestamp: new Date(Number(remittance[11]) * 1000),
-    mentoTxHash: remittance[12],
-    corridor: remittance[13],
+  // Debug the actual remittanceData structure (only on first load)
+  if (remittanceData && !isLoading) {
+    console.log('🔍 Successfully loaded remittance data for ID:', (remittanceData as any).id);
+    console.log('🔍 Platform fee raw value:', (remittanceData as any).platformFee, typeof (remittanceData as any).platformFee);
+  }
+
+  // Safe formatting function to handle undefined values
+  const safeFormatEther = (value: any) => {
+    if (value === undefined || value === null) {
+      console.warn('⚠️ Undefined value passed to formatEther, using 0');
+      return '0';
+    }
+    try {
+      return formatEther(value);
+    } catch (err) {
+      console.error('❌ Error formatting ether:', err, 'value:', value);
+      return '0';
+    }
+  };
+
+  const remittance = remittanceData ? {
+    id: (remittanceData as any).id,
+    sender: (remittanceData as any).sender,
+    recipient: (remittanceData as any).recipient,
+    fromToken: (remittanceData as any).fromToken,
+    toToken: (remittanceData as any).toToken,
+    fromCurrency: (remittanceData as any).fromCurrency,
+    toCurrency: (remittanceData as any).toCurrency,
+    amountSent: safeFormatEther((remittanceData as any).amountSent),
+    amountReceived: safeFormatEther((remittanceData as any).amountReceived),
+    exchangeRate: safeFormatEther((remittanceData as any).exchangeRate),
+    platformFee: safeFormatEther((remittanceData as any).platformFee),
+    timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
+    mentoTxHash: (remittanceData as any).mentoTxHash,
+    corridor: (remittanceData as any).corridor,
   } : null;
 
   return {
-    remittance: formatted,
+    remittance: remittance,
     isLoading: contract.isConfigured ? isLoading : false,
     error: contract.isConfigured ? error : null,
   };
