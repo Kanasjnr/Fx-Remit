@@ -4,19 +4,19 @@ import { useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useTokenBalance, useQuote, useTokenSwap } from '@/hooks/useMento';
+import { useTokenBalance, useQuote } from '@/hooks/useMento';
+import { useEthersSwap } from '@/hooks/useEthersSwap';
 import { useLogRemittance } from '@/hooks/useContract';
 import { Currency, CURRENCY_INFO } from '@/lib/contracts';
+import { toast } from 'react-toastify';
 
 export default function SendPage() {
   const { address, isConnected } = useAccount();
   const [fromCurrency, setFromCurrency] = useState<Currency>('cUSD');
-  const [toCurrency, setToCurrency] = useState<Currency>('cKES');
+  const [toCurrency, setToCurrency] = useState<Currency>('cNGN');
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
 
   const currencies: Array<{ code: Currency; name: string; flag: string }> = [
     { code: 'cUSD', name: 'US Dollar', flag: '🇺🇸' },
@@ -38,7 +38,7 @@ export default function SendPage() {
 
   const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency);
   const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount);
-  const { swap, isSwapping } = useTokenSwap();
+  const { swap } = useEthersSwap(); // Use the new pure ethers.js implementation
   const { logRemittance, isPending: isLoggingRemittance } = useLogRemittance();
 
   const handleSwapCurrencies = () => {
@@ -48,22 +48,29 @@ export default function SendPage() {
 
   const handleSend = async () => {
     if (!address || !amount || !recipient || !quote) {
-      setErrorMessage('Please fill in all fields');
+      toast.error('Please fill in all fields');
       return;
     }
 
     setIsProcessing(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    toast.dismiss(); // Clear any existing toasts
+    
+    // Show loading toast
+    const loadingToast = toast.loading('Processing your remittance transaction...');
 
     try {
-      // Execute the swap through Mento
+      console.log('🚀 Starting swap with new ethers.js implementation...');
+      
+      // Execute the swap using the new pure ethers.js implementation
       const swapResult = await swap(
         fromCurrency,
         toCurrency,
         amount,
-        recipient
+        undefined, // minAmountOut (optional)
+        recipient  // recipient address for remittance
       );
+
+      console.log('✅ Swap completed successfully:', swapResult);
 
       // Log the remittance to our contract
       await logRemittance({
@@ -71,24 +78,27 @@ export default function SendPage() {
         fromCurrency,
         toCurrency,
         amountSent: amount,
-        amountReceived: swapResult.amountOut,
-        exchangeRate: swapResult.exchangeRate,
+        amountReceived: quote.amountOut,
+        exchangeRate: quote.exchangeRate,
         platformFee: quote.platformFee,
-        mentoTxHash: swapResult.hash,
+        mentoTxHash: swapResult.transactionHash,
         corridor: `${fromCurrency.replace('c', '')}-${toCurrency.replace('c', '')}`,
       });
 
-      setSuccessMessage(
-        `Successfully sent ${amount} ${fromCurrency} to ${recipient}. They will receive ${parseFloat(swapResult.amountOut).toFixed(2)} ${toCurrency}`
-      );
+      // Dismiss loading toast and show success toast
+      toast.dismiss(loadingToast);
+      const successMessage = swapResult.message || `🎉 Successfully sent ${amount} ${fromCurrency} to ${recipient}!`;
+      toast.success(successMessage);
       
       // Reset form
       setAmount('');
       setRecipient('');
       
     } catch (error) {
-      console.error('Transaction failed:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Transaction failed');
+      console.error('❌ Transaction failed:', error);
+      // Dismiss loading toast and show error toast
+      toast.dismiss(loadingToast);
+      toast.error(error instanceof Error ? error.message : 'Transaction failed');
     } finally {
       setIsProcessing(false);
     }
@@ -136,17 +146,7 @@ export default function SendPage() {
             <div className="text-sm text-blue-400 font-semibold">{fromCurrency}</div>
           </div>
 
-          {/* Success/Error Messages */}
-          {successMessage && (
-            <div className="bg-green-500/20 border border-green-500/30 rounded-2xl p-4 mb-6">
-              <div className="text-green-400 text-sm">{successMessage}</div>
-            </div>
-          )}
-          {errorMessage && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-2xl p-4 mb-6">
-              <div className="text-red-400 text-sm">{errorMessage}</div>
-            </div>
-          )}
+          {/* Success/Error Messages now shown as toasts */}
 
           {/* Currency Selection */}
           <div className="space-y-6 mb-8">
@@ -249,12 +249,12 @@ export default function SendPage() {
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!isConnected || !amount || !recipient || !quote || isProcessing || isSwapping || isLoggingRemittance}
+            disabled={!isConnected || !amount || !recipient || !quote || isProcessing || isLoggingRemittance}
             className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-5 px-8 rounded-2xl transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 disabled:cursor-not-allowed disabled:transform-none text-lg"
           >
             {!isConnected ? (
               'Connect Wallet'
-            ) : isProcessing || isSwapping || isLoggingRemittance ? (
+            ) : isProcessing || isLoggingRemittance ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 <span>Processing...</span>
