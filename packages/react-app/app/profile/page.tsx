@@ -1,87 +1,90 @@
-'use client';
+"use client"
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAccount, useBalance } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import BottomNavigation from '@/components/BottomNavigation';
-import { useUserRemittances, useRemittanceDetails, usePlatformStats } from '@/hooks/useContract';
-import { Currency, CURRENCY_INFO, getTokenAddress } from '@/lib/contracts';
-import { formatEther } from 'viem';
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { useAccount, useBalance, useDisconnect } from "wagmi"
+import { ConnectButton } from "@rainbow-me/rainbowkit"
+import BottomNavigation from "@/components/BottomNavigation"
+import { useUserRemittances, useRemittanceDetails } from "@/hooks/useContract"
+import type { Currency } from "@/lib/contracts"
+import { CURRENCY_INFO, getTokenAddress } from "@/lib/contracts"
+import { formatEther } from "viem"
+import {
+  UserIcon,
+  CurrencyDollarIcon,
+  DocumentArrowDownIcon,
+  ShieldCheckIcon,
+  QuestionMarkCircleIcon,
+  ArrowRightOnRectangleIcon,
+  ClipboardDocumentIcon,
+  CheckIcon,
+  ChartBarIcon,
+  GlobeAltIcon,
+  BanknotesIcon,
+} from "@heroicons/react/24/outline"
+import { toast } from "react-toastify"
 
 // Component to load individual remittance data
-function RemittanceLoader({ remittanceId, onRemittanceReady }: { 
-  remittanceId: bigint; 
-  onRemittanceReady: (id: string, remittance: any) => void 
+function RemittanceLoader({
+  remittanceId,
+  onRemittanceReady,
+}: {
+  remittanceId: bigint
+  onRemittanceReady: (id: string, remittance: any) => void
 }) {
-  const { remittance, isLoading } = useRemittanceDetails(remittanceId);
-  const id = remittanceId.toString();
-  const [hasNotified, setHasNotified] = useState(false);
+  const { remittance, isLoading } = useRemittanceDetails(remittanceId)
+  const id = remittanceId.toString()
+  const [hasNotified, setHasNotified] = useState(false)
 
   useEffect(() => {
     if (!hasNotified) {
       if (remittance && remittance.fromCurrency && remittance.toCurrency) {
-        onRemittanceReady(id, remittance);
-        setHasNotified(true);
+        onRemittanceReady(id, remittance)
+        setHasNotified(true)
       } else if (!isLoading && !remittance) {
-        onRemittanceReady(id, null);
-        setHasNotified(true);
+        onRemittanceReady(id, null)
+        setHasNotified(true)
       }
     }
-  }, [remittance, isLoading, id, onRemittanceReady, hasNotified]);
+  }, [remittance, isLoading, id, onRemittanceReady, hasNotified])
 
-  return null;
+  return null
 }
 
-function StatsCalculator({ remittances, onStatsReady }: {
-  remittances: Record<string, any>;
-  onStatsReady: (stats: any) => void;
+function StatsCalculator({
+  remittances,
+  onStatsReady,
+}: {
+  remittances: Record<string, any>
+  onStatsReady: (stats: any) => void
 }) {
-  // Memoize the stats calculation to prevent unnecessary recalculations
   const calculatedStats = useMemo(() => {
-    const validRemittances = Object.values(remittances).filter(r => r && r.fromCurrency && r.toCurrency);
-    
-    console.log('🧮 Stats Calculator Debug:', {
-      totalRemittances: Object.keys(remittances).length,
-      validRemittances: validRemittances.length,
-      remittances: validRemittances.map(r => ({
-        id: r.id,
-        fromCurrency: r.fromCurrency,
-        toCurrency: r.toCurrency,
-        amountSent: r.amountSent
-      }))
-    });
+    const validRemittances = Object.values(remittances).filter((r) => r && r.fromCurrency && r.toCurrency)
 
     if (validRemittances.length > 0) {
-      // Calculate stats from all transactions
       const stats = {
-        totalSent: validRemittances.reduce((sum, r) => sum + parseFloat(r.amountSent || '0'), 0),
-        totalReceived: validRemittances.reduce((sum, r) => sum + parseFloat(r.amountReceived || '0'), 0),
-        totalFees: validRemittances.reduce((sum, r) => sum + parseFloat(r.platformFee || '0'), 0),
+        totalSent: validRemittances.reduce((sum, r) => sum + Number.parseFloat(r.amountSent || "0"), 0),
+        totalReceived: validRemittances.reduce((sum, r) => sum + Number.parseFloat(r.amountReceived || "0"), 0),
+        totalFees: validRemittances.reduce((sum, r) => sum + Number.parseFloat(r.platformFee || "0"), 0),
         totalTransactions: validRemittances.length,
-        corridors: validRemittances.map(r => `${r.fromCurrency}-${r.toCurrency}`),
-      };
+        corridors: validRemittances.map((r) => `${r.fromCurrency}-${r.toCurrency}`),
+      }
 
-      // Calculate favorite corridors
       const corridorCounts = stats.corridors.reduce((acc: any, corridor: string) => {
-        acc[corridor] = (acc[corridor] || 0) + 1;
-        return acc;
-      }, {});
+        acc[corridor] = (acc[corridor] || 0) + 1
+        return acc
+      }, {})
 
       const favoriteCorridors = Object.entries(corridorCounts)
-        .sort(([,a]: any, [,b]: any) => b - a)
+        .sort(([, a]: any, [, b]: any) => b - a)
         .slice(0, 3)
-        .map(([corridor]) => corridor);
+        .map(([corridor]) => corridor)
 
-      const finalStats = {
+      return {
         ...stats,
         favoriteCorridors,
-        averageFeePercentage: stats.totalTransactions > 0 ? (stats.totalFees / stats.totalSent) * 100 : 0
-      };
-
-      console.log('✅ Final Stats Calculated:', finalStats);
-      return finalStats;
+        averageFeePercentage: stats.totalTransactions > 0 ? (stats.totalFees / stats.totalSent) * 100 : 0,
+      }
     } else {
-      // Empty state
       return {
         totalSent: 0,
         totalReceived: 0,
@@ -89,262 +92,329 @@ function StatsCalculator({ remittances, onStatsReady }: {
         totalTransactions: 0,
         corridors: [],
         favoriteCorridors: [],
-        averageFeePercentage: 0
-      };
+        averageFeePercentage: 0,
+      }
     }
-  }, [remittances]);
+  }, [remittances])
 
-  // Only call onStatsReady when stats actually change
   useEffect(() => {
-    onStatsReady(calculatedStats);
-  }, [calculatedStats, onStatsReady]);
+    onStatsReady(calculatedStats)
+  }, [calculatedStats, onStatsReady])
 
-  return null;
+  return null
 }
 
 export default function ProfilePage() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
+  const [copied, setCopied] = useState(false)
   const [userStats, setUserStats] = useState({
     totalSent: 0,
     totalReceived: 0,
     totalFees: 0,
     totalTransactions: 0,
     favoriteCorridors: [] as string[],
-    averageFeePercentage: 0
-  });
-  
-  // State to store loaded remittances
-  const [loadedRemittances, setLoadedRemittances] = useState<Record<string, any>>({});
-  
-  // Get user's remittance IDs
-  const { remittanceIds, isLoading: isLoadingIds } = useUserRemittances(address);
-  
-  // Memoize the initial remittances object to prevent recreation on every render
-  const initialRemittances = useMemo(() => {
-    return remittanceIds.filter(id => id && typeof id === 'bigint').reduce((acc, id) => {
-      acc[id.toString()] = null; // Initialize with null, will be populated by RemittanceLoader
-      return acc;
-    }, {} as Record<string, any>);
-  }, [remittanceIds]);
-  
-  // Get cUSD balance (primary balance to show)
+    averageFeePercentage: 0,
+  })
+
+  const [loadedRemittances, setLoadedRemittances] = useState<Record<string, any>>({})
+  const { remittanceIds, isLoading: isLoadingIds } = useUserRemittances(address)
+
   const { data: cUsdBalance } = useBalance({
     address,
-    token: address ? getTokenAddress(44787, 'cUSD') as `0x${string}` : undefined,
-  });
+    token: address ? (getTokenAddress(44787, "cUSD") as `0x${string}`) : undefined,
+  })
 
-  // Handle remittance loading
   const handleRemittanceReady = useCallback((id: string, remittance: any) => {
-    setLoadedRemittances(prev => {
-      // Only update if the data actually changed
+    setLoadedRemittances((prev) => {
       if (prev[id] !== remittance) {
-        return {
-          ...prev,
-          [id]: remittance
-        };
+        return { ...prev, [id]: remittance }
       }
-      return prev;
-    });
-  }, []);
+      return prev
+    })
+  }, [])
 
-  // Handle stats aggregation
   const handleStatsReady = useCallback((stats: any) => {
-    setUserStats(stats);
-  }, []);
+    setUserStats(stats)
+  }, [])
 
-  // Get currency flag
+  const handleCopyAddress = async () => {
+    if (address) {
+      try {
+        await navigator.clipboard.writeText(address)
+        setCopied(true)
+        toast.success("Address copied to clipboard!")
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        toast.error("Failed to copy address")
+      }
+    }
+  }
+
+  const handleDisconnect = () => {
+    disconnect()
+    toast.success("Wallet disconnected")
+  }
+
   const getCurrencyFlag = (currency: string) => {
-    return CURRENCY_INFO[currency as Currency]?.flag || '🌍';
-  };
+    return CURRENCY_INFO[currency as Currency]?.flag || "🌍"
+  }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
-  };
+    }).format(amount)
+  }
 
   const formatFee = (amount: number) => {
     if (amount < 0.01 && amount > 0) {
-      // For very small amounts, show in cents or with more decimal places
       if (amount < 0.001) {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
           minimumFractionDigits: 4,
           maximumFractionDigits: 4,
-        }).format(amount);
+        }).format(amount)
       } else {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
           minimumFractionDigits: 3,
           maximumFractionDigits: 3,
-        }).format(amount);
+        }).format(amount)
       }
     }
-    return formatCurrency(amount);
-  };
+    return formatCurrency(amount)
+  }
 
   return (
     <>
       {/* Load individual remittances */}
-      {remittanceIds.filter(id => id && typeof id === 'bigint').map((remittanceId) => (
-        <RemittanceLoader
-          key={remittanceId.toString()}
-          remittanceId={remittanceId}
-          onRemittanceReady={handleRemittanceReady}
-        />
-      ))}
-      
+      {remittanceIds
+        .filter((id) => id && typeof id === "bigint")
+        .map((remittanceId) => (
+          <RemittanceLoader
+            key={remittanceId.toString()}
+            remittanceId={remittanceId}
+            onRemittanceReady={handleRemittanceReady}
+          />
+        ))}
+
       {/* Only calculate stats when loading is done */}
-      {!isLoadingIds && (
-        <StatsCalculator 
-          remittances={loadedRemittances} 
-          onStatsReady={handleStatsReady} 
-        />
-      )}
-      
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20">
-      {/* Header */}
-      <header className="px-6 py-6 bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg">FX</span>
-            </div>
-            <span className="text-2xl font-bold text-white">FXRemit</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm text-slate-300">Connected</span>
-          </div>
-        </div>
-      </header>
+      {!isLoadingIds && <StatsCalculator remittances={loadedRemittances} onStatsReady={handleStatsReady} />}
 
-      {/* Main Content */}
-      <main className="px-6 py-6">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-8 text-center">Profile</h1>
-
-          {/* Wallet Info */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/20">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="text-lg font-semibold text-white">Wallet</div>
-                  <div className="text-sm text-slate-300 font-mono">{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Not Connected'}</div>
-                </div>
+      <div className="min-h-screen bg-slate-900 pb-20">
+        {/* Header */}
+        <header className="px-4 sm:px-6 py-6 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-40">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-lg">FX</span>
               </div>
-              <button className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                Copy
-              </button>
+              <div>
+                <h1 className="text-xl font-bold text-white">Profile</h1>
+                <p className="text-sm text-slate-400">Manage your account</p>
+              </div>
             </div>
-            <div className="border-t border-white/20 pt-6">
-              <div className="text-sm text-slate-300 mb-2">Balance</div>
-              <div className="text-3xl font-bold text-white">{cUsdBalance ? formatCurrency(parseFloat(formatEther(cUsdBalance.value))) : 'Loading...'}</div>
-              <div className="text-sm text-blue-400 font-semibold">cUSD</div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <div className="text-sm text-slate-300 mb-2">Total Sent</div>
-              <div className="text-2xl font-bold text-white">{formatCurrency(userStats.totalSent)}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <div className="text-sm text-slate-300 mb-2">Transactions</div>
-              <div className="text-2xl font-bold text-white">{userStats.totalTransactions}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <div className="text-sm text-slate-300 mb-2">Total Fees</div>
-              <div className="text-2xl font-bold text-white">{formatFee(userStats.totalFees)}</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <div className="text-sm text-slate-300 mb-2">Avg. Fee</div>
-              <div className="text-2xl font-bold text-white">{userStats.averageFeePercentage.toFixed(1)}%</div>
-            </div>
-          </div>
-
-          {/* Favorite Corridors */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/20">
-            <h3 className="text-lg font-semibold text-white mb-4">Favorite Corridors</h3>
-            <div className="space-y-3">
-              {userStats.favoriteCorridors.map((corridor, index) => (
-                <div key={index} className="flex items-center justify-between bg-white/5 rounded-xl p-3">
-                  <span className="text-sm text-slate-300">{corridor}</span>
-                  <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-1 rounded-full">Most used</span>
+            <div className="flex items-center space-x-3">
+              {isConnected ? (
+                <div className="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                  <span className="text-sm text-emerald-400 font-medium">Connected</span>
                 </div>
-              ))}
+              ) : (
+                <ConnectButton />
+              )}
             </div>
           </div>
+        </header>
 
-          {/* Settings */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-white/20">
-            <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+        {/* Main Content */}
+        <main className="px-4 sm:px-6 py-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* Wallet Info Card */}
+            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <UserIcon className="w-8 h-8 text-white" />
                   </div>
-                  <span className="text-sm text-slate-300">Export Transactions</span>
+                  <div>
+                    <div className="text-xl font-bold text-white">Your Wallet</div>
+                    <div className="text-sm text-slate-400 font-mono">
+                      {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : "Not Connected"}
+                    </div>
+                  </div>
                 </div>
-                <button className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                  Export
+                <button
+                  onClick={handleCopyAddress}
+                  className="flex items-center space-x-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 rounded-lg transition-all duration-200 text-sm font-medium border border-emerald-500/20"
+                >
+                  {copied ? <CheckIcon className="w-4 h-4" /> : <ClipboardDocumentIcon className="w-4 h-4" />}
+                  <span>{copied ? "Copied!" : "Copy"}</span>
                 </button>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+
+              <div className="border-t border-slate-700 pt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-sm text-slate-400 mb-2">Primary Balance</div>
+                    <div className="text-3xl font-bold text-white">
+                      {cUsdBalance ? formatCurrency(Number.parseFloat(formatEther(cUsdBalance.value))) : "Loading..."}
+                    </div>
+                    <div className="text-sm text-emerald-400 font-semibold">cUSD</div>
                   </div>
-                  <span className="text-sm text-slate-300">Security</span>
+                  <div>
+                    <div className="text-sm text-slate-400 mb-2">Network</div>
+                    <div className="text-lg font-semibold text-white">Celo Alfajores</div>
+                    <div className="text-sm text-slate-400">Testnet</div>
+                  </div>
                 </div>
-                <button className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                  Manage
-                </button>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                    <BanknotesIcon className="w-5 h-5 text-emerald-400" />
                   </div>
-                  <span className="text-sm text-slate-300">Help & Support</span>
+                  <div className="text-sm text-slate-400">Total Sent</div>
                 </div>
-                <button className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                  Contact
+                <div className="text-2xl font-bold text-white">{formatCurrency(userStats.totalSent)}</div>
+              </div>
+
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <ChartBarIcon className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="text-sm text-slate-400">Transactions</div>
+                </div>
+                <div className="text-2xl font-bold text-white">{userStats.totalTransactions}</div>
+              </div>
+
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                    <CurrencyDollarIcon className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <div className="text-sm text-slate-400">Total Fees</div>
+                </div>
+                <div className="text-2xl font-bold text-white">{formatFee(userStats.totalFees)}</div>
+              </div>
+
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <GlobeAltIcon className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div className="text-sm text-slate-400">Avg. Fee</div>
+                </div>
+                <div className="text-2xl font-bold text-white">{userStats.averageFeePercentage.toFixed(1)}%</div>
+              </div>
+            </div>
+
+            {/* Favorite Corridors */}
+            {userStats.favoriteCorridors.length > 0 && (
+              <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                    <GlobeAltIcon className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Most Used Corridors</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {userStats.favoriteCorridors.map((corridor, index) => {
+                    const [from, to] = corridor.split("-")
+                    return (
+                      <div key={index} className="bg-slate-700 rounded-xl p-4 border border-slate-600">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg">{getCurrencyFlag(from)}</span>
+                            <ArrowRightOnRectangleIcon className="w-4 h-4 text-slate-400 rotate-180" />
+                            <span className="text-lg">{getCurrencyFlag(to)}</span>
+                          </div>
+                          <span className="text-xs text-emerald-400 bg-emerald-500/20 px-2 py-1 rounded-full">
+                            #{index + 1}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium text-white">
+                          {from} → {to}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Settings */}
+            <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+              <div className="p-6 border-b border-slate-700">
+                <h3 className="text-lg font-semibold text-white">Account Settings</h3>
+                <p className="text-sm text-slate-400 mt-1">Manage your account preferences and security</p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <button className="w-full flex items-center justify-between p-4 bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors duration-200 border border-slate-600">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                      <DocumentArrowDownIcon className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-white">Export Transactions</div>
+                      <div className="text-xs text-slate-400">Download your transaction history</div>
+                    </div>
+                  </div>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5 text-slate-400" />
+                </button>
+
+                <button className="w-full flex items-center justify-between p-4 bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors duration-200 border border-slate-600">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <ShieldCheckIcon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-white">Security Settings</div>
+                      <div className="text-xs text-slate-400">Manage your security preferences</div>
+                    </div>
+                  </div>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5 text-slate-400" />
+                </button>
+
+                <button className="w-full flex items-center justify-between p-4 bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors duration-200 border border-slate-600">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <QuestionMarkCircleIcon className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-white">Help & Support</div>
+                      <div className="text-xs text-slate-400">Get help or contact support</div>
+                    </div>
+                  </div>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5 text-slate-400" />
                 </button>
               </div>
             </div>
+
+            {/* Disconnect Button */}
+            <button
+              onClick={handleDisconnect}
+              className="w-full flex items-center justify-center space-x-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 font-semibold py-4 px-8 rounded-xl transition-all duration-200 border border-red-500/20 hover:border-red-500/30"
+            >
+              <ArrowRightOnRectangleIcon className="w-5 h-5" />
+              <span>Disconnect Wallet</span>
+            </button>
           </div>
+        </main>
 
-          {/* Disconnect Button */}
-          <button
-            onClick={() => {}} // No direct disconnect from wagmi, but this button is kept for consistency
-            className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-          >
-            Disconnect Wallet
-          </button>
-        </div>
-      </main>
-
-      <BottomNavigation />
-    </div>
+        <BottomNavigation />
+      </div>
     </>
-  );
-} 
+  )
+}
