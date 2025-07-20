@@ -1,6 +1,6 @@
 [build]
   # The command to build your site
-  command = "yarn workspace @fx-remit/react-app build"
+  command = "pnpm --filter @fx-remit/react-app build"
   
   # The directory where your built site files are located
   publish = "packages/react-app/.next"
@@ -12,7 +12,7 @@
   # Set Node.js version
   NODE_VERSION = "18"
   
-  # Enable yarn workspaces
+  # Enable pnpm workspaces
   NPM_FLAGS = "--production=false"
   
   # Next.js build optimization
