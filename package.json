@@ -16,7 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/celo-org/celo-composer.git"
   },
-  "resolutions": {
+  "overrides": {
     "@wagmi/connectors": "5.7.7",
     "@wagmi/core": "2.16.7",
     "@walletconnect/utils": "^2.19.1",
@@ -25,22 +25,23 @@
     "wagmi": "2.14.11"
   },
   "scripts": {
-    "react-app:dev": "yarn workspace @fx-remit/react-app dev",
-    "react-app:build": "yarn workspace @fx-remit/react-app build",
-    "react-app:start": "yarn workspace @fx-remit/react-app start",
-    "react-app:lint": "yarn workspace @fx-remit/react-app lint",
-    "hardhat:postinstall": "yarn workspace @fx-remit/hardhat postinstall",
-    "hardhat:compile": "yarn workspace @fx-remit/hardhat compile",
-    "hardhat:tsc": "yarn workspace @fx-remit/hardhat tsc",
-    "hardhat:build": "yarn workspace @fx-remit/hardhat build",
-    "hardhat:clean": "yarn workspace @fx-remit/hardhat clean",
-    "hardhat:run:node": "yarn workspace @fx-remit/hardhat run:node",
-    "hardhat:test": "yarn workspace @fx-remit/hardhat test",
-    "hardhat:prettier": "yarn workspace @fx-remit/hardhat prettier",
-    "hardhat:sync:abis": "yarn workspace @fx-remit/hardhat sync:abis"
+    "react-app:dev": "pnpm --filter @fx-remit/react-app dev",
+    "react-app:build": "pnpm --filter @fx-remit/react-app build",
+    "react-app:start": "pnpm --filter @fx-remit/react-app start",
+    "react-app:lint": "pnpm --filter @fx-remit/react-app lint",
+    "hardhat:postinstall": "pnpm --filter @fx-remit/hardhat postinstall",
+    "hardhat:compile": "pnpm --filter @fx-remit/hardhat compile",
+    "hardhat:tsc": "pnpm --filter @fx-remit/hardhat tsc",
+    "hardhat:build": "pnpm --filter @fx-remit/hardhat build",
+    "hardhat:clean": "pnpm --filter @fx-remit/hardhat clean",
+    "hardhat:run:node": "pnpm --filter @fx-remit/hardhat run:node",
+    "hardhat:test": "pnpm --filter @fx-remit/hardhat test",
+    "hardhat:prettier": "pnpm --filter @fx-remit/hardhat prettier",
+    "hardhat:sync:abis": "pnpm --filter @fx-remit/hardhat sync:abis"
   },
   "version": "1.0.0",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "packageManager": "pnpm@10.3.0+sha512.ee592eda8815a8a293c206bb0917c4bb0ff274c50def7cbc17be05ec641fc2d1b02490ce660061356bd0d126a4d7eb2ec8830e6959fb8a447571c631d5a2442d"
 }
