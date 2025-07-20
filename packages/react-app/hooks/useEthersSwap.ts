@@ -175,7 +175,7 @@ export function useEthersSwap() {
       const tokenContract = new Contract(fromTokenAddress, tokenInterface, signer);
       
       // Step 1: Check current allowance
-      const currentAllowance = await tokenContract.allowance(signer.address, broker.target);
+      const currentAllowance = await tokenContract.allowance(signer.address, broker.address);
       console.log('Current allowance:', currentAllowance.toString());
       console.log('Required amount:', amountInWei.toString());
       
@@ -185,7 +185,7 @@ export function useEthersSwap() {
         
         // Create approval transaction
         const approvalTx = await tokenContract.populateTransaction.approve(
-          broker.target,
+          broker.address,
           amountInWei.toString()
         );
         
@@ -326,7 +326,7 @@ export function useEthersSwap() {
          console.log('📍 Step 1: Swapping to intermediate token...');
          
          // Get quote for first step using broker contract instead of Mento SDK
-         const step1Quote = await broker.getFunction('getAmountOut')(
+         const step1Quote = await broker.functions.getAmountOut(
            step1Exchange.providerAddr,
            step1Exchange.id,
            fromTokenAddress,
@@ -340,7 +340,7 @@ export function useEthersSwap() {
          console.log('💰 Step 1 min amount with slippage:', step1MinAmount.toString());
          
          // Execute first swap
-         const step1TxRequest = await broker.getFunction('swapIn').populateTransaction(
+         const step1TxRequest = await broker.populateTransaction.swapIn(
            step1Exchange.providerAddr,
            step1Exchange.id,
            fromTokenAddress,
@@ -353,7 +353,7 @@ export function useEthersSwap() {
          
          const step1Hash = await walletClient.sendTransaction({
            account: signer.address as `0x${string}`,
-           to: broker.target as `0x${string}`,
+           to: broker.address as `0x${string}`,
            data: step1TxRequest.data as `0x${string}`,
            gas: step1TxRequest.gasLimit ? BigInt(step1TxRequest.gasLimit.toString()) : undefined,
            gasPrice: step1TxRequest.gasPrice ? BigInt(step1TxRequest.gasPrice.toString()) : undefined,
@@ -374,14 +374,14 @@ export function useEthersSwap() {
            signer
          );
          
-         const intermediateAllowance = await intermediateTokenContract.allowance(signer.address, broker.target);
+         const intermediateAllowance = await intermediateTokenContract.allowance(signer.address, broker.address);
          console.log('Intermediate allowance:', intermediateAllowance.toString());
          console.log('Required for step 2:', step1Quote.toString());
          
          if (BigInt(intermediateAllowance.toString()) < BigInt(step1Quote.toString())) {
            console.log('🔓 Approving intermediate token...');
            const approvalTx = await intermediateTokenContract.populateTransaction.approve(
-             broker.target,
+             broker.address,
              step1Quote.toString()
            );
            
@@ -400,7 +400,7 @@ export function useEthersSwap() {
          console.log('📍 Step 2: Swapping intermediate to target token...');
          
          // Get quote for second step
-         const step2Quote = await broker.getFunction('getAmountOut')(
+         const step2Quote = await broker.functions.getAmountOut(
            step2Exchange.providerAddr,
            step2Exchange.id,
            intermediateTokenAddress,
@@ -413,7 +413,7 @@ export function useEthersSwap() {
          const step2MinAmount = (BigInt(step2Quote.toString()) * BigInt(99)) / BigInt(100);
          console.log('💰 Step 2 min amount with slippage:', step2MinAmount.toString());
          
-         const step2TxRequest = await broker.getFunction('swapIn').populateTransaction(
+         const step2TxRequest = await broker.populateTransaction.swapIn(
            step2Exchange.providerAddr,
            step2Exchange.id,
            intermediateTokenAddress,
@@ -426,7 +426,7 @@ export function useEthersSwap() {
          
          const step2Hash = await walletClient.sendTransaction({
            account: signer.address as `0x${string}`,
-           to: broker.target as `0x${string}`,
+           to: broker.address as `0x${string}`,
            data: step2TxRequest.data as `0x${string}`,
            gas: step2TxRequest.gasLimit ? BigInt(step2TxRequest.gasLimit.toString()) : undefined,
            gasPrice: step2TxRequest.gasPrice ? BigInt(step2TxRequest.gasPrice.toString()) : undefined,
@@ -503,7 +503,7 @@ export function useEthersSwap() {
       try {
         // Method 1: Try calling broker directly with the function interface
         console.log('🔄 Trying direct broker function call...');
-        console.log('Broker address:', broker.target);
+        console.log('Broker address:', broker.address);
         console.log('Exchange ID:', correctExchange.id);
         
         // Now we know the correct signature: swapIn(exchangeProvider, exchangeId, tokenIn, tokenOut, amountIn, amountOutMin)
@@ -518,7 +518,7 @@ export function useEthersSwap() {
         
               // Create the transaction request instead of executing it
       // Note: Broker swapIn always sends output tokens to caller, not custom recipient
-      const txRequest = await broker.getFunction('swapIn').populateTransaction(
+      const txRequest = await broker.populateTransaction.swapIn(
         correctExchange.providerAddr,  // exchangeProvider
         correctExchange.id,            // exchangeId  
         fromTokenAddress,              // tokenIn
@@ -532,7 +532,7 @@ export function useEthersSwap() {
       // Send the transaction using viem directly
       const hash = await walletClient.sendTransaction({
         account: signer.address as `0x${string}`,
-        to: broker.target as `0x${string}`,
+        to: broker.address as `0x${string}`,
         data: txRequest.data as `0x${string}`,
         gas: txRequest.gasLimit ? BigInt(txRequest.gasLimit.toString()) : undefined,
         gasPrice: txRequest.gasPrice ? BigInt(txRequest.gasPrice.toString()) : undefined,
@@ -606,91 +606,57 @@ export function useEthersSwap() {
         try {
           // Method 2: Try alternative broker function call
           console.log('🔄 Trying alternative broker function signature...');
-          
           // Alternative signature with additional parameters
-          const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes
-          swapTxObj = await broker.getFunction('swapIn')(
+          const deadline = (Math.floor(Date.now() / 1000) + 60 * 20).toString(); // 20 minutes as string
+          swapTxObj = await broker.populateTransaction.swapIn(
+            correctExchange.providerAddr,
             correctExchange.id,
             fromTokenAddress,
             toTokenAddress,
             amountInWei.toString(),
-            expectedAmountOut,
-            signer.address,
-            deadline
+            expectedAmountOut
           );
           console.log('✅ Alternative broker call succeeded!');
         } catch (error2) {
           console.log('Method 2 failed:', error2 instanceof Error ? error2.message : String(error2));
-          
-          try {
-            // Method 3: Try with swapExactAmountIn if swapIn doesn't work
-            console.log('🔄 Trying swapExactAmountIn...');
-            
-            if (broker.getFunction) {
-              swapTxObj = await broker.getFunction('swapExactAmountIn')(
-                correctExchange.id,
-                fromTokenAddress,
-                amountInWei.toString(),
-                toTokenAddress,
-                expectedAmountOut
-              );
-              console.log('✅ swapExactAmountIn call succeeded!');
-            } else {
-              throw new Error('broker.getFunction not available');
-            }
-          } catch (error3) {
-            console.log('Method 3 failed:', error3 instanceof Error ? error3.message : String(error3));
-            
-            // Method 4: List all available functions on the broker
-            console.log('🔍 Listing all broker interface functions...');
-            try {
-              const brokerInterface = broker.interface;
-              console.log('Broker interface:', brokerInterface);
-              console.log('Broker interface functions:', Object.getOwnPropertyNames(brokerInterface));
-              console.log('Broker methods:', Object.getOwnPropertyNames(broker));
-              
-              // List all available functions by name - handle Map structure
-              console.log('📋 Available broker functions:');
-              
-              // Access fragments directly since functions might be a Map
-              const interfaceAny = brokerInterface as any;
-              if (interfaceAny.fragments) {
-                interfaceAny.fragments.forEach((fragment: any) => {
-                  if (fragment.type === 'function') {
-                    const signature = `${fragment.name}(${fragment.inputs.map((input: any) => `${input.type} ${input.name}`).join(', ')})`;
-                    console.log(`- ${signature}`);
-                  }
-                });
+          // If all methods fail, throw an error with diagnostic info
+          // Method 4: List all available functions on the broker
+          console.log('🔍 Listing all broker interface functions...');
+          const brokerInterface = broker.interface;
+          console.log('Broker interface:', brokerInterface);
+          console.log('Broker interface functions:', Object.getOwnPropertyNames(brokerInterface));
+          console.log('Broker methods:', Object.getOwnPropertyNames(broker));
+          // List all available functions by name - handle Map structure
+          console.log('📋 Available broker functions:');
+          const interfaceAny = brokerInterface as any;
+          if (interfaceAny.fragments) {
+            interfaceAny.fragments.forEach((fragment: any) => {
+              if (fragment.type === 'function') {
+                const signature = `${fragment.name}(${fragment.inputs.map((input: any) => `${input.type} ${input.name}`).join(', ')})`;
+                console.log(`- ${signature}`);
               }
-              
-              // Try to find swap-related functions from fragments
-              const swapFunctions: string[] = [];
-              const exchangeFunctions: string[] = [];
-              
-              if (interfaceAny.fragments) {
-                interfaceAny.fragments.forEach((fragment: any) => {
-                  if (fragment.type === 'function') {
-                    const name = fragment.name.toLowerCase();
-                    if (name.includes('swap')) {
-                      swapFunctions.push(fragment.name);
-                    }
-                    if (name.includes('exchange') || name.includes('trade')) {
-                      exchangeFunctions.push(fragment.name);
-                    }
-                  }
-                });
-              }
-              
-              console.log('🔄 Swap-related functions:', swapFunctions);
-              console.log('💱 Exchange/Trade-related functions:', exchangeFunctions);
-              
-            } catch (interfaceError) {
-              console.log('Could not list broker functions:', interfaceError instanceof Error ? interfaceError.message : String(interfaceError));
-            }
-            
-            // If all methods fail, throw an error with diagnostic info
-            throw new Error(`All swap methods failed. Exchanges: ${exchanges.length}, Available methods: ${Object.getOwnPropertyNames(mento).join(', ')}`);
+            });
           }
+          // Try to find swap-related functions from fragments
+          const swapFunctions: string[] = [];
+          const exchangeFunctions: string[] = [];
+          if (interfaceAny.fragments) {
+            interfaceAny.fragments.forEach((fragment: any) => {
+              if (fragment.type === 'function') {
+                const name = fragment.name.toLowerCase();
+                if (name.includes('swap')) {
+                  swapFunctions.push(fragment.name);
+                }
+                if (name.includes('exchange') || name.includes('trade')) {
+                  exchangeFunctions.push(fragment.name);
+                }
+              }
+            });
+          }
+          console.log('🔄 Swap-related functions:', swapFunctions);
+          console.log('💱 Exchange/Trade-related functions:', exchangeFunctions);
+          // If all methods fail, throw an error with diagnostic info
+          throw new Error(`All swap methods failed. Exchanges: ${exchanges.length}, Available methods: ${Object.getOwnPropertyNames(mento).join(', ')}`);
         }
       }
       
