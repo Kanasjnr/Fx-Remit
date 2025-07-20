@@ -286,7 +286,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-white mb-4">Lightning Fast</h3>
               <p className="text-slate-300 mb-4">
-                Sub-second confirmations with Celo's 5-second block time. No more waiting days for transfers.
+                Sub-second confirmations with Celo&apos;s 5-second block time. No more waiting days for transfers.
               </p>
               <div className="text-blue-400 font-semibold">Available 24/7</div>
             </div>

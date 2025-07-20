@@ -1,0 +1,38 @@
+[build]
+  # The command to build your site
+  command = "yarn workspace @fx-remit/react-app build"
+  
+  # The directory where your built site files are located
+  publish = "packages/react-app/.next"
+  
+  # Base directory for build command
+  base = "."
+
+[build.environment]
+  # Set Node.js version
+  NODE_VERSION = "18"
+  
+  # Enable yarn workspaces
+  NPM_FLAGS = "--production=false"
+  
+  # Next.js build optimization
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Next.js specific settings
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable" 
