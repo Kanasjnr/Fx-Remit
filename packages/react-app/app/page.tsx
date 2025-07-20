@@ -18,6 +18,20 @@ export default function LandingPage() {
     router.push('/send');
   };
 
+  // Format volume numbers dynamically based on size
+  const formatVolume = (amount: number) => {
+    if (amount >= 1000000) {
+      // Millions: $1.2M, $15.5M, etc.
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      // Thousands: $1.2K, $15.5K, etc.
+      return `$${(amount / 1000).toFixed(1)}K`;
+    } else {
+      // Under 1000: $567, $89, etc.
+      return `$${Math.round(amount)}`;
+    }
+  };
+
   if (!isMounted) {
     return null;
   }
@@ -109,7 +123,7 @@ export default function LandingPage() {
                 {isLoadingStats ? (
                   <div className="animate-pulse">Loading...</div>
                 ) : stats ? (
-                  `$${(parseFloat(stats.totalVolume) / 1000000).toFixed(1)}M`
+                  formatVolume(parseFloat(stats.totalVolume))
                 ) : (
                   '$0'
                 )}
