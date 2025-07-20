@@ -64,7 +64,14 @@ function StatsCalculator({
       const stats = {
         totalSent: validRemittances.reduce((sum, r) => sum + Number.parseFloat(r.amountSent || "0"), 0),
         totalReceived: validRemittances.reduce((sum, r) => sum + Number.parseFloat(r.amountReceived || "0"), 0),
-        totalFees: validRemittances.reduce((sum, r) => sum + Number.parseFloat(r.platformFee || "0"), 0),
+        totalFees: validRemittances.reduce((sum, r) => {
+          const fee = r.platformFee || "0";
+          if (typeof fee === "string" && fee.includes(".")) {
+            return sum + Number(fee);
+          } else {
+            return sum + Number(formatEther(BigInt(fee)));
+          }
+        }, 0),
         totalTransactions: validRemittances.length,
         corridors: validRemittances.map((r) => `${r.fromCurrency}-${r.toCurrency}`),
       }
