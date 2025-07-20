@@ -68,7 +68,7 @@ function RemittanceItem({
       processedRef.current = "null"
       onTransactionReady(id, null)
     }
-  }, [remittanceId, isLoading]) // Updated dependency array
+  }, [remittanceId, isLoading, id, onTransactionReady, remittance]) // Updated dependency array
 
   return null
 }
