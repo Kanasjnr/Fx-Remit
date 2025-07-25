@@ -35,6 +35,7 @@
 ## **About FX-Remit**
 
 FX-Remit is a **next-generation cross-border remittance platform** built on the Celo blockchain that enables users to send money globally with unprecedented speed, security, and low fees. By leveraging the **Mento Protocol**, FX-Remit provides seamless currency exchanges between 15 different supported currencies, making international money transfers accessible to everyone.
+Contract Address on celo alfajores(0xb5a4504A746cfD5591893B33D2966c5c4e21473F)
 
 ### **🎯 Mission**
 To democratize cross-border payments by providing a fast, secure, and affordable alternative to traditional remittance services, powered by blockchain technology.
