@@ -101,7 +101,7 @@ export default function LandingPage() {
             <div className="text-center lg:text-left">
               <div className="inline-flex items-center bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 mb-8">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
-                <span className="text-emerald-300 text-sm font-medium">Live on Celo Alfajores</span>
+                <span className="text-emerald-300 text-sm font-medium">Live on Celo Mainnet</span>
               </div>
 
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
