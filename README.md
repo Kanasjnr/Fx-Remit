@@ -380,6 +380,13 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 
 ## **📜 Smart Contract Deployment**
 
+### **🚀 Deployed Contracts**
+
+#### **📍 Celo Mainnet**
+- **FXRemit Contract**: [`0x8f33981b04e1DF30007cf4049658360124B0aE19`](https://celoscan.io/address/0x8f33981b04e1DF30007cf4049658360124B0aE19)
+- **Network**: Celo Mainnet
+- **Status**: ✅ Verified and Active
+
 ### **🚀 Deployment Process**
 
 #### **1. Compile Contracts**
@@ -527,7 +534,7 @@ NEXT_PUBLIC_WC_PROJECT_ID=                    # WalletConnect Project ID
 
 # Contract Addresses
 NEXT_PUBLIC_FXREMIT_CONTRACT_ALFAJORES=       # FXRemit contract on Alfajores
-NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET=         # FXRemit contract on Mainnet
+NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET=0x8f33981b04e1DF30007cf4049658360124B0aE19
 
 # Alfajores Testnet Token Addresses
 NEXT_PUBLIC_CUSD_ALFAJORES=0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1

@@ -23,8 +23,8 @@ export function useEthersSwap() {
 
     console.log('🚀 Starting pure ethers.js swap following official examples...');
     
-    // Get token addresses - use Alfajores testnet (44787)
-    const chainId = 44787;
+    // Get token addresses - use Celo mainnet (42220)
+    const chainId = 42220;
     const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
     const toTokenAddress = getTokenAddress(chainId, toCurrency);
     
@@ -37,7 +37,7 @@ export function useEthersSwap() {
     });
 
     // Create ethers provider
-    const provider = new providers.JsonRpcProvider('https://alfajores-forno.celo-testnet.org');
+    const provider = new providers.JsonRpcProvider('https://forno.celo.org');
     
     // Create a better signer proxy that properly handles address and signing
     const createProperSigner = (userAddress: string) => {

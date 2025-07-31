@@ -34,10 +34,10 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
       setError(null);
 
       try {
-        const provider = new providers.JsonRpcProvider('https://alfajores-forno.celo-testnet.org');
+        const provider = new providers.JsonRpcProvider('https://forno.celo.org');
         const mento = await Mento.create(provider);
         
-        const chainId = 44787; // Alfajores
+        const chainId = 42220; // Celo Mainnet
         const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
         const toTokenAddress = getTokenAddress(chainId, toCurrency);
         
@@ -85,7 +85,7 @@ export function useTokenBalance(currency: Currency) {
       setError(null);
 
       try {
-        const chainId = 44787; // Alfajores
+        const chainId = 42220; // Celo Mainnet
         const tokenAddress = getTokenAddress(chainId, currency);
         
         const balance = await publicClient.readContract({
@@ -150,10 +150,10 @@ export function useQuote(
       setError(null);
 
       try {
-        const provider = new providers.JsonRpcProvider('https://alfajores-forno.celo-testnet.org');
+        const provider = new providers.JsonRpcProvider('https://forno.celo.org');
         const mento = await Mento.create(provider);
         
-        const chainId = 44787; // Alfajores
+        const chainId = 42220; // Celo Mainnet
         const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
         const toTokenAddress = getTokenAddress(chainId, toCurrency);
         
