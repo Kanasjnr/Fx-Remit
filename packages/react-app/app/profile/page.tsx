@@ -129,7 +129,7 @@ export default function ProfilePage() {
 
   const { data: cUsdBalance } = useBalance({
     address,
-    token: address ? (getTokenAddress(44787, "cUSD") as `0x${string}`) : undefined,
+    token: address ? (getTokenAddress(42220, "cUSD") as `0x${string}`) : undefined,
   })
 
   const handleRemittanceReady = useCallback((id: string, remittance: any) => {
@@ -276,8 +276,8 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <div className="text-sm text-slate-400 mb-2">Network</div>
-                    <div className="text-lg font-semibold text-white">Celo Alfajores</div>
-                    <div className="text-sm text-slate-400">Testnet</div>
+                    <div className="text-lg font-semibold text-white">Celo Mainnet</div>
+                    <div className="text-sm text-slate-400">Mainnet</div>
                   </div>
                 </div>
               </div>

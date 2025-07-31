@@ -1,10 +1,8 @@
 import FXRemitABI from '../ABI/FXRemit.json';
 
 export const CONTRACT_ADDRESSES = {
-  // Celo Alfajores Testnet (Primary)
-  44787: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT_ALFAJORES,
   // Celo Mainnet
-  42220: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET || '',
+  42220: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT || '',
 } as const;
 
 export const FXREMIT_CONTRACT = {
@@ -13,7 +11,7 @@ export const FXREMIT_CONTRACT = {
 } as const;
 
 
-export const SUPPORTED_CHAIN_IDS = [42220, 44787] as const;
+export const SUPPORTED_CHAIN_IDS = [42220] as const;
 
 export type SupportedChainId = typeof SUPPORTED_CHAIN_IDS[number];
 
@@ -39,7 +37,7 @@ export function isContractConfigured(chainId: number): boolean {
   return address !== null;
 }
 
-// Mento token addresses for different networks
+// Mento token addresses for Celo Mainnet
 export const MENTO_TOKENS = {
   42220: { // Celo Mainnet
     cUSD: process.env.NEXT_PUBLIC_CUSD_MAINNET,
@@ -57,23 +55,6 @@ export const MENTO_TOKENS = {
     cGHS: process.env.NEXT_PUBLIC_CGHS_MAINNET,
     eXOF: process.env.NEXT_PUBLIC_EXOF_MAINNET,
     PUSO: process.env.NEXT_PUBLIC_PUSO_MAINNET,
-  },
-  44787: { // Celo Alfajores Testnet
-    cUSD: process.env.NEXT_PUBLIC_CUSD_ALFAJORES,
-    cEUR: process.env.NEXT_PUBLIC_CEUR_ALFAJORES,
-    cGBP: process.env.NEXT_PUBLIC_CGBP_ALFAJORES,
-    cCAD: process.env.NEXT_PUBLIC_CCAD_ALFAJORES,
-    cAUD: process.env.NEXT_PUBLIC_CAUD_ALFAJORES,
-    cCHF: process.env.NEXT_PUBLIC_CCHF_ALFAJORES,
-    cJPY: process.env.NEXT_PUBLIC_CJPY_ALFAJORES,
-    cREAL: process.env.NEXT_PUBLIC_CREAL_ALFAJORES,
-    cCOP: process.env.NEXT_PUBLIC_CCOP_ALFAJORES,
-    cKES: process.env.NEXT_PUBLIC_CKES_ALFAJORES,
-    cNGN: process.env.NEXT_PUBLIC_CNGN_ALFAJORES,
-    cZAR: process.env.NEXT_PUBLIC_CZAR_ALFAJORES,
-    cGHS: process.env.NEXT_PUBLIC_CGHS_ALFAJORES,
-    eXOF: process.env.NEXT_PUBLIC_EXOF_ALFAJORES,
-    PUSO: process.env.NEXT_PUBLIC_PUSO_ALFAJORES,
   },
 } as const;
 

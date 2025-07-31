@@ -12,7 +12,7 @@ export function useFXRemitContract() {
     chainId,
     address,
     isConfigured: address !== null,
-    envVar: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT_ALFAJORES
+    envVar: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT
   });
   
   return {
