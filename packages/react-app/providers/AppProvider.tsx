@@ -11,17 +11,34 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 import { celo, celoAlfajores } from 'wagmi/chains';
 
 import Layout from '../components/Layout';
-import { injectedWallet } from '@rainbow-me/rainbowkit/wallets';
+import {
+  injectedWallet,
+  metaMaskWallet,
+  walletConnectWallet,
+  coinbaseWallet,
+  trustWallet,
+} from '@rainbow-me/rainbowkit/wallets';
 
 const connectors = connectorsForWallets(
   [
     {
-      groupName: 'Recommended',
-      wallets: [injectedWallet],
+      groupName: 'Recommended for Celo',
+      wallets: [
+        walletConnectWallet, // Valora works through this
+        metaMaskWallet,
+      ],
+    },
+    {
+      groupName: 'Popular Wallets',
+      wallets: [
+        coinbaseWallet,
+        trustWallet,
+        injectedWallet,
+      ],
     },
   ],
   {
-    appName: 'Celo Composer',
+    appName: 'FX Remit - Global Money Transfers (Supports Valora via WalletConnect)',
     projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? '044601f65212332475a09bc14ceb3c34',
   }
 );
@@ -41,9 +58,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          {children}
-        </RainbowKitProvider>
+        <RainbowKitProvider>{children}</RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
