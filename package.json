@@ -29,6 +29,10 @@
     "react-app:build": "pnpm --filter @fx-remit/react-app build",
     "react-app:start": "pnpm --filter @fx-remit/react-app start",
     "react-app:lint": "pnpm --filter @fx-remit/react-app lint",
+    "react-app:test": "pnpm --filter @fx-remit/react-app test",
+    "react-app:test:watch": "pnpm --filter @fx-remit/react-app test:watch",
+    "react-app:test:coverage": "pnpm --filter @fx-remit/react-app test:coverage",
+    "react-app:test:e2e": "pnpm --filter @fx-remit/react-app test:e2e",
     "hardhat:postinstall": "pnpm --filter @fx-remit/hardhat postinstall",
     "hardhat:compile": "pnpm --filter @fx-remit/hardhat compile",
     "hardhat:tsc": "pnpm --filter @fx-remit/hardhat tsc",
@@ -36,8 +40,14 @@
     "hardhat:clean": "pnpm --filter @fx-remit/hardhat clean",
     "hardhat:run:node": "pnpm --filter @fx-remit/hardhat run:node",
     "hardhat:test": "pnpm --filter @fx-remit/hardhat test",
+    "hardhat:test:coverage": "pnpm --filter @fx-remit/hardhat coverage",
     "hardhat:prettier": "pnpm --filter @fx-remit/hardhat prettier",
-    "hardhat:sync:abis": "pnpm --filter @fx-remit/hardhat sync:abis"
+    "hardhat:sync:abis": "pnpm --filter @fx-remit/hardhat sync:abis",
+    "test": "pnpm run hardhat:test && pnpm run react-app:test",
+    "test:coverage": "pnpm run hardhat:test:coverage && pnpm run react-app:test:coverage",
+    "test:e2e": "pnpm run react-app:test:e2e",
+    "lint": "pnpm run hardhat:prettier && pnpm run react-app:lint",
+    "build": "pnpm run hardhat:compile && pnpm run react-app:build"
   },
   "version": "1.0.0",
   "workspaces": [
