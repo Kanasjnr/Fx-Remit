@@ -8,7 +8,7 @@ import {
   connectorsForWallets,
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { celo, celoAlfajores } from 'wagmi/chains';
+import { celo } from 'wagmi/chains';
 
 import Layout from '../components/Layout';
 import {
@@ -45,10 +45,9 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   connectors,
-  chains: [celo, celoAlfajores],
+  chains: [celo],
   transports: {
     [celo.id]: http(),
-    [celoAlfajores.id]: http(),
   },
 });
 
