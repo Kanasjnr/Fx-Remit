@@ -23,6 +23,7 @@
     "@rainbow-me/rainbowkit": "^2.2.4",
     "@tailwindcss/postcss": "^4.0.14",
     "@tanstack/react-query": "^5.69.0",
+    "@types/xlsx": "^0.0.35",
     "@wagmi/connectors": "^5.7.11",
     "@wagmi/core": "^2.16.7",
     "encoding": "^0.1.13",
@@ -35,7 +36,8 @@
     "react-dom": "^19.0.0",
     "react-toastify": "^11.0.5",
     "viem": "^2.23.13",
-    "wagmi": "^2.14.15"
+    "wagmi": "^2.14.15",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.2",
