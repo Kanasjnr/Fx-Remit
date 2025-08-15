@@ -1,42 +1,59 @@
-import { useCallback } from 'react';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk';
 
-const DIVVI_CONSUMER_ADDRESS = '0xa1599790B763E537bd15b5b912012e5Fb65491a3';
+// Divvi consumer address for FX-Remit
+const DIVVI_CONSUMER_ADDRESS = '0x817c19bD1Ba4eD47e180a3219d12d1462C8fABDC';
 
 export function useDivvi() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const publicClient = usePublicClient();
 
-  const generateReferralTag = useCallback((): string => {
+  const generateReferralTag = () => {
     if (!address) {
-      throw new Error('User address is required to generate referral tag');
+      throw new Error('Wallet not connected');
     }
 
-    const referralTag = getReferralTag({
+    return getReferralTag({
       user: address,
       consumer: DIVVI_CONSUMER_ADDRESS,
     });
+  };
 
-    return referralTag;
-  }, [address]);
-
-  const submitReferralTransaction = useCallback(async (txHash: string) => {
+  const submitReferralTransaction = async (txHash: string) => {
     if (!walletClient) {
-      throw new Error('Wallet client is required to submit referral');
+      throw new Error('Wallet client not available');
     }
 
-    const chainId = await walletClient.getChainId();
-    
-    await submitReferral({
-      txHash: txHash as `0x${string}`,
-      chainId,
-    });
-  }, [walletClient]);
+    try {
+      const chainId = await walletClient.getChainId();
+      
+      await submitReferral({
+        txHash: txHash as `0x${string}`,
+        chainId,
+      });
+      
+      console.log('✅ Divvi referral submitted successfully:', { txHash, chainId });
+    } catch (error) {
+      console.error('❌ Failed to submit Divvi referral:', error);
+      // Don't throw error to avoid breaking main transaction flow
+    }
+  };
+
+  const addReferralTagToTransaction = (transactionData: string) => {
+    try {
+      const referralTag = generateReferralTag();
+      return transactionData + referralTag;
+    } catch (error) {
+      console.error('❌ Failed to generate referral tag:', error);
+      // Return original data if referral tag generation fails
+      return transactionData;
+    }
+  };
 
   return {
     generateReferralTag,
     submitReferralTransaction,
-    isReady: !!address && !!walletClient,
+    addReferralTagToTransaction,
   };
 } 
