@@ -157,12 +157,15 @@ export function useEthersSwap() {
       // Handle token allowance for broker contract
       console.log('🔓 Handling token allowance for broker contract...');
       
+      // Known broker contract address for Celo mainnet
+      const brokerAddress = '0x777A8255cA72412f0d706dc03C9D1987306B4CaD';
+      
       // Create token contract interface
       const tokenInterface = ['function allowance(address owner, address spender) view returns (uint256)', 'function approve(address spender, uint256 amount) returns (bool)'];
       const tokenContract = new Contract(fromTokenAddress, tokenInterface, signer);
       
       // Step 1: Check current allowance
-      const currentAllowance = await tokenContract.allowance(signer.address, broker.target);
+      const currentAllowance = await tokenContract.allowance(signer.address, brokerAddress);
       
       // Step 2: Approve if needed
       if (BigInt(currentAllowance.toString()) < BigInt(amountInWei.toString())) {
@@ -170,7 +173,7 @@ export function useEthersSwap() {
         
         // Create approval transaction
         const approvalTx = await tokenContract.populateTransaction.approve(
-          broker.target,
+          brokerAddress,
           amountInWei.toString()
         );
         
@@ -308,7 +311,7 @@ export function useEthersSwap() {
          
          const step1Hash = await walletClient.sendTransaction({
            account: signer.address as `0x${string}`,
-           to: broker.target as `0x${string}`,
+           to: brokerAddress as `0x${string}`,
            data: step1DataWithReferral as `0x${string}`,
            value: BigInt(0),
            kzg: undefined,
@@ -332,11 +335,11 @@ export function useEthersSwap() {
            signer
          );
          
-         const intermediateAllowance = await intermediateTokenContract.allowance(signer.address, broker.target);
+         const intermediateAllowance = await intermediateTokenContract.allowance(signer.address, brokerAddress);
          
          if (BigInt(intermediateAllowance.toString()) < BigInt(step1Quote.toString())) {
            const approvalTx = await intermediateTokenContract.populateTransaction.approve(
-             broker.target,
+             brokerAddress,
              step1Quote.toString()
            );
            
@@ -382,7 +385,7 @@ export function useEthersSwap() {
          
          const step2Hash = await walletClient.sendTransaction({
            account: signer.address as `0x${string}`,
-           to: broker.target as `0x${string}`,
+           to: brokerAddress as `0x${string}`,
            data: step2DataWithReferral as `0x${string}`,
            value: BigInt(0),
            kzg: undefined,
@@ -485,7 +488,7 @@ export function useEthersSwap() {
         // Send the transaction using viem directly
         const hash = await walletClient.sendTransaction({
           account: signer.address as `0x${string}`,
-          to: broker.target as `0x${string}`,
+          to: brokerAddress as `0x${string}`,
           data: transactionDataWithReferral as `0x${string}`,
           value: BigInt(0),
           kzg: undefined,
@@ -579,7 +582,7 @@ export function useEthersSwap() {
            
            const hash = await walletClient.sendTransaction({
              account: signer.address as `0x${string}`,
-             to: broker.target as `0x${string}`,
+             to: brokerAddress as `0x${string}`,
              data: transactionDataWithReferral as `0x${string}`,
              value: BigInt(0),
              kzg: undefined,
