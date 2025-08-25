@@ -10,6 +10,7 @@
 
 - [**About FX-Remit**](#about-fx-remit)
 - [**✨ Key Features**](#-key-features)
+- [**🗺️ Development Roadmap**](#️-development-roadmap)
 - [**🌍 Supported Currencies**](#-supported-currencies)
 - [**🏗️ Architecture**](#️-architecture)
 - [**🛠️ Built With**](#️-built-with)
@@ -79,6 +80,165 @@ A world where sending money across borders is as easy as sending a text message,
 - **Wallet integration** with popular crypto wallets
 - **Real-time balance updates**
 - **Transaction history** with detailed records
+
+---
+
+## **🗺️ Development Roadmap**
+
+FX-Remit is continuously evolving to provide the best cross-border payment experience. Here's our strategic roadmap for upcoming features and improvements:
+
+### **🚀 Phase 1: Fee Optimization & Core UX (1-2 months)**
+
+#### **💰 Tiered Fee Structure**
+- **Volume-based discounts**: 1.5% for <$100, 1.2% for $100-$500, 1.0% for $500-$1000, 0.8% for $1000+
+- **Loyalty program**: Reduce fees by 0.1% for each $1000 in lifetime volume
+- **Referral incentives**: 0.1% fee reduction for successful referrals
+- **Smart order routing**: Route transactions through most cost-effective Mento pools
+
+#### **🎨 Revolut-Inspired UI/UX**
+- **Multi-currency wallets**: Clear currency buckets with visual balance cards
+- **Quick currency switching**: Swipe between currencies like Revolut
+- **Enhanced dashboard**: Portfolio overview with total value across currencies
+- **Transaction history improvements**: Better filtering and search capabilities
+
+#### **⚡ Performance Enhancements**
+- **Batch processing**: Group multiple small transactions to reduce gas costs
+- **Real-time updates**: Faster balance and transaction status updates
+- **Mobile optimization**: Improved mobile experience and performance
+
+### **🎯 Phase 2: Advanced Trading Features (3-6 months)**
+
+#### **📈 Spot Order Trading**
+- **Limit orders**: Set target exchange rates for automatic execution
+- **Market orders**: Instant execution at current market rates
+- **Order book visualization**: Real-time market depth and order history
+- **Price alerts**: Notifications when target rates are reached
+
+
+#### **📊 Advanced Analytics**
+- **Portfolio analytics**: Spending patterns and currency allocation
+- **Market insights**: Historical rate trends and volatility analysis
+- **Personalized recommendations**: Optimal timing and currency suggestions
+- **Export capabilities**: Download transaction data and reports
+
+### **🏢 Phase 3: Business & Social Features (6-12 months)**
+
+#### **💼 Business Tools**
+- **Multi-signature wallets**: Corporate accounts with approval workflows
+- **Bulk payments**: Send to multiple recipients in one transaction
+- **API access**: RESTful API for business integration
+- **Invoice generation**: Automatic receipt and invoice creation
+
+#### **👥 Social Features**
+- **Split bills**: Group payments with friends and family
+- **Payment requests**: Request money from others via social handles
+- **Social payments**: Send money using social media integration
+- **Gift cards**: Purchase and send digital gift cards
+- **Community features**: User networks and payment discovery
+
+#### **🎁 Financial Tools**
+- **Savings goals**: Set targets in different currencies
+- **Budget tracking**: Categorize spending across currencies
+- **Investment options**: Earn yield on stablecoin holdings
+- **Credit features**: Borrow against stablecoin collateral
+
+### **🔧 Phase 4: Technical Infrastructure (Ongoing)**
+
+#### **⛓️ Multi-Chain Support**
+- **Cross-chain bridges**: Support multiple blockchains beyond Celo
+- **Chain-specific optimizations**: Tailored features for each network
+- **Unified interface**: Seamless experience across all supported chains
+
+#### **🛡️ Security & Compliance**
+- **Advanced security**: Multi-factor authentication and fraud detection
+- **Regulatory compliance**: KYC/AML integration and reporting
+- **Insurance coverage**: Smart contract risk protection
+- **Audit trails**: Complete transaction history for compliance
+
+#### **📱 Platform Expansion**
+- **Mobile apps**: Native iOS and Android applications
+
+### **🎯 Success Metrics & KPIs**
+
+#### **Fee Reduction Success**
+- **Target**: 30% average fee reduction for active users
+- **Metric**: Average fee per transaction
+- **Goal**: Achieve 0.8% average fee by end of Phase 1
+
+#### **Feature Adoption**
+- **Target**: 60% of users adopt new features within 3 months
+- **Metric**: Feature usage rates and user engagement
+- **Goal**: 80% user retention improvement
+
+#### **Business Impact**
+- **Target**: 5x increase in transaction volume
+- **Metric**: Total platform volume and revenue
+- **Goal**: $50M+ annual transaction volume
+
+### **🔄 Development Process**
+
+#### **Agile Methodology**
+- **2-week sprints** with regular releases
+- **User feedback loops** for feature validation
+- **Continuous integration** and automated testing
+- **Regular security audits** and performance reviews
+
+#### **Quality Assurance**
+- **Comprehensive testing**: Unit, integration, and E2E tests
+- **Security audits**: Regular smart contract and frontend audits
+- **Performance monitoring**: Real-time system health tracking
+- **User acceptance testing**: Beta testing with community members
+
+#### **Community Involvement**
+- **Open source development**: Community contributions welcome
+- **Transparent roadmap**: Regular updates and progress sharing
+- **User feedback**: Feature requests and bug reports
+- **Beta testing**: Early access for community members
+
+### **📅 Timeline Overview**
+
+```
+Q3 2025 (Current): Phase 1 - Fee Optimization & Core UX
+├── August: Planning & Design ✅
+├── September: Core Implementation
+└── October: Testing & Launch
+
+Q4 2025: Phase 2 - Advanced Trading Features
+├── November: Spot Order Development
+├── December: Advanced Analytics
+└── January 2026: Recurring Payments
+
+Q1 2026: Phase 3 - Business & Social Features
+├── February: Business Tools
+├── March: Social Features
+└── April: Financial Tools
+
+Q2 2026: Phase 4 - Technical Infrastructure
+├── May: Multi-Chain Support
+├── June: Security & Compliance
+└── July: Platform Expansion
+```
+
+### **🤝 Contributing to the Roadmap**
+
+We welcome community input on our roadmap! Here's how you can contribute:
+
+#### **💡 Feature Suggestions**
+- **GitHub Discussions**: Share ideas and vote on features
+- **User surveys**: Participate in feature prioritization
+- **Feedback channels**: Direct feedback through various channels
+
+#### **🛠️ Development Contributions**
+- **Open source**: Contribute code to roadmap features
+- **Testing**: Help test new features and report bugs
+- **Documentation**: Help improve documentation and guides
+- **Translation**: Help translate the platform to new languages
+
+#### **📢 Community Support**
+- **Beta testing**: Early access to new features
+- **User feedback**: Provide detailed feedback on features
+- **Bug reports**: Help identify and report issues
+- **Feature advocacy**: Share and promote new features
 
 ---
 
