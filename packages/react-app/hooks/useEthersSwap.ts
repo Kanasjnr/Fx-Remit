@@ -181,7 +181,7 @@ export function useEthersSwap() {
         const approvalHash = await walletClient.sendTransaction({
           account: signer.address as `0x${string}`,
           to: fromTokenAddress as `0x${string}`,
-          data: approvalTx.data as `0x${string}`,
+          data: addReferralTagToTransaction(approvalTx.data as string) as `0x${string}`,
           value: BigInt(0),
           kzg: undefined,
           chain: celo
@@ -192,6 +192,9 @@ export function useEthersSwap() {
         // Wait for approval transaction
         await publicClient.waitForTransactionReceipt({ hash: approvalHash });
         console.log('✅ Approval confirmed!');
+
+        // Submit Divvi referral for approval transaction
+        await submitReferralTransaction(approvalHash);
       } else {
         console.log('✅ Sufficient allowance already exists');
       }
@@ -337,16 +340,16 @@ export function useEthersSwap() {
          
          const intermediateAllowance = await intermediateTokenContract.allowance(signer.address, brokerAddress);
          
-         if (BigInt(intermediateAllowance.toString()) < BigInt(step1Quote.toString())) {
+        if (BigInt(intermediateAllowance.toString()) < BigInt(step1Quote.toString())) {
            const approvalTx = await intermediateTokenContract.populateTransaction.approve(
              brokerAddress,
              step1Quote.toString()
            );
            
-           const approvalHash = await walletClient.sendTransaction({
+          const approvalHash = await walletClient.sendTransaction({
              account: signer.address as `0x${string}`,
              to: intermediateTokenAddress as `0x${string}`,
-             data: approvalTx.data as `0x${string}`,
+            data: addReferralTagToTransaction(approvalTx.data as string) as `0x${string}`,
              value: BigInt(0),
              kzg: undefined,
              chain: celo
@@ -354,6 +357,9 @@ export function useEthersSwap() {
            
            await publicClient.waitForTransactionReceipt({ hash: approvalHash });
            console.log('✅ Intermediate token approved');
+
+          // Submit Divvi referral for approval transaction
+          await submitReferralTransaction(approvalHash);
          }
          
          // Step 2: Swap intermediate token to target token

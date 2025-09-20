@@ -30,6 +30,16 @@ async function main() {
   const contractAddress = await fxRemit.getAddress();
   console.log(`FXRemit deployed to: ${contractAddress}`);
   
+  // Set Mento Broker (official mainnet address)
+  // Source: https://docs.mento.org/mento/build-on-mento/deployments/addresses
+  const MENTO_BROKER_MAINNET = '0x777A8255cA72412f0d706dc03C9D1987306B4CaD';
+
+  console.log('\nSetting Mento Broker on FXRemit...');
+  const setBrokerTx = await fxRemit.setBroker(MENTO_BROKER_MAINNET);
+  await setBrokerTx.wait();
+  const brokerSet = await fxRemit.mentoBroker();
+  console.log(`Mento Broker set to: ${brokerSet}`);
+
   // Test token validation with mainnet addresses
   console.log('\nTesting token validation...');
   const cUSDAddress = '0x765DE816845861e75A25fCA122bb6898B8B1282a'; // Mainnet cUSD
