@@ -7,7 +7,6 @@ import { celo } from 'viem/chains';
 import { useDivvi } from './useDivvi';
 import FXRemitABI from '../ABI/FXRemit.json';
 
-// Pure ethers.js implementation following official Mento SDK examples
 export function useEthersSwap() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -121,13 +120,7 @@ export function useEthersSwap() {
     try {
       // 1) Find tradable pair and correct single-hop exchange
       const tradablePair = await mento.findPairForTokens(fromTokenAddress, toTokenAddress);
-      if (!tradablePair || tradablePair.path.length !== 1) {
-        throw new Error(`Unsupported path length: ${tradablePair?.path.length ?? 0}`);
-      }
-      const hop = tradablePair.path[0];
-      const providerAddr = hop.providerAddr as `0x${string}`;
-      const exchangeId = hop.id as `0x${string}`; // bytes32 id from Mento
-      console.log('📍 Using exchange hop', { providerAddr, exchangeId });
+      if (!tradablePair) throw new Error('No tradable pair');
 
       // 2) Approve FXRemit to spend the input token
       const fxRemitAddress = getContractAddress(chainId);
@@ -157,45 +150,127 @@ export function useEthersSwap() {
 
       // 3) Call FXRemit.swapAndSend with SDK-provided params
       const corridor = `${fromCurrency}-${toCurrency}`;
-      const calldata = encodeFunctionData({
-        abi: FXRemitABI as unknown as Abi,
-        functionName: 'swapAndSend',
-        args: [
-          (recipientAddress ?? signer.address) as `0x${string}`,
-          fromTokenAddress as `0x${string}`,
-          toTokenAddress as `0x${string}`,
-          amountInWei,
-          BigInt(expectedAmountOut),
-          fromCurrency,
-          toCurrency,
-          corridor,
-          providerAddr,
-          exchangeId
-        ]
-      });
+      const singleHopDeadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 1); // 60s
 
-      const dataWithReferral = addReferralTagToTransaction(calldata);
-      const hash = await walletClient.sendTransaction({
+      if (tradablePair.path.length === 1) {
+        const hop = tradablePair.path[0];
+        const providerAddr = hop.providerAddr as `0x${string}`;
+        const exchangeId = hop.id as `0x${string}`; // bytes32
+        console.log('📍 Using single-hop', { providerAddr, exchangeId });
+        console.log('Allowlist provider (single-hop):', { providerAddr, exchangeId });
+
+        const calldata = encodeFunctionData({
+          abi: FXRemitABI as unknown as Abi,
+          functionName: 'swapAndSend',
+          args: [
+            (recipientAddress ?? signer.address) as `0x${string}`,
+            fromTokenAddress as `0x${string}`,
+            toTokenAddress as `0x${string}`,
+            amountInWei,
+            BigInt(expectedAmountOut),
+            fromCurrency,
+            toCurrency,
+            corridor,
+            providerAddr,
+            exchangeId,
+            singleHopDeadline
+          ]
+        });
+
+        const dataWithReferral = addReferralTagToTransaction(calldata);
+        const hash = await walletClient.sendTransaction({
           account: signer.address as `0x${string}`,
-        to: fxRemitAddress as `0x${string}`,
-        data: dataWithReferral as `0x${string}`,
+          to: fxRemitAddress as `0x${string}`,
+          data: dataWithReferral as `0x${string}`,
+          value: BigInt(0),
+          kzg: undefined,
+          chain: celo
+        });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error('Swap failed on-chain');
+        await submitReferralTransaction(hash);
+        
+          return {
+            success: true,
+            hash,
+            amountOut: formatEther(BigInt(expectedAmountOut)),
+          recipient: (recipientAddress ?? signer.address),
+          message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`
+        };
+      }
+
+      if (tradablePair.path.length === 2) {
+        const multiHopDeadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 3); // 180s
+        const hop1 = tradablePair.path[0];
+        const hop2 = tradablePair.path[1];
+        const providerAddr1 = hop1.providerAddr as `0x${string}`;
+        const providerAddr2 = hop2.providerAddr as `0x${string}`;
+        const exchangeId1 = hop1.id as `0x${string}`; // bytes32
+        const exchangeId2 = hop2.id as `0x${string}`; // bytes32
+
+        // Determine intermediate token address by intersection of assets
+        const assets1: string[] = hop1.assets;
+        const assets2: string[] = hop2.assets;
+        let intermediateTokenAddress: string | undefined;
+        for (const a1 of assets1) {
+          if (assets2.includes(a1) && a1 !== fromTokenAddress && a1 !== toTokenAddress) {
+            intermediateTokenAddress = a1;
+            break;
+          }
+        }
+        if (!intermediateTokenAddress) throw new Error('Could not determine intermediate token');
+        console.log('Allowlist providers (multi-hop):', {
+          providerAddr1,
+          exchangeId1,
+          providerAddr2,
+          exchangeId2,
+          intermediateTokenAddress
+        });
+
+        const calldata = encodeFunctionData({
+          abi: FXRemitABI as unknown as Abi,
+          functionName: 'swapAndSendPath',
+          args: [
+            (recipientAddress ?? signer.address) as `0x${string}`,
+            fromTokenAddress as `0x${string}`,
+            intermediateTokenAddress as `0x${string}`,
+            toTokenAddress as `0x${string}`,
+            amountInWei,
+            BigInt(expectedAmountOut),
+            fromCurrency,
+            toCurrency,
+            corridor,
+            providerAddr1,
+            exchangeId1,
+            providerAddr2,
+            exchangeId2,
+            multiHopDeadline
+          ]
+        });
+
+        const dataWithReferral = addReferralTagToTransaction(calldata);
+           const hash = await walletClient.sendTransaction({
+             account: signer.address as `0x${string}`,
+          to: fxRemitAddress as `0x${string}`,
+          data: dataWithReferral as `0x${string}`,
              value: BigInt(0),
              kzg: undefined,
              chain: celo
            });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (receipt.status !== 'success') {
-        throw new Error('Swap failed on-chain');
-      }
-      await submitReferralTransaction(hash);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error('Swap (path) failed on-chain');
+          await submitReferralTransaction(hash);
           
           return {
             success: true,
             hash,
             amountOut: formatEther(BigInt(expectedAmountOut)),
-        recipient: (recipientAddress ?? signer.address),
-        message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`
-      };
+          recipient: (recipientAddress ?? signer.address),
+          message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop)`
+        };
+      }
+
+      throw new Error(`Unsupported path length: ${tradablePair.path.length}`);
       
     } catch (error) {
       console.error('❌ Swap failed:', error);

@@ -47,6 +47,9 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
     address public mentoBroker; // Mento Broker contract
     uint16 public feeBps = 150; // 1.5% default
     
+    // Provider allowlist
+    mapping(address => bool) public allowedProviders;
+
     uint256 public nextRemittanceId = 1;
     uint256 public totalVolume;
     uint256 public totalFees;
@@ -94,7 +97,8 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
     
     event BrokerUpdated(address indexed broker);
     event FeeBpsUpdated(uint16 feeBps);
-    
+    event ProviderAllowed(address indexed provider, bool allowed);
+
     // ===== CONSTRUCTOR =====
     
     constructor() Ownable(msg.sender) {
@@ -117,11 +121,14 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
         string memory toCurrency,
         string memory corridor,
         address providerAddr,
-        bytes32 exchangeId
+        bytes32 exchangeId,
+        uint256 deadline
     ) external nonReentrant whenNotPaused returns (uint256 remittanceId, uint256 amountOut) {
+        require(block.timestamp <= deadline, "Expired");
         require(mentoBroker != address(0), "Broker not set");
         require(recipient != address(0), "Invalid recipient address");
         require(providerAddr != address(0), "Invalid provider");
+        require(allowedProviders[providerAddr], "Provider not allowed");
         require(fromToken != address(0) && toToken != address(0), "Invalid token");
         require(fromToken != toToken, "Tokens must differ");
         require(MentoTokens.isSupportedToken(fromToken), "From token unsupported");
@@ -156,12 +163,15 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
         // Execute swap via broker
         IMentoBroker(mentoBroker).swapIn(
             providerAddr,
-            exchangeId,
+            bytes32(exchangeId),
             fromToken,
             toToken,
             actualIn,
             minAmountOut
         );
+        
+        // Reset allowance to zero
+        IERC20(fromToken).forceApprove(mentoBroker, 0);
         
         // Calculate amount out
         uint256 afterOut = IERC20(toToken).balanceOf(address(this));
@@ -206,6 +216,130 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
         
         emit TokensTransferred(remittanceId, toToken, recipient, netAmount);
         
+        return (remittanceId, amountOut);
+    }
+
+    /**
+     * @dev Perform two-hop swap via Mento Broker (from -> intermediate -> to) and send to recipient, then log remittance
+     */
+    function swapAndSendPath(
+        address recipient,
+        address fromToken,
+        address intermediateToken,
+        address toToken,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        string memory fromCurrency,
+        string memory toCurrency,
+        string memory corridor,
+        address providerAddr1,
+        bytes32 exchangeId1,
+        address providerAddr2,
+        bytes32 exchangeId2,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused returns (uint256 remittanceId, uint256 amountOut) {
+        require(block.timestamp <= deadline, "Expired");
+        require(mentoBroker != address(0), "Broker not set");
+        require(recipient != address(0), "Invalid recipient address");
+        require(providerAddr1 != address(0) && providerAddr2 != address(0), "Invalid provider");
+        require(allowedProviders[providerAddr1] && allowedProviders[providerAddr2], "Provider not allowed");
+        require(fromToken != address(0) && toToken != address(0) && intermediateToken != address(0), "Invalid token");
+        require(fromToken != toToken && fromToken != intermediateToken && intermediateToken != toToken, "Token mismatch");
+        require(MentoTokens.isSupportedToken(fromToken), "From token unsupported");
+        require(MentoTokens.isSupportedToken(intermediateToken), "Inter token unsupported");
+        require(MentoTokens.isSupportedToken(toToken), "To token unsupported");
+        require(amountIn > 0, "amountIn = 0");
+        require(minAmountOut > 0, "minOut = 0");
+        require(bytes(fromCurrency).length > 0 && bytes(fromCurrency).length <= 10, "Bad fromCurrency");
+        require(bytes(toCurrency).length > 0 && bytes(toCurrency).length <= 10, "Bad toCurrency");
+        require(bytes(corridor).length > 0 && bytes(corridor).length <= 20, "Bad corridor");
+        
+        // Enforce currency and corridor consistency based on token addresses
+        string memory symFrom = MentoTokens.getTokenSymbol(fromToken);
+        string memory symTo = MentoTokens.getTokenSymbol(toToken);
+        require(keccak256(bytes(fromCurrency)) == keccak256(bytes(symFrom)), "fromCurrency mismatch");
+        require(keccak256(bytes(toCurrency)) == keccak256(bytes(symTo)), "toCurrency mismatch");
+        string memory expectedCorridor = string(abi.encodePacked(symFrom, "-", symTo));
+        require(keccak256(bytes(corridor)) == keccak256(bytes(expectedCorridor)), "corridor mismatch");
+
+        // Pull tokens from sender
+        uint256 beforeIn = IERC20(fromToken).balanceOf(address(this));
+        IERC20(fromToken).safeTransferFrom(msg.sender, address(this), amountIn);
+        uint256 actualIn = IERC20(fromToken).balanceOf(address(this)) - beforeIn;
+        require(actualIn > 0, "No input received");
+
+        // Approve broker for hop1
+        IERC20(fromToken).forceApprove(mentoBroker, 0);
+        IERC20(fromToken).forceApprove(mentoBroker, actualIn);
+
+        // Hop 1
+        uint256 interBefore = IERC20(intermediateToken).balanceOf(address(this));
+        IMentoBroker(mentoBroker).swapIn(
+            providerAddr1,
+            bytes32(exchangeId1),
+            fromToken,
+            intermediateToken,
+            actualIn,
+            1
+        );
+        // Reset allowance for hop1 token
+        IERC20(fromToken).forceApprove(mentoBroker, 0);
+
+        uint256 interAfter = IERC20(intermediateToken).balanceOf(address(this));
+        require(interAfter > interBefore, "No inter output");
+        uint256 interAmount = interAfter - interBefore;
+
+        // Approve broker for hop2
+        IERC20(intermediateToken).forceApprove(mentoBroker, 0);
+        IERC20(intermediateToken).forceApprove(mentoBroker, interAmount);
+
+        // Hop 2
+        uint256 toBefore = IERC20(toToken).balanceOf(address(this));
+        IMentoBroker(mentoBroker).swapIn(
+            providerAddr2,
+            bytes32(exchangeId2),
+            intermediateToken,
+            toToken,
+            interAmount,
+            minAmountOut
+        );
+        // Reset allowance for hop2 token
+        IERC20(intermediateToken).forceApprove(mentoBroker, 0);
+
+        uint256 toAfter = IERC20(toToken).balanceOf(address(this));
+        require(toAfter > toBefore, "No final output");
+        amountOut = toAfter - toBefore;
+        require(amountOut >= minAmountOut, "Insufficient output");
+
+        // Fees in output token
+        uint256 feeAmount = (amountOut * uint256(feeBps)) / 10000;
+        uint256 netAmount = amountOut - feeAmount;
+
+        // Transfer net amount to recipient
+        IERC20(toToken).safeTransfer(recipient, netAmount);
+
+        // Compute exchange rate scaled by 1e18
+        uint256 exchangeRate = (amountOut * 1e18) / actualIn;
+
+        // Store and emit
+        remittanceId = _storeRemittance(
+            msg.sender,
+            recipient,
+            fromToken,
+            toToken,
+            fromCurrency,
+            toCurrency,
+            actualIn,
+            amountOut,
+            exchangeRate,
+            feeAmount,
+            corridor
+        );
+
+        emit SwapExecuted(remittanceId, providerAddr1, exchangeId1, fromToken, intermediateToken, actualIn, interAmount);
+        emit SwapExecuted(remittanceId, providerAddr2, exchangeId2, intermediateToken, toToken, interAmount, amountOut);
+        emit TokensTransferred(remittanceId, toToken, recipient, netAmount);
+
         return (remittanceId, amountOut);
     }
     
@@ -455,13 +589,19 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
         feeBps = _feeBps;
         emit FeeBpsUpdated(_feeBps);
     }
-    
+
+    function setProviderAllowed(address provider, bool allowed) external onlyOwner {
+        require(provider != address(0), "Invalid provider");
+        allowedProviders[provider] = allowed;
+        emit ProviderAllowed(provider, allowed);
+    }
+
     function withdrawTokenFees(address token, address to) external onlyOwner {
         require(to != address(0), "Invalid to");
         uint256 bal = IERC20(token).balanceOf(address(this));
         IERC20(token).safeTransfer(to, bal);
     }
-    
+
     /**
      * @dev Withdraw accumulated fees (if any)
      * @param to Address to send fees to
