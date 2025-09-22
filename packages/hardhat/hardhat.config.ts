@@ -17,10 +17,9 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: {
-      alfajores: process.env.CELOSCAN_API_KEY ?? '',
-      celo: process.env.CELOSCAN_API_KEY ?? '',
-    },
+    // Etherscan V2 migration: use a single apiKey string
+    // For Celoscan, reuse CELOSCAN_API_KEY here
+    apiKey: process.env.CELOSCAN_API_KEY ?? '',
     customChains: [
       {
         chainId: 44_787,
@@ -50,6 +49,7 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 200,
       },
+      viaIR: true,
     },
   },
 };

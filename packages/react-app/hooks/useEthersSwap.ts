@@ -1,12 +1,12 @@
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { providers, Wallet, utils, Contract } from 'ethers';
-import { Currency, getTokenAddress } from '../lib/contracts';
-import { parseEther, formatEther } from 'viem';
+import { Currency, getTokenAddress, getContractAddress } from '../lib/contracts';
+import { parseEther, formatEther, encodeFunctionData, type Abi } from 'viem';
 import { celo } from 'viem/chains';
 import { useDivvi } from './useDivvi';
+import FXRemitABI from '../ABI/FXRemit.json';
 
-// Pure ethers.js implementation following official Mento SDK examples
 export function useEthersSwap() {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -92,17 +92,10 @@ export function useEthersSwap() {
     const signer = createProperSigner(address);
     
     console.log('✨ Creating Mento SDK...');
-    
     const mento = await Mento.create(signer);
-    
-    // Initialize exchanges - this is likely what's missing!
-    console.log('🔄 Initializing exchanges...');
+    console.log('🔄 Loading exchanges...');
     const exchanges = await mento.getExchanges();
-    console.log('📊 Available exchanges:', exchanges.length);
-    
-    if (exchanges.length === 0) {
-      throw new Error('No exchanges found - cannot perform swaps');
-    }
+    if (exchanges.length === 0) throw new Error('No exchanges found');
     
     // Use viem's parseEther to avoid BigNumber version issues
     const amountInWei = parseEther(amount);
@@ -120,64 +113,29 @@ export function useEthersSwap() {
     const quoteBigInt = BigInt(quoteAmountOut.toString());
     const expectedAmountOut = minAmountOut 
       ? parseEther(minAmountOut).toString()
-      : (quoteBigInt * BigInt(99) / BigInt(100)).toString();
+      : (quoteBigInt * BigInt(98) / BigInt(100)).toString(); // default 2% slippage
     
     console.log(`🎯 Expected amount out with 1% slippage: ${formatEther(BigInt(expectedAmountOut))} ${toCurrency}`);
     
     try {
-      // First, find the tradable pair like in the official examples
-      console.log('🔍 Finding tradable pair for swap...');
-      const tradablePair = await mento.findPairForTokens(
-        fromTokenAddress,
-        toTokenAddress
-      );
-      console.log('✅ Found tradable pair:', tradablePair);
-      
-      // Skip allowance step for now to test if the swap works
-      console.log('⚠️ Skipping allowance step for now - will handle after finding broker contract');
-      
-      // Step 2: Perform swap (following official example)
-      console.log('🔄 Swapping tokens...');
-      console.log('Debug - Swap parameters:', {
-        fromTokenAddress,
-        toTokenAddress,
-        amountInWei: amountInWei.toString(),
-        expectedAmountOut
-      });
-      
-      console.log('🔍 Trying direct provider approach...');
-      
-      const mentoWithProvider = await Mento.create(provider);
-      console.log('📊 Mento with provider created');
-      
-      // Try to use the getBroker method to get the broker contract
-      const broker = await mento.getBroker();
-      console.log('📊 Broker contract initialized');
-      
-      // Handle token allowance for broker contract
-      console.log('🔓 Handling token allowance for broker contract...');
-      
-      // Known broker contract address for Celo mainnet
-      const brokerAddress = '0x777A8255cA72412f0d706dc03C9D1987306B4CaD';
-      
-      // Create token contract interface
-      const tokenInterface = ['function allowance(address owner, address spender) view returns (uint256)', 'function approve(address spender, uint256 amount) returns (bool)'];
+      // 1) Find tradable pair and correct single-hop exchange
+      const tradablePair = await mento.findPairForTokens(fromTokenAddress, toTokenAddress);
+      if (!tradablePair) throw new Error('No tradable pair');
+
+      // 2) Approve FXRemit to spend the input token
+      const fxRemitAddress = getContractAddress(chainId);
+      if (!fxRemitAddress) throw new Error('FXRemit address not configured');
+      const tokenInterface = [
+        'function allowance(address owner, address spender) view returns (uint256)',
+        'function approve(address spender, uint256 amount) returns (bool)'
+      ];
       const tokenContract = new Contract(fromTokenAddress, tokenInterface, signer);
-      
-      // Step 1: Check current allowance
-      const currentAllowance = await tokenContract.allowance(signer.address, brokerAddress);
-      
-      // Step 2: Approve if needed
+      const currentAllowance = await tokenContract.allowance(signer.address, fxRemitAddress);
       if (BigInt(currentAllowance.toString()) < BigInt(amountInWei.toString())) {
-        console.log('🔓 Approving broker contract to spend tokens...');
-        
-        // Create approval transaction
         const approvalTx = await tokenContract.populateTransaction.approve(
-          brokerAddress,
+          fxRemitAddress,
           amountInWei.toString()
         );
-        
-        // Send approval transaction using viem
         const approvalHash = await walletClient.sendTransaction({
           account: signer.address as `0x${string}`,
           to: fromTokenAddress as `0x${string}`,
@@ -186,465 +144,133 @@ export function useEthersSwap() {
           kzg: undefined,
           chain: celo
         });
-        
-        console.log('📤 Approval transaction hash:', approvalHash);
-        
-        // Wait for approval transaction
         await publicClient.waitForTransactionReceipt({ hash: approvalHash });
-        console.log('✅ Approval confirmed!');
-      } else {
-        console.log('✅ Sufficient allowance already exists');
+        // Do not submit Divvi referral for approvals
       }
-      
-      // Check if trading is enabled for this pair
-      try {
-        const tradingEnabled = await mento.isTradingEnabled(tradablePair.id);
-        console.log('📊 Trading enabled:', tradingEnabled);
-      } catch (error) {
-        // Trading check failed, continue anyway
-      }
-      
-      // Find the correct exchange from the exchanges array
-      console.log('📊 Path length:', tradablePair.path.length);
-      
-      // Handle multi-hop swaps by using the path
+
+      // 3) Call FXRemit.swapAndSend with SDK-provided params
+      const corridor = `${fromCurrency}-${toCurrency}`;
+      const singleHopDeadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 1); // 60s
+
       if (tradablePair.path.length === 1) {
-        // Direct swap - single exchange
-        const correctExchange = exchanges.find(exchange => {
-          const hasTokens = exchange.assets.length === 2 &&
-            ((exchange.assets[0] === fromTokenAddress && exchange.assets[1] === toTokenAddress) ||
-             (exchange.assets[0] === toTokenAddress && exchange.assets[1] === fromTokenAddress));
-          return hasTokens;
+        const hop = tradablePair.path[0];
+        const providerAddr = hop.providerAddr as `0x${string}`;
+        const exchangeId = hop.id as `0x${string}`; // bytes32
+        console.log('📍 Using single-hop', { providerAddr, exchangeId });
+        console.log('Allowlist provider (single-hop):', { providerAddr, exchangeId });
+
+        const calldata = encodeFunctionData({
+          abi: FXRemitABI as unknown as Abi,
+          functionName: 'swapAndSend',
+          args: [
+            (recipientAddress ?? signer.address) as `0x${string}`,
+            fromTokenAddress as `0x${string}`,
+            toTokenAddress as `0x${string}`,
+            amountInWei,
+            BigInt(expectedAmountOut),
+            fromCurrency,
+            toCurrency,
+            corridor,
+            providerAddr,
+            exchangeId,
+            singleHopDeadline
+          ]
         });
-        console.log('📊 Found correct exchange:', correctExchange?.id);
-        
-        if (!correctExchange) {
-          throw new Error(`No direct exchange found for tokens ${fromTokenAddress} and ${toTokenAddress}`);
-        }
-             } else if (tradablePair.path.length === 2) {
-         // Multi-hop swap - manual implementation using two sequential swaps
-         console.log('🔄 Multi-hop swap detected');
-         
-         // Get the intermediate token (cUSD in most cases)
-         const firstExchange = tradablePair.path[0];
-         const secondExchange = tradablePair.path[1];
-         
-         // Find intermediate token by checking which token is common between both exchanges
-         let intermediateTokenAddress;
-         const firstAssets = firstExchange.assets;
-         const secondAssets = secondExchange.assets;
-         
-         // Find common asset (intermediate token)
-         for (const asset1 of firstAssets) {
-           for (const asset2 of secondAssets) {
-             if (asset1 === asset2 && asset1 !== fromTokenAddress && asset1 !== toTokenAddress) {
-               intermediateTokenAddress = asset1;
-               break;
-             }
-           }
-           if (intermediateTokenAddress) break;
-         }
-         
-         if (!intermediateTokenAddress) {
-           throw new Error('Could not determine intermediate token for multi-hop swap');
-         }
-         
-         console.log('🔄 Route: ', `${fromCurrency} → Intermediate → ${toCurrency}`);
-         
-         // Determine which exchange to use for each step
-         // Step 1: fromToken → intermediateToken
-         // Step 2: intermediateToken → toToken
-         
-         let step1Exchange, step2Exchange;
-         
-         // Find exchange that contains fromToken and intermediateToken
-         for (const exchange of [firstExchange, secondExchange]) {
-           const hasFromToken = exchange.assets.includes(fromTokenAddress);
-           const hasIntermediateToken = exchange.assets.includes(intermediateTokenAddress);
-           if (hasFromToken && hasIntermediateToken) {
-             step1Exchange = exchange;
-             break;
-           }
-         }
-         
-         // Find exchange that contains intermediateToken and toToken  
-         for (const exchange of [firstExchange, secondExchange]) {
-           const hasIntermediateToken = exchange.assets.includes(intermediateTokenAddress);
-           const hasToToken = exchange.assets.includes(toTokenAddress);
-           if (hasIntermediateToken && hasToToken) {
-             step2Exchange = exchange;
-             break;
-           }
-         }
-         
-         if (!step1Exchange || !step2Exchange) {
-           throw new Error('Could not find appropriate exchanges for multi-hop swap');
-         }
-         
-         // Step 1: Swap fromToken to intermediate token
-         console.log('📍 Step 1: Swapping to intermediate token...');
-         
-         // Get quote for first step using broker contract instead of Mento SDK
-         const step1Quote = await broker.functions.getAmountOut(
-           step1Exchange.providerAddr,
-           step1Exchange.id,
-           fromTokenAddress,
-           intermediateTokenAddress,
-           amountInWei.toString()
-         );
-         
-         // Apply slippage to step1 (1% slippage)  
-         const step1MinAmount = (BigInt(step1Quote.toString()) * BigInt(99)) / BigInt(100);
-         
-         // Execute first swap
-         const step1TxRequest = await broker.interface.encodeFunctionData('swapIn', [
-           step1Exchange.providerAddr,
-           step1Exchange.id,
-           fromTokenAddress,
-           intermediateTokenAddress,
-           amountInWei.toString(),
-           step1MinAmount.toString()
-         ]);
-         
-         // Add Divvi referral tag to step 1 transaction data
-         const step1DataWithReferral = addReferralTagToTransaction(step1TxRequest);
-         
-         const step1Hash = await walletClient.sendTransaction({
-           account: signer.address as `0x${string}`,
-           to: brokerAddress as `0x${string}`,
-           data: step1DataWithReferral as `0x${string}`,
-           value: BigInt(0),
-           kzg: undefined,
-           chain: celo
-         });
-         
-         console.log('📤 Step 1 transaction hash:', step1Hash);
-         
-         // Wait for step 1 to complete
-         await publicClient.waitForTransactionReceipt({ hash: step1Hash });
-         console.log('✅ Step 1 complete');
-         
-         // Submit referral for step 1
-         console.log('📬 Submitting referral for step 1 to Divvi...');
-         await submitReferralTransaction(step1Hash);
-         
-         // Step 2: Approve intermediate token for broker (if needed)
-         const intermediateTokenContract = new Contract(
-           intermediateTokenAddress,
-           ['function allowance(address owner, address spender) view returns (uint256)', 'function approve(address spender, uint256 amount) returns (bool)'],
-           signer
-         );
-         
-         const intermediateAllowance = await intermediateTokenContract.allowance(signer.address, brokerAddress);
-         
-         if (BigInt(intermediateAllowance.toString()) < BigInt(step1Quote.toString())) {
-           const approvalTx = await intermediateTokenContract.populateTransaction.approve(
-             brokerAddress,
-             step1Quote.toString()
-           );
-           
-           const approvalHash = await walletClient.sendTransaction({
-             account: signer.address as `0x${string}`,
-             to: intermediateTokenAddress as `0x${string}`,
-             data: approvalTx.data as `0x${string}`,
-             value: BigInt(0),
-             kzg: undefined,
-             chain: celo
-           });
-           
-           await publicClient.waitForTransactionReceipt({ hash: approvalHash });
-           console.log('✅ Intermediate token approved');
-         }
-         
-         // Step 2: Swap intermediate token to target token
-         console.log('📍 Step 2: Swapping intermediate to target token...');
-         
-         // Get quote for second step
-         const step2Quote = await broker.functions.getAmountOut(
-           step2Exchange.providerAddr,
-           step2Exchange.id,
-           intermediateTokenAddress,
-           toTokenAddress,
-           step1Quote.toString()
-         );
-         
-         // Apply slippage to step2 (1% slippage)
-         const step2MinAmount = (BigInt(step2Quote.toString()) * BigInt(99)) / BigInt(100);
-         
-         const step2TxRequest = await broker.interface.encodeFunctionData('swapIn', [
-           step2Exchange.providerAddr,
-           step2Exchange.id,
-           intermediateTokenAddress,
-           toTokenAddress,
-           step1Quote.toString(),
-           step2MinAmount.toString()
-         ]);
-         
-         // Add Divvi referral tag to step 2 transaction data
-         const step2DataWithReferral = addReferralTagToTransaction(step2TxRequest);
-         
-         const step2Hash = await walletClient.sendTransaction({
-           account: signer.address as `0x${string}`,
-           to: brokerAddress as `0x${string}`,
-           data: step2DataWithReferral as `0x${string}`,
-           value: BigInt(0),
-           kzg: undefined,
-           chain: celo
-         });
-         
-         console.log('📤 Step 2 transaction hash:', step2Hash);
-         
-         // Wait for step 2 to complete
-         await publicClient.waitForTransactionReceipt({ hash: step2Hash });
-         console.log('✅ Step 2 complete');
-         
-         // Submit referral for step 2
-         console.log('📬 Submitting referral for step 2 to Divvi...');
-         await submitReferralTransaction(step2Hash);
-         
-         // Handle remittance if recipient address is provided and different from sender
-         if (recipientAddress && recipientAddress !== signer.address) {
-           console.log('🔄 Transferring tokens to recipient...');
-           
-           const outputTokenContract = new Contract(toTokenAddress, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
-           
-           const transferTx = await outputTokenContract.populateTransaction.transfer(
-             recipientAddress,
-             step2Quote.toString()
-           );
-           
-           // Add Divvi referral tag to transfer transaction data
-           const transferDataWithReferral = addReferralTagToTransaction(transferTx.data as string);
-           
-           const transferHash = await walletClient.sendTransaction({
-             account: signer.address as `0x${string}`,
-             to: toTokenAddress as `0x${string}`,
-             data: transferDataWithReferral as `0x${string}`,
-             value: BigInt(0),
-             kzg: undefined,
-             chain: celo
-           });
-           
-           await publicClient.waitForTransactionReceipt({ hash: transferHash });
-           console.log('✅ Transfer to recipient confirmed!');
-           
-           // Submit referral for transfer transaction
-           console.log('📬 Submitting referral for transfer to Divvi...');
-           await submitReferralTransaction(transferHash);
-           
-           return {
-             success: true,
-             hash: step2Hash,
-             transferHash,
-             amountOut: formatEther(BigInt(step2Quote.toString())),
-             recipient: recipientAddress,
-             message: `Successfully sent ${formatEther(BigInt(step2Quote.toString()))} ${toCurrency} to ${recipientAddress}!`
-           };
-         } else {
-           return {
-             success: true,
-             hash: step2Hash,
-             amountOut: formatEther(BigInt(step2Quote.toString())),
-             recipient: signer.address,
-             message: `Successfully swapped ${formatEther(BigInt(amountInWei))} ${fromCurrency} for ${formatEther(BigInt(step2Quote.toString()))} ${toCurrency}!`
-           };
-         }
-      } else {
-        throw new Error(`Unsupported swap path length: ${tradablePair.path.length}`);
-      }
-      
-      // Continue with direct swap logic for single-hop swaps
-      const correctExchange = exchanges.find(exchange => {
-        const hasTokens = exchange.assets.length === 2 &&
-          ((exchange.assets[0] === fromTokenAddress && exchange.assets[1] === toTokenAddress) ||
-           (exchange.assets[0] === toTokenAddress && exchange.assets[1] === fromTokenAddress));
-        return hasTokens;
-      });
-      console.log('📊 Found correct exchange:', correctExchange?.id);
-      
-      if (!correctExchange) {
-        throw new Error(`No exchange found for tokens ${fromTokenAddress} and ${toTokenAddress}`);
-      }
-      
-      // Try different swap approaches
-      try {
-        // Method 1: Try calling broker directly with the function interface
-        console.log('🔄 Trying direct broker function call...');
-        
-        // Create the transaction request instead of executing it
-        // Note: Broker swapIn always sends output tokens to caller, not custom recipient
-        const txRequest = await broker.interface.encodeFunctionData('swapIn', [
-          correctExchange.providerAddr,  // exchangeProvider
-          correctExchange.id,            // exchangeId  
-          fromTokenAddress,              // tokenIn
-          toTokenAddress,                // tokenOut
-          amountInWei.toString(),        // amountIn
-          expectedAmountOut              // amountOutMin
-        ]);
-        
-        // Add Divvi referral tag to transaction data
-        const transactionDataWithReferral = addReferralTagToTransaction(txRequest);
-        
-        // Send the transaction using viem directly
+
+        const dataWithReferral = addReferralTagToTransaction(calldata);
         const hash = await walletClient.sendTransaction({
           account: signer.address as `0x${string}`,
-          to: brokerAddress as `0x${string}`,
-          data: transactionDataWithReferral as `0x${string}`,
+          to: fxRemitAddress as `0x${string}`,
+          data: dataWithReferral as `0x${string}`,
           value: BigInt(0),
           kzg: undefined,
           chain: celo
         });
-        
-        console.log('📤 Transaction hash:', hash);
-        console.log('✅ Direct broker function call succeeded!');
-        
-        // Wait for swap transaction to be mined
-        await publicClient.waitForTransactionReceipt({ hash });
-        console.log('✅ Swap transaction confirmed!');
-        
-        // Submit referral to Divvi after transaction confirmation
-        console.log('📬 Submitting referral to Divvi...');
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error('Swap failed on-chain');
         await submitReferralTransaction(hash);
         
-        // Handle remittance if recipient address is provided and different from sender
-        if (recipientAddress && recipientAddress !== signer.address) {
-          console.log('🔄 Transferring received tokens to recipient...');
-          
-          // Create token contract for the output token
-          const outputTokenContract = new Contract(toTokenAddress, ['function transfer(address to, uint256 amount) returns (bool)'], signer);
-          
-          // Transfer the received tokens to the recipient
-          const transferTx = await outputTokenContract.populateTransaction.transfer(
-            recipientAddress,
-            expectedAmountOut
-          );
-          
-          console.log('📋 Transfer transaction:', transferTx);
-          
-          // Add Divvi referral tag to transfer transaction data
-          const transferDataWithReferral = addReferralTagToTransaction(transferTx.data as string);
-          
-                     // Send transfer transaction using viem
-           const transferHash = await walletClient.sendTransaction({
-             account: signer.address as `0x${string}`,
-             to: toTokenAddress as `0x${string}`,
-             data: transferDataWithReferral as `0x${string}`,
-             value: BigInt(0),
-             kzg: undefined,
-             chain: celo
-           });
-          
-                   console.log('📤 Transfer transaction hash:', transferHash);
-         
-         // Wait for transfer transaction
-         await publicClient.waitForTransactionReceipt({ hash: transferHash });
-         console.log('✅ Transfer confirmed!');
-          
-          // Submit referral for transfer transaction
-          console.log('📬 Submitting referral for transfer to Divvi...');
-          await submitReferralTransaction(transferHash);
-          
-          return {
-            success: true,
-            hash,
-            transferHash,
-            amountOut: formatEther(BigInt(expectedAmountOut)),
-            recipient: recipientAddress,
-            message: `Successfully sent ${formatEther(BigInt(expectedAmountOut))} ${toCurrency} to ${recipientAddress}!`
-          };
-        } else {
           return {
             success: true,
             hash,
             amountOut: formatEther(BigInt(expectedAmountOut)),
-            recipient: signer.address,
-            message: `Successfully swapped ${formatEther(BigInt(amountInWei))} ${fromCurrency} for ${formatEther(BigInt(expectedAmountOut))} ${toCurrency}!`
-          };
+          recipient: (recipientAddress ?? signer.address),
+          message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`
+        };
+      }
+
+      if (tradablePair.path.length === 2) {
+        const multiHopDeadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 3); // 180s
+        const hop1 = tradablePair.path[0];
+        const hop2 = tradablePair.path[1];
+        const providerAddr1 = hop1.providerAddr as `0x${string}`;
+        const providerAddr2 = hop2.providerAddr as `0x${string}`;
+        const exchangeId1 = hop1.id as `0x${string}`; // bytes32
+        const exchangeId2 = hop2.id as `0x${string}`; // bytes32
+
+        // Determine intermediate token address by intersection of assets
+        const assets1: string[] = hop1.assets;
+        const assets2: string[] = hop2.assets;
+        let intermediateTokenAddress: string | undefined;
+        for (const a1 of assets1) {
+          if (assets2.includes(a1) && a1 !== fromTokenAddress && a1 !== toTokenAddress) {
+            intermediateTokenAddress = a1;
+            break;
+          }
         }
-      } catch (error1) {
-        console.log('Method 1 failed:', error1 instanceof Error ? error1.message : String(error1));
-        
-        try {
-          // Method 2: Try alternative broker function call
-          console.log('🔄 Trying alternative broker function signature...');
-          // Alternative signature with additional parameters
-          const txRequest = await broker.interface.encodeFunctionData('swapIn', [
-            correctExchange.providerAddr,
-            correctExchange.id,
-            fromTokenAddress,
-            toTokenAddress,
-            amountInWei.toString(),
-            expectedAmountOut
-          ]);
-          
-                                          // Add Divvi referral tag to transaction data
-           const transactionDataWithReferral = addReferralTagToTransaction(txRequest);
-           
+        if (!intermediateTokenAddress) throw new Error('Could not determine intermediate token');
+        console.log('Allowlist providers (multi-hop):', {
+          providerAddr1,
+          exchangeId1,
+          providerAddr2,
+          exchangeId2,
+          intermediateTokenAddress
+        });
+
+        const calldata = encodeFunctionData({
+          abi: FXRemitABI as unknown as Abi,
+          functionName: 'swapAndSendPath',
+          args: [
+            (recipientAddress ?? signer.address) as `0x${string}`,
+            fromTokenAddress as `0x${string}`,
+            intermediateTokenAddress as `0x${string}`,
+            toTokenAddress as `0x${string}`,
+            amountInWei,
+            BigInt(expectedAmountOut),
+            fromCurrency,
+            toCurrency,
+            corridor,
+            providerAddr1,
+            exchangeId1,
+            providerAddr2,
+            exchangeId2,
+            multiHopDeadline
+          ]
+        });
+
+        const dataWithReferral = addReferralTagToTransaction(calldata);
            const hash = await walletClient.sendTransaction({
              account: signer.address as `0x${string}`,
-             to: brokerAddress as `0x${string}`,
-             data: transactionDataWithReferral as `0x${string}`,
+          to: fxRemitAddress as `0x${string}`,
+          data: dataWithReferral as `0x${string}`,
              value: BigInt(0),
              kzg: undefined,
              chain: celo
            });
-          
-          await publicClient.waitForTransactionReceipt({ hash });
-          console.log('✅ Alternative broker call succeeded!');
-          
-          // Submit referral to Divvi after transaction confirmation
-          console.log('📬 Submitting referral to Divvi...');
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== 'success') throw new Error('Swap (path) failed on-chain');
           await submitReferralTransaction(hash);
           
           return {
             success: true,
             hash,
             amountOut: formatEther(BigInt(expectedAmountOut)),
-            recipient: signer.address,
-            message: `Successfully swapped ${formatEther(BigInt(amountInWei))} ${fromCurrency} for ${formatEther(BigInt(expectedAmountOut))} ${toCurrency}!`
-          };
-        } catch (error2) {
-          console.log('Method 2 failed:', error2 instanceof Error ? error2.message : String(error2));
-          // If all methods fail, throw an error with diagnostic info
-          // Method 4: List all available functions on the broker
-          console.log('🔍 Listing all broker interface functions...');
-          const brokerInterface = broker.interface;
-          console.log('Broker interface:', brokerInterface);
-          console.log('Broker interface functions:', Object.getOwnPropertyNames(brokerInterface));
-          console.log('Broker methods:', Object.getOwnPropertyNames(broker));
-          // List all available functions by name - handle Map structure
-          console.log('📋 Available broker functions:');
-          const interfaceAny = brokerInterface as any;
-          if (interfaceAny.fragments) {
-            interfaceAny.fragments.forEach((fragment: any) => {
-              if (fragment.type === 'function') {
-                const signature = `${fragment.name}(${fragment.inputs.map((input: any) => `${input.type} ${input.name}`).join(', ')})`;
-                console.log(`- ${signature}`);
-              }
-            });
-          }
-          // Try to find swap-related functions from fragments
-          const swapFunctions: string[] = [];
-          const exchangeFunctions: string[] = [];
-          if (interfaceAny.fragments) {
-            interfaceAny.fragments.forEach((fragment: any) => {
-              if (fragment.type === 'function') {
-                const name = fragment.name.toLowerCase();
-                if (name.includes('swap')) {
-                  swapFunctions.push(fragment.name);
-                }
-                if (name.includes('exchange') || name.includes('trade')) {
-                  exchangeFunctions.push(fragment.name);
-                }
-              }
-            });
-          }
-          console.log('🔄 Swap-related functions:', swapFunctions);
-          console.log('💱 Exchange/Trade-related functions:', exchangeFunctions);
-          // If all methods fail, throw an error with diagnostic info
-          throw new Error(`All swap methods failed. Exchanges: ${exchanges.length}, Available methods: ${Object.getOwnPropertyNames(mento).join(', ')}`);
-        }
+          recipient: (recipientAddress ?? signer.address),
+          message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop)`
+        };
       }
+
+      throw new Error(`Unsupported path length: ${tradablePair.path.length}`);
       
     } catch (error) {
       console.error('❌ Swap failed:', error);
