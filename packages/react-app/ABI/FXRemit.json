@@ -185,6 +185,25 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "provider",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "allowed",
+        "type": "bool"
+      }
+    ],
+    "name": "ProviderAllowed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "uint256",
         "name": "remittanceId",
         "type": "uint256"
@@ -331,6 +350,25 @@
   {
     "stateMutability": "payable",
     "type": "fallback"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "allowedProviders",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -923,6 +961,24 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "provider",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "allowed",
+        "type": "bool"
+      }
+    ],
+    "name": "setProviderAllowed",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "recipient",
         "type": "address"
       },
@@ -970,9 +1026,103 @@
         "internalType": "bytes32",
         "name": "exchangeId",
         "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "swapAndSend",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "remittanceId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOut",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "fromToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "intermediateToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "toToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minAmountOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "fromCurrency",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "toCurrency",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "corridor",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "providerAddr1",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "exchangeId1",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "providerAddr2",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "exchangeId2",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "swapAndSendPath",
     "outputs": [
       {
         "internalType": "uint256",
