@@ -6,7 +6,6 @@ import { ConnectButton } from "@rainbow-me/rainbowkit"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useTokenBalance, useQuote } from "@/hooks/useMento"
 import { useEthersSwap } from "@/hooks/useEthersSwap"
-import { useLogRemittance } from "@/hooks/useContract"
 import type { Currency } from "@/lib/contracts"
 import { toast } from "react-toastify"
 import Link from "next/link"
@@ -50,7 +49,6 @@ export default function SendPage() {
   const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency)
   const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount)
   const { swap } = useEthersSwap()
-  const { logRemittance, isPending: isLoggingRemittance } = useLogRemittance()
 
   const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency)
   const toCurrencyInfo = currencies.find((c) => c.code === toCurrency)
@@ -77,23 +75,6 @@ export default function SendPage() {
       const swapResult = await swap(fromCurrency, toCurrency, amount, undefined, recipient)
 
       console.log("✅ Swap completed successfully:", swapResult)
-
-      try {
-        await logRemittance({
-          recipient,
-          fromCurrency,
-          toCurrency,
-          amountSent: amount,
-          amountReceived: quote.amountOut,
-          exchangeRate: quote.exchangeRate,
-          platformFee: quote.platformFee,
-          mentoTxHash: swapResult.hash,
-          corridor: `${fromCurrency.replace("c", "")}-${toCurrency.replace("c", "")}`,
-        })
-        console.log("✅ logRemittance completed successfully!")
-      } catch (logError) {
-        console.error("❌ logRemittance failed:", logError)
-      }
 
       toast.dismiss(loadingToast)
       const successMessage = swapResult.message || `🎉 Successfully sent ${amount} ${fromCurrency} to ${recipient}!`
@@ -312,12 +293,12 @@ export default function SendPage() {
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!isConnected || !amount || !recipient || !quote || isProcessing || isLoggingRemittance}
+            disabled={!isConnected || !amount || !recipient || !quote || isProcessing}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed text-lg flex items-center justify-center space-x-2"
           >
             {!isConnected ? (
               <span>Connect Wallet</span>
-            ) : isProcessing || isLoggingRemittance ? (
+            ) : isProcessing ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 <span>Processing...</span>
