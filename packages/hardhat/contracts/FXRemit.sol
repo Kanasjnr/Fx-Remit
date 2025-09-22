@@ -78,7 +78,7 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
     event SwapExecuted(
         uint256 indexed remittanceId,
         address providerAddr,
-        uint256 exchangeId,
+        bytes32 exchangeId,
         address fromToken,
         address toToken,
         uint256 amountIn,
@@ -117,7 +117,7 @@ contract FXRemit is ReentrancyGuard, Ownable, Pausable {
         string memory toCurrency,
         string memory corridor,
         address providerAddr,
-        uint256 exchangeId
+        bytes32 exchangeId
     ) external nonReentrant whenNotPaused returns (uint256 remittanceId, uint256 amountOut) {
         require(mentoBroker != address(0), "Broker not set");
         require(recipient != address(0), "Invalid recipient address");
