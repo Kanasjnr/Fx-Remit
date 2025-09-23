@@ -36,7 +36,7 @@
 ## **About FX-Remit**
 
 FX-Remit is a **next-generation cross-border remittance platform** built on the Celo blockchain that enables users to send money globally with unprecedented speed, security, and low fees. By leveraging the **Mento Protocol**, FX-Remit provides seamless currency exchanges between 15 different supported currencies, making international money transfers accessible to everyone.
-Contract Address on celo alfajores(0xb5a4504A746cfD5591893B33D2966c5c4e21473F)
+ 
 
 ### **🎯 Mission**
 To democratize cross-border payments by providing a fast, secure, and affordable alternative to traditional remittance services, powered by blockchain technology.
@@ -540,7 +540,7 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 ### **🚀 Deployed Contracts**
 
 #### **📍 Celo Mainnet**
-- **FXRemit Contract**: [`0x8f33981b04e1DF30007cf4049658360124B0aE19`](https://celoscan.io/address/0x8f33981b04e1DF30007cf4049658360124B0aE19)
+- **FXRemit Contract**: [`0x1245211aBAe5013e7f5523013b78F50AB44C2c57`](https://celoscan.io/address/0x1245211aBAe5013e7f5523013b78F50AB44C2c57)
 - **Network**: Celo Mainnet
 - **Status**: ✅ Verified and Active
 
@@ -587,12 +587,16 @@ The deployment script (`packages/hardhat/scripts/deploy.ts`) includes:
 ### **📊 Contract Functions**
 
 #### **Core Functions**
-- `logRemittance()` - Record a completed remittance
+- `swapAndSend(...)` - Single-hop swap + send with deadline and provider allowlist
+- `swapAndSendPath(...)` - Two-hop swap (via intermediate) + send with deadline and provider allowlist
 - `getRemittance()` - Get details of a specific remittance
 - `getUserRemittances()` - Get all user's remittances
 - `getPlatformStats()` - Get platform-wide statistics
 
 #### **Admin Functions**
+- `setBroker(address)` - Set Mento Broker address
+- `setProviderAllowed(address,bool)` - Allowlist Mento provider (BiPoolManager)
+- `setFeeBps(uint16)` - Set platform fee bps (max 10%)
 - `pause()` / `unpause()` - Emergency controls
 - `withdrawFees()` - Withdraw platform fees
 - `owner()` - Check contract owner
