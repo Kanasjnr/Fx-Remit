@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { useAccount, useBalance, useDisconnect } from "wagmi"
+import { useAccount, useDisconnect } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useUserRemittances, useRemittanceDetails } from "@/hooks/useContract"
 import type { Currency } from "@/lib/contracts"
 import { CURRENCY_INFO, getTokenAddress } from "@/lib/contracts"
-import { formatEther } from "viem"
+import { formatEther, parseEther } from "viem"
 import Link from "next/link"
 import {
   UserIcon,
@@ -23,6 +23,8 @@ import {
   BanknotesIcon,
 } from "@heroicons/react/24/outline"
 import { toast } from "react-toastify"
+import { Mento } from "@mento-protocol/mento-sdk"
+import { providers } from "ethers"
 
 // Component to load individual remittance data
 function RemittanceLoader({
@@ -75,6 +77,12 @@ function StatsCalculator({
         }, 0),
         totalTransactions: validRemittances.length,
         corridors: validRemittances.map((r) => `${r.fromCurrency}-${r.toCurrency}`),
+        totalsByCurrency: validRemittances.reduce((acc: Record<string, number>, r: any) => {
+          const cur = r.fromCurrency as string
+          const amt = Number.parseFloat(r.amountSent || "0")
+          acc[cur] = (acc[cur] || 0) + amt
+          return acc
+        }, {}),
       }
 
       const corridorCounts = stats.corridors.reduce((acc: any, corridor: string) => {
@@ -101,6 +109,7 @@ function StatsCalculator({
         corridors: [],
         favoriteCorridors: [],
         averageFeePercentage: 0,
+        totalsByCurrency: {},
       }
     }
   }, [remittances])
@@ -188,15 +197,16 @@ export default function ProfilePage() {
     totalTransactions: 0,
     favoriteCorridors: [] as string[],
     averageFeePercentage: 0,
+    totalsByCurrency: {} as Record<string, number>,
   })
+
+  const [usdEstimate, setUsdEstimate] = useState<number | null>(null)
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
 
   const [loadedRemittances, setLoadedRemittances] = useState<Record<string, any>>({})
   const { remittanceIds, isLoading: isLoadingIds } = useUserRemittances(address)
 
-  const { data: cUsdBalance } = useBalance({
-    address,
-    token: address ? (getTokenAddress(42220, "cUSD") as `0x${string}`) : undefined,
-  })
+  // Removed primary balance (not needed)
 
   const handleRemittanceReady = useCallback((id: string, remittance: any) => {
     setLoadedRemittances((prev) => {
@@ -210,6 +220,41 @@ export default function ProfilePage() {
   const handleStatsReady = useCallback((stats: any) => {
     setUserStats(stats)
   }, [])
+
+  // Compute USD estimate for Total Sent using current quotes (best-effort)
+  useEffect(() => {
+    async function computeUsd() {
+      try {
+        const totals = userStats.totalsByCurrency || {}
+        const entries = Object.entries(totals)
+        if (!entries.length) {
+          setUsdEstimate(0)
+          return
+        }
+        const provider = new providers.JsonRpcProvider('https://forno.celo.org')
+        const mento = await Mento.create(provider)
+        const chainId = 42220 as const
+        const cUSD = getTokenAddress(chainId, 'cUSD' as Currency)
+        let sumCusd = 0
+        for (const [cur, amt] of entries) {
+          const amount = Number(amt) || 0
+          if (amount <= 0) continue
+          if (cur === 'cUSD') {
+            sumCusd += amount
+            continue
+          }
+          const fromToken = getTokenAddress(chainId, cur as Currency)
+          const out = await mento.getAmountOut(fromToken, cUSD, parseEther(String(amount)))
+          sumCusd += Number(formatEther(BigInt(out.toString())))
+        }
+        setUsdEstimate(sumCusd)
+      } catch (e) {
+        // Non-fatal; hide estimate
+        setUsdEstimate(null)
+      }
+    }
+    computeUsd()
+  }, [userStats.totalsByCurrency])
 
   const handleCopyAddress = async () => {
     if (address) {
@@ -335,15 +380,15 @@ export default function ProfilePage() {
         {/* Main Content */}
         <main className="px-4 py-6">
           <div className="max-w-md mx-auto space-y-6">
-            {/* Wallet Info Card */}
+            {/* Wallet Info Card (simplified) */}
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-sm">
-                    <UserIcon className="w-8 h-8 text-white" />
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                    <UserIcon className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <div className="text-xl font-bold text-gray-900">Your Wallet</div>
+                    <div className="text-lg font-bold text-gray-900">Your Wallet</div>
                     <div className="text-sm text-gray-500 font-mono">
                       {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : "Not Connected"}
                     </div>
@@ -357,35 +402,37 @@ export default function ProfilePage() {
                   <span>{copied ? "Copied!" : "Copy"}</span>
                 </button>
               </div>
-
-              <div className="border-t border-gray-100 pt-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2">Primary Balance</div>
-                    <div className="text-3xl font-bold text-gray-900">
-                      {cUsdBalance ? formatCurrency(Number.parseFloat(formatEther(cUsdBalance.value))) : "Loading..."}
-                    </div>
-                    <div className="text-sm text-blue-600 font-semibold">cUSD</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500 mb-2">Network</div>
-                    <div className="text-lg font-semibold text-gray-900">Celo Mainnet</div>
-                    <div className="text-sm text-gray-500">Mainnet</div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
                     <BanknotesIcon className="w-5 h-5 text-green-600" />
                   </div>
                   <div className="text-sm text-gray-500">Total Sent</div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{formatCurrency(userStats.totalSent)}</div>
+              {/* USD estimate headline */}
+              <div className="text-2xl font-bold text-gray-900">
+                {usdEstimate !== null ? `≈ $${usdEstimate.toFixed(2)}` : '—'}
+              </div>
+              {/* Top chips and +X more */}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {Object.entries((userStats as any).totalsByCurrency || {})
+                  .sort((a: any, b: any) => Number(b[1]) - Number(a[1]))
+                  .slice(0, 2)
+                  .map(([cur, amt]) => (
+                    <span key={cur} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700">
+                      {(Number(amt) || 0).toFixed(2)} {cur}
+                    </span>
+                  ))}
+                {Object.keys((userStats as any).totalsByCurrency || {}).length > 2 && (
+                  <button onClick={() => setIsBreakdownOpen(true)} className="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-full">
+                    +{Object.keys((userStats as any).totalsByCurrency || {}).length - 2} more
+                  </button>
+                )}
+              </div>
               </div>
 
               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
@@ -520,6 +567,28 @@ export default function ProfilePage() {
             </button>
           </div>
         </main>
+
+        {/* Breakdown Modal */}
+        {isBreakdownOpen && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/30" onClick={() => setIsBreakdownOpen(false)}>
+            <div className="w-full md:w-[420px] bg-white rounded-t-2xl md:rounded-2xl p-4 border border-gray-200 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold text-gray-900">Total Sent Breakdown</h4>
+                <button className="text-sm text-gray-500" onClick={() => setIsBreakdownOpen(false)}>Close</button>
+              </div>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {Object.entries((userStats as any).totalsByCurrency || {})
+                  .sort((a: any, b: any) => Number(b[1]) - Number(a[1]))
+                  .map(([cur, amt]) => (
+                    <div key={cur} className="flex items-center justify-between px-2 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <span className="text-sm text-gray-600">{cur}</span>
+                      <span className="text-sm font-semibold text-gray-900">{(Number(amt) || 0).toFixed(2)} {cur}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <BottomNavigation />
       </div>

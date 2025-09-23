@@ -49,6 +49,8 @@ function RemittanceItem({
     const dataKey = remittance ? `${remittance.id}-${remittance.fromCurrency}-${remittance.toCurrency}` : null
 
     if (remittance && remittance.fromCurrency && remittance.toCurrency && processedRef.current !== dataKey) {
+      const zeroHash = '0x' + '0'.repeat(64)
+      const txHash = remittance.mentoTxHash && remittance.mentoTxHash !== zeroHash ? remittance.mentoTxHash : ''
       const tx: Transaction = {
         id: remittance.id ? remittance.id.toString() : id,
         from: remittance.fromCurrency as Currency,
@@ -59,7 +61,7 @@ function RemittanceItem({
         status: "completed",
         date: remittance.timestamp.toLocaleDateString(),
         time: remittance.timestamp.toLocaleTimeString(),
-        hash: remittance.mentoTxHash,
+        hash: txHash,
         recipient: remittance.recipient,
       }
 
@@ -158,9 +160,9 @@ export default function HistoryPage() {
           <RemittanceItem key={id.toString()} remittanceId={id} onTransactionReady={handleTransactionReady} />
         ))}
 
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="min-h-screen bg-gray-50 pb-16">
         {/* Header */}
-        <header className="px-4 py-6 bg-white border-b border-gray-200 sticky top-0 z-40">
+        <header className="px-3 py-4 bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="max-w-md mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
@@ -168,14 +170,14 @@ export default function HistoryPage() {
                   <span className="text-white font-bold text-lg">FX</span>
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Transaction History</h1>
+                  <h1 className="text-base md:text-xl font-bold text-gray-900">Transaction History</h1>
                   <p className="text-sm text-gray-500">Track your transfers</p>
                 </div>
               </Link>
             </div>
             <div className="flex items-center space-x-3">
               {isConnected && isClientMounted ? (
-                <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1.5">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-green-700 font-medium">Connected</span>
                 </div>
@@ -187,13 +189,13 @@ export default function HistoryPage() {
         </header>
 
         {/* Main Content */}
-        <main className="px-4 py-6">
+        <main className="px-3 py-4">
           <div className="max-w-md mx-auto">
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-4">
               <button
                 onClick={() => setFilter("all")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   filter === "all"
                     ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-200"
@@ -203,7 +205,7 @@ export default function HistoryPage() {
               </button>
               <button
                 onClick={() => setFilter("completed")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   filter === "completed"
                     ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-200"
@@ -213,7 +215,7 @@ export default function HistoryPage() {
               </button>
               <button
                 onClick={() => setFilter("pending")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   filter === "pending"
                     ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-200"
@@ -224,23 +226,23 @@ export default function HistoryPage() {
             </div>
 
             {/* Transaction List */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Loading State */}
               {isLoadingIds && (
                 <div className="text-center py-16">
                   <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                  <p className="text-gray-700 text-lg font-medium">Loading transactions...</p>
+                  <p className="text-gray-700 text-base md:text-lg font-medium">Loading transactions...</p>
                   <p className="text-gray-500 text-sm mt-2">Fetching your transfer history</p>
                 </div>
               )}
 
               {/* Connected but no transactions */}
               {!isLoadingIds && isConnected && filteredTransactions.length === 0 && (
-                <div className="text-center py-16">
+                <div className="text-center py-12">
                   <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 border border-gray-200 shadow-sm">
                     <DocumentTextIcon className="w-10 h-10 text-gray-400" />
                   </div>
-                  <p className="text-gray-700 text-xl font-semibold mb-2">No transactions found</p>
+                  <p className="text-gray-700 text-base md:text-xl font-semibold mb-1">No transactions found</p>
                   <p className="text-gray-500 text-sm max-w-md mx-auto">
                     Your transaction history will appear here after you send your first remittance
                   </p>
@@ -249,11 +251,11 @@ export default function HistoryPage() {
 
               {/* Not connected */}
               {!isLoadingIds && !isConnected && (
-                <div className="text-center py-16">
+                <div className="text-center py-12">
                   <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 border border-gray-200 shadow-sm">
                     <WalletIcon className="w-10 h-10 text-gray-400" />
                   </div>
-                  <p className="text-gray-700 text-xl font-semibold mb-2">Connect your wallet</p>
+                  <p className="text-gray-700 text-base md:text-xl font-semibold mb-1">Connect your wallet</p>
                   <p className="text-gray-500 text-sm max-w-md mx-auto">
                     Connect your wallet to view your transaction history and track your transfers
                   </p>
@@ -265,10 +267,10 @@ export default function HistoryPage() {
                 filteredTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-all duration-200 overflow-hidden shadow-sm"
+                    className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200 overflow-hidden shadow-sm"
                   >
                     {/* Transaction Header */}
-                    <div className="p-6 border-b border-gray-100">
+                    <div className="p-3 border-b border-gray-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-3">
@@ -278,7 +280,7 @@ export default function HistoryPage() {
                               <span className="text-2xl">{getCurrencyFlag(transaction.to)}</span>
                             </div>
                             <div>
-                              <div className="text-lg font-semibold text-gray-900">
+                              <div className="text-base md:text-lg font-semibold text-gray-900">
                                 {transaction.from} → {transaction.to}
                               </div>
                               <div className="text-sm text-gray-500">
@@ -289,30 +291,30 @@ export default function HistoryPage() {
                         </div>
                         <div className="flex items-center space-x-3">
                           <span
-                            className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold border ${getStatusColor(
+                            className={`inline-flex items-center space-x-2 px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(
                               transaction.status,
                             )}`}
                           >
                             {getStatusIcon(transaction.status)}
-                            <span>{transaction.status.toUpperCase()}</span>
+                            <span className="tracking-wide">{transaction.status.toUpperCase()}</span>
                           </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Transaction Amount */}
-                    <div className="p-6 bg-blue-50 border-b border-gray-100">
-                      <div className="grid grid-cols-1 gap-6">
+                    <div className="p-3 bg-blue-50 border-b border-gray-100">
+                      <div className="grid grid-cols-1 gap-3">
                         <div className="text-center">
                           <div className="text-sm text-gray-600 mb-1">You sent</div>
-                          <div className="text-2xl font-bold text-gray-900">
+                          <div className="text-xl md:text-2xl font-bold text-gray-900">
                             {getCurrencySymbol(transaction.from)}
                             {transaction.amount.toFixed(2)} {transaction.from}
                           </div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm text-gray-600 mb-1">They received</div>
-                          <div className="text-2xl font-bold text-blue-600">
+                          <div className="text-xl md:text-2xl font-bold text-blue-600">
                             {getCurrencySymbol(transaction.to)}
                             {transaction.received.toFixed(3)} {transaction.to}
                           </div>
@@ -321,8 +323,8 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Transaction Details */}
-                    <div className="p-6">
-                      <div className="space-y-4 mb-6">
+                    <div className="p-3">
+                      <div className="space-y-3 mb-4">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-500">Platform fee (1.5%)</span>
                           <span className="text-sm font-medium text-gray-900">
@@ -346,24 +348,26 @@ export default function HistoryPage() {
                         </div>
                       </div>
 
-                      {/* Transaction Hash and Explorer Link */}
+                      {/* Transaction Hash and Explorer Link (shown only if available) */}
+                      {transaction.hash && (
                       <div className="pt-4 border-t border-gray-100">
                         <div className="flex flex-col gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500 mb-1">Transaction Hash</div>
-                            <div className="text-xs font-mono text-gray-600 truncate">{transaction.hash}</div>
+                              <div className="text-xs text-gray-500 mb-1">Transaction Hash</div>
+                              <div className="text-xs font-mono text-gray-600 truncate">{transaction.hash}</div>
                           </div>
                           <button
                             onClick={() =>
-                              window.open(`https://celo-alfajores.blockscout.com/tx/${transaction.hash}`, "_blank")
+                                window.open(`https://celoscan.io/tx/${transaction.hash}`, "_blank")
                             }
-                            className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded-lg transition-all duration-200 text-sm font-medium border border-blue-200 hover:border-blue-300"
+                              className="inline-flex items-center justify-center space-x-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 rounded-lg transition-all duration-200 text-sm font-medium border border-blue-200 hover:border-blue-300"
                           >
                             <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                             <span>View on Explorer</span>
                           </button>
                         </div>
                       </div>
+                      )}
                     </div>
                   </div>
                 ))}
