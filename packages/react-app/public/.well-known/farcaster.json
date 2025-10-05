@@ -1,0 +1,38 @@
+{
+  "miniapp": {
+    "version": "1",
+    "name": "FX Remit",
+    "iconUrl": "https://fx-remit.vercel.app/logo.svg",
+    "splashImageUrl": "https://fx-remit.vercel.app/logo.svg",
+    "splashBackgroundColor": "#2563eb",
+    "homeUrl": "https://fx-remit.vercel.app",
+    "subtitle": "Global Money Transfers",
+    "description": "Send money globally with ultra-low fees, lightning-fast settlements, and enterprise-grade security. Powered by Celo blockchain and Mento Protocol.",
+    "screenshotUrls": [
+      "https://fx-remit.vercel.app/screenshot1.png",
+      "https://fx-remit.vercel.app/screenshot2.png",
+      "https://fx-remit.vercel.app/screenshot3.png"
+    ],
+    "primaryCategory": "finance",
+    "tags": [
+      "remittance",
+      "cross-border",
+      "payments",
+      "celo",
+      "mento",
+      "defi"
+    ],
+    "heroImageUrl": "https://fx-remit.vercel.app/og-image.png",
+    "tagline": "Cross-Border Payments Reimagined",
+    "ogTitle": "FX Remit - Global Money Transfers",
+    "ogDescription": "Send money to 15+ countries with ultra-low 1.5% fees, lightning-fast settlements, and enterprise-grade security. Powered by Celo blockchain.",
+    "ogImageUrl": "https://fx-remit.vercel.app/og-image.png",
+    "requiredChains": [
+      "eip155:42220"
+    ],
+    "requiredCapabilities": [
+      "actions.signIn",
+      "wallet.getEthereumProvider"
+    ]
+  }
+}
