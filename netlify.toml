@@ -10,7 +10,7 @@
 
 [build.environment]
   # Set Node.js version
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
   
   # Enable pnpm workspaces
   NPM_FLAGS = "--production=false"
