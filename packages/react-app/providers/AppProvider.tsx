@@ -6,8 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { celo } from 'wagmi/chains';
+import { injected } from 'wagmi/connectors';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
+import { MiniAppConnector } from '@/components/MiniAppConnector';
 
 import Layout from '../components/Layout';
 import {
@@ -38,7 +40,9 @@ function useWagmiConfig() {
     }
   );
 
-  const connectors = isMiniApp ? [miniAppConnector()] : webConnectors;
+  const connectors = isMiniApp 
+    ? [injected(), miniAppConnector()] 
+    : webConnectors;
 
   return createConfig({
     connectors,
@@ -54,7 +58,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        <RainbowKitProvider>
+          <MiniAppConnector />
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

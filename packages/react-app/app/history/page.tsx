@@ -3,11 +3,13 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { useAccount } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useUserRemittances, useRemittanceDetails } from "@/hooks/useContract"
 import type { Currency } from "@/lib/contracts"
 import { CURRENCY_INFO } from "@/lib/contracts"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowRightIcon,
   ClockIcon,
@@ -33,7 +35,6 @@ interface Transaction {
   recipient: string
 }
 
-// Separate component to handle individual remittance details
 function RemittanceItem({
   remittanceId,
   onTransactionReady,
@@ -78,6 +79,7 @@ function RemittanceItem({
 
 export default function HistoryPage() {
   const { address, isConnected } = useAccount()
+  const { isMiniApp } = useFarcasterMiniApp()
   const [filter, setFilter] = useState("all")
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isClientMounted, setIsClientMounted] = useState(false)
@@ -166,8 +168,14 @@ export default function HistoryPage() {
           <div className="max-w-md mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">FX</span>
+                <div className="w-12 h-12 rounded-xl overflow-hidden">
+                  <Image
+                    src="/logo.png"
+                    alt="FX Remit"
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <h1 className="text-base md:text-xl font-bold text-gray-900">Transaction History</h1>
@@ -181,9 +189,9 @@ export default function HistoryPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-green-700 font-medium">Connected</span>
                 </div>
-              ) : (
+              ) : !isMiniApp ? (
                 <ConnectButton />
-              )}
+              ) : null}
             </div>
           </div>
         </header>

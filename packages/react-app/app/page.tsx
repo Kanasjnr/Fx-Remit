@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { usePlatformStats } from "@/hooks/useContract"
 import Header from "@/components/Header"
 import WorldMap from "@/components/WorldMap"
+import Image from "next/image"
 import {
   CurrencyDollarIcon,
   BoltIcon,
@@ -365,8 +366,14 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center mr-3">
-                  <span className="text-white font-bold text-lg">FX</span>
+                <div className="w-12 h-12 rounded-xl overflow-hidden mr-3">
+                  <Image
+                    src="/logo.png"
+                    alt="FX Remit"
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <span className="text-2xl font-bold text-white">FX-Remit</span>
               </div>

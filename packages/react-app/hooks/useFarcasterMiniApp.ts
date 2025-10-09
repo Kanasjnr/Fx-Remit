@@ -15,7 +15,15 @@ export function useFarcasterMiniApp(): { isMiniApp: boolean } {
     const envObj: any = (window as any);
     const hasFarcasterSDK = !!envObj.farcaster || !!envObj.__FARCASTER__;
 
-    setIsMiniApp(!!(qpFlag || referrerIsWarpcast || uaHasFarcaster || hasFarcasterSDK));
+    const miniAppDetected = !!(qpFlag || referrerIsWarpcast || uaHasFarcaster || hasFarcasterSDK);
+    setIsMiniApp(miniAppDetected);
+
+    // Call sdk.actions.ready() if we're in a Mini App to hide splash screen
+    if (miniAppDetected && envObj.farcaster?.actions) {
+      envObj.farcaster.actions.ready().catch((error: any) => {
+        console.warn('Failed to call sdk.actions.ready():', error);
+      });
+    }
   }, []);
 
   return useMemo(() => ({ isMiniApp }), [isMiniApp]);
