@@ -18,11 +18,22 @@ export function useFarcasterMiniApp(): { isMiniApp: boolean } {
     const miniAppDetected = !!(qpFlag || referrerIsWarpcast || uaHasFarcaster || hasFarcasterSDK);
     setIsMiniApp(miniAppDetected);
 
-    // Call sdk.actions.ready() if we're in a Mini App to hide splash screen
-    if (miniAppDetected && envObj.farcaster?.actions) {
-      envObj.farcaster.actions.ready().catch((error: any) => {
-        console.warn('Failed to call sdk.actions.ready():', error);
-      });
+    // Call sdk.actions.ready() after a small delay to ensure app is loaded
+    if (miniAppDetected) {
+      const callReady = () => {
+        if (envObj.farcaster?.actions?.ready) {
+          console.log(" Calling sdk.actions.ready()");
+          envObj.farcaster.actions.ready().catch((error: any) => {
+            console.warn('Failed to call sdk.actions.ready():', error);
+          });
+        } else {
+          console.log(" Waiting for Farcaster SDK to load...");
+          setTimeout(callReady, 100);
+        }
+      };
+      
+      // Wait a bit for the app to fully load
+      setTimeout(callReady, 500);
     }
   }, []);
 
