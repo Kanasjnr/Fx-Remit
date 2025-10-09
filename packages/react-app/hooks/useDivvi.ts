@@ -33,9 +33,9 @@ export function useDivvi() {
         chainId,
       });
       
-      console.log('✅ Divvi referral submitted successfully:', { txHash, chainId });
+      console.log(' Divvi referral submitted successfully:', { txHash, chainId });
     } catch (error) {
-      console.error('❌ Failed to submit Divvi referral:', error);
+      console.error(' Failed to submit Divvi referral:', error);
       // Don't throw error to avoid breaking main transaction flow
     }
   };

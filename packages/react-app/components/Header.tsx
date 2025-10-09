@@ -7,11 +7,14 @@ import { useEffect, useState } from "react"
 import { useConnect, useAccount } from "wagmi"
 import { injected } from "wagmi/connectors"
 import Link from "next/link"
+import Image from "next/image"
+import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 
 export default function Header() {
   const [hideConnectBtn, setHideConnectBtn] = useState(false)
   const { connect } = useConnect()
   const { isConnected } = useAccount()
+  const { isMiniApp } = useFarcasterMiniApp()
 
   useEffect(() => {
     if (window.ethereum && window.ethereum.isMiniPay) {
@@ -39,8 +42,14 @@ export default function Header() {
 
               <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                 <Link href="/" className="flex flex-shrink-0 items-center space-x-3 hover:opacity-80 transition-opacity">
-                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">FX</span>
+                  <div className="w-12 h-12 rounded-xl overflow-hidden">
+                    <Image
+                      src="/logo.png"
+                      alt="FX Remit"
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <span className="text-2xl font-bold text-gray-900 hidden sm:block">FXRemit</span>
                 </Link>
@@ -57,7 +66,7 @@ export default function Header() {
                     </button>
                   </div>
                 )}
-                {!hideConnectBtn && (
+                {!hideConnectBtn && !isMiniApp && (
                   <div className="hidden sm:block">
                     <ConnectButton
                       showBalance={{
@@ -81,7 +90,7 @@ export default function Header() {
                   Launch App
                 </button>
               )}
-              {!hideConnectBtn && (
+              {!hideConnectBtn && !isMiniApp && (
                 <div className="pt-4 border-t border-gray-200">
                   <ConnectButton
                     showBalance={{

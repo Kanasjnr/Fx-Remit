@@ -3,6 +3,17 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { AppProvider } from '@/providers/AppProvider';
 import { ToastContainer } from 'react-toastify';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'FX Remit - Global Money Transfers',
+  description: 'Send money globally with ultra-low 1.5% fees, lightning-fast settlements, and enterprise-grade security. Powered by Celo blockchain.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
+};
 
 export default function RootLayout({
   children,
@@ -11,6 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/logo.png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+        <meta name="theme-color" content="#2563eb" />
+      </head>
       <body>
         <AppProvider>
           {children}
