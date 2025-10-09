@@ -367,11 +367,9 @@ export default function LandingPage() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 rounded-xl overflow-hidden mr-3">
-                  <Image
-                    src="/logo.png"
+                  <img
+                    src="/logo.jpg"
                     alt="FX Remit"
-                    width={48}
-                    height={48}
                     className="w-full h-full object-cover"
                   />
                 </div>

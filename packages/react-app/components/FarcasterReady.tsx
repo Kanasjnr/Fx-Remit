@@ -9,7 +9,7 @@ export function FarcasterReady() {
       const envObj: any = (window as any);
       
       if (envObj.farcaster?.actions?.ready) {
-        console.log("🚀 Calling sdk.actions.ready() from FarcasterReady component");
+        console.log(" Calling sdk.actions.ready() from FarcasterReady component");
         envObj.farcaster.actions.ready().catch((error: any) => {
           console.warn('Failed to call sdk.actions.ready():', error);
         });

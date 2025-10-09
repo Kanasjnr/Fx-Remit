@@ -2,8 +2,8 @@
   "miniapp": {
     "version": "1",
     "name": "FX Remit",
-    "iconUrl": "https://fx-remit.netlify.app/logo.png",
-    "splashImageUrl": "https://fx-remit.netlify.app/logo.png",
+    "iconUrl": "https://fx-remit.netlify.app/logo.jpg",
+    "splashImageUrl": "https://fx-remit.netlify.app/logo.jpg",
     "splashBackgroundColor": "#2563eb",
     "homeUrl": "https://fx-remit.netlify.app",
     "subtitle": "Global Money Transfers",
@@ -20,11 +20,11 @@
       "mento",
       "defi"
     ],
-    "heroImageUrl": "https://fx-remit.netlify.app/logo.png",
+    "heroImageUrl": "https://fx-remit.netlify.app/logo.jpg",
     "tagline": "Cross-Border Payments Reimagined",
     "ogTitle": "FX Remit - Global Money Transfers",
     "ogDescription": "Send money with ultra-low 1.5% fees, lightning-fast settlements, and enterprise-grade security. Powered by Celo blockchain.",
-    "ogImageUrl": "https://fx-remit.netlify.app/logo.png",
+    "ogImageUrl": "https://fx-remit.netlify.app/logo.jpg",
     "requiredChains": [
       "eip155:42220"
     ],
