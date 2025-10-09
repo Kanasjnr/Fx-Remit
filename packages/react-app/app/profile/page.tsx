@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useAccount, useDisconnect } from "wagmi"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useUserRemittances, useRemittanceDetails } from "@/hooks/useContract"
@@ -10,7 +9,6 @@ import type { Currency } from "@/lib/contracts"
 import { CURRENCY_INFO, getTokenAddress } from "@/lib/contracts"
 import { formatEther, parseEther } from "viem"
 import Link from "next/link"
-import Image from "next/image"
 import {
   UserIcon,
   CurrencyDollarIcon,
@@ -376,9 +374,12 @@ export default function ProfilePage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-green-700 font-medium">Connected</span>
                 </div>
-              ) : !isMiniApp ? (
-                <ConnectButton />
-              ) : null}
+              ) : (
+                <div className="flex items-center space-x-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-600 font-medium">Loading...</span>
+                </div>
+              )}
             </div>
           </div>
         </header>

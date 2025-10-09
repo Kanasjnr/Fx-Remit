@@ -2,14 +2,12 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { useAccount } from "wagmi"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useUserRemittances, useRemittanceDetails } from "@/hooks/useContract"
 import type { Currency } from "@/lib/contracts"
 import { CURRENCY_INFO } from "@/lib/contracts"
 import Link from "next/link"
-import Image from "next/image"
 import {
   ArrowRightIcon,
   ClockIcon,
@@ -187,9 +185,12 @@ export default function HistoryPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-green-700 font-medium">Connected</span>
                 </div>
-              ) : !isMiniApp ? (
-                <ConnectButton />
-              ) : null}
+              ) : (
+                <div className="flex items-center space-x-2 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-600 font-medium">Loading...</span>
+                </div>
+              )}
             </div>
           </div>
         </header>
