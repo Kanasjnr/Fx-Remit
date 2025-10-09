@@ -107,12 +107,15 @@ export default function SendPage() {
         <div className="max-w-md mx-auto">
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="w-12 h-12 rounded-xl overflow-hidden">
-              <Image
-                src="/logo.png"
+              <img
+                src="/logo.jpg"
                 alt="FX Remit"
-                width={48}
-                height={48}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.log("Logo failed to load:", e);
+                  e.currentTarget.style.display = 'none';
+                }}
+                onLoad={() => console.log("Logo loaded successfully")}
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Send Money</h1>

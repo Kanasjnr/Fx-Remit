@@ -169,13 +169,11 @@ export default function HistoryPage() {
             <div className="flex items-center space-x-3">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <div className="w-12 h-12 rounded-xl overflow-hidden">
-                  <Image
-                    src="/logo.png"
-                    alt="FX Remit"
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                  />
+                <img
+                  src="/logo.jpg"
+                  alt="FX Remit"
+                  className="w-full h-full object-cover"
+                />
                 </div>
                 <div>
                   <h1 className="text-base md:text-xl font-bold text-gray-900">Transaction History</h1>

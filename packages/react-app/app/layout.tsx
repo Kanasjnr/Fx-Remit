@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   title: 'FX Remit - Global Money Transfers',
   description: 'Send money globally with ultra-low 1.5% fees, lightning-fast settlements, and enterprise-grade security. Powered by Celo blockchain.',
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: '/logo.jpg',
+    shortcut: '/logo.jpg',
+    apple: '/logo.jpg',
   },
 };
 
@@ -23,8 +23,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/logo.png" />
-        <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="icon" href="/logo.jpg" />
+        <link rel="apple-touch-icon" href="/logo.jpg" />
         <meta name="theme-color" content="#2563eb" />
       </head>
       <body>

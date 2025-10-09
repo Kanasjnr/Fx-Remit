@@ -43,13 +43,11 @@ export default function Header() {
               <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
                 <Link href="/" className="flex flex-shrink-0 items-center space-x-3 hover:opacity-80 transition-opacity">
                   <div className="w-12 h-12 rounded-xl overflow-hidden">
-                    <Image
-                      src="/logo.png"
-                      alt="FX Remit"
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
+                  <img
+                    src="/logo.jpg"
+                    alt="FX Remit"
+                    className="w-full h-full object-cover"
+                  />
                   </div>
                   <span className="text-2xl font-bold text-gray-900 hidden sm:block">FXRemit</span>
                 </Link>

@@ -358,11 +358,9 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-3">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 <div className="w-12 h-12 rounded-xl overflow-hidden">
-                  <Image
-                    src="/logo.png"
+                  <img
+                    src="/logo.jpg"
                     alt="FX Remit"
-                    width={48}
-                    height={48}
                     className="w-full h-full object-cover"
                   />
                 </div>
