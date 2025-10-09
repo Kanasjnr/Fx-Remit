@@ -2,13 +2,15 @@
 
 import { useState } from "react"
 import { useAccount } from "wagmi"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useTokenBalance, useQuote } from "@/hooks/useMento"
 import { useEthersSwap } from "@/hooks/useEthersSwap"
 import type { Currency } from "@/lib/contracts"
 import { toast } from "react-toastify"
 import Link from "next/link"
+import Image from "next/image"
+import { AssetPicker, type AssetOption } from "@/components/AssetPicker"
 import {
   ArrowsUpDownIcon,
   ArrowRightIcon,
@@ -22,11 +24,13 @@ import {
 
 export default function SendPage() {
   const { address, isConnected } = useAccount()
+  const { isMiniApp } = useFarcasterMiniApp()
   const [fromCurrency, setFromCurrency] = useState<Currency>("cUSD")
   const [toCurrency, setToCurrency] = useState<Currency>("cNGN")
   const [amount, setAmount] = useState("")
   const [recipient, setRecipient] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState<null | "from" | "to">(null)
 
   const currencies: Array<{ code: Currency; name: string; flag: string; symbol: string }> = [
     { code: "cUSD", name: "US Dollar", flag: "🇺🇸", symbol: "$" },
@@ -52,6 +56,11 @@ export default function SendPage() {
 
   const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency)
   const toCurrencyInfo = currencies.find((c) => c.code === toCurrency)
+
+  const assetOptions: AssetOption[] = currencies.map((c) => ({
+    code: c.code,
+    label: `${c.code} - ${c.name}`,
+  }))
 
   const handleSwapCurrencies = () => {
     setFromCurrency(toCurrency)
@@ -95,28 +104,19 @@ export default function SendPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="px-4 py-6 bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">FX</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Send Money</h1>
-                <p className="text-sm text-gray-500">Fast & secure transfers</p>
-              </div>
-            </Link>
-          </div>
-          <div className="flex items-center space-x-3">
-            {isConnected ? (
-              <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-700 font-medium">Connected</span>
-              </div>
-            ) : (
-              <ConnectButton />
-            )}
-          </div>
+        <div className="max-w-md mx-auto">
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            <div className="w-12 h-12 rounded-xl overflow-hidden">
+              <Image
+                src="/logo.png"
+                alt="FX Remit"
+                width={48}
+                height={48}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Send Money</h1>
+          </Link>
         </div>
       </header>
 
@@ -124,28 +124,16 @@ export default function SendPage() {
       <main className="px-4 py-6">
         <div className="max-w-md mx-auto space-y-6">
           {/* Balance Card */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <CurrencyDollarIcon className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Available Balance</p>
-                  <p className="text-xs text-gray-400">{fromCurrencyInfo?.name}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">
-                  {isLoadingBalance ? (
-                    <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
-                  ) : (
-                    `${fromCurrencyInfo?.symbol}${balance.toFixed(2)}`
-                  )}
-                </div>
-                <div className="text-sm text-blue-600 font-medium">{fromCurrency}</div>
-              </div>
+          <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm text-center">
+            <p className="text-sm/5 opacity-90">Available balance</p>
+            <div className="mt-2 text-5xl font-bold tracking-tight">
+              {isLoadingBalance ? (
+                <span className="inline-block h-10 w-28 bg-white/20 rounded animate-pulse" />
+              ) : (
+                `${fromCurrencyInfo?.symbol}${balance.toFixed(2)}`
+              )}
             </div>
+            <p className="mt-1 text-white/80 text-sm">{fromCurrency}</p>
           </div>
 
           {/* Transfer Form */}
@@ -161,53 +149,38 @@ export default function SendPage() {
                 {/* From Currency */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">From</label>
-                  <div className="relative">
-                    <select
-                      value={fromCurrency}
-                      onChange={(e) => setFromCurrency(e.target.value as Currency)}
-                      className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
-                    >
-                      {currencies.map((currency) => (
-                        <option key={currency.code} value={currency.code} className="bg-white">
-                          {currency.flag} {currency.symbol} {currency.code} - {currency.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen("from")}
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-left flex items-center justify-between hover:bg-gray-100"
+                  >
+                    <span className="text-gray-900">{fromCurrency} - {fromCurrencyInfo?.name}</span>
+                    <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                  </button>
                 </div>
 
                 {/* Swap Button */}
-                <div className="flex justify-center">
+                <div className="flex justify-center -my-2">
                   <button
                     onClick={handleSwapCurrencies}
-                    className="w-12 h-12 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105"
+                    className="w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg text-white flex items-center justify-center transition-all duration-200"
+                    aria-label="Swap"
                   >
-                    <ArrowsUpDownIcon className="w-5 h-5 text-gray-600" />
+                    <ArrowsUpDownIcon className="w-6 h-6" />
                   </button>
                 </div>
 
                 {/* To Currency */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">To</label>
-                  <div className="relative">
-                    <select
-                      value={toCurrency}
-                      onChange={(e) => setToCurrency(e.target.value as Currency)}
-                      className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
-                    >
-                      {currencies.map((currency) => (
-                        <option key={currency.code} value={currency.code} className="bg-white">
-                          {currency.flag} {currency.symbol} {currency.code} - {currency.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen("to")}
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-left flex items-center justify-between hover:bg-gray-100"
+                  >
+                    <span className="text-gray-900">{toCurrency} - {toCurrencyInfo?.name}</span>
+                    <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                  </button>
                 </div>
               </div>
 
@@ -296,9 +269,7 @@ export default function SendPage() {
             disabled={!isConnected || !amount || !recipient || !quote || isProcessing}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed text-lg flex items-center justify-center space-x-2"
           >
-            {!isConnected ? (
-              <span>Connect Wallet</span>
-            ) : isProcessing ? (
+            {isProcessing ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 <span>Processing...</span>
@@ -312,6 +283,18 @@ export default function SendPage() {
           </button>
         </div>
       </main>
+
+      {/* Asset Picker Modal */}
+      <AssetPicker
+        open={pickerOpen !== null}
+        title="Select Asset"
+        options={assetOptions}
+        onClose={() => setPickerOpen(null)}
+        onSelect={(code) => {
+          if (pickerOpen === "from") setFromCurrency(code as Currency)
+          if (pickerOpen === "to") setToCurrency(code as Currency)
+        }}
+      />
 
       <BottomNavigation />
     </div>

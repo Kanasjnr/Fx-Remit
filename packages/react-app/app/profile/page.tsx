@@ -3,12 +3,14 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useAccount, useDisconnect } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useUserRemittances, useRemittanceDetails } from "@/hooks/useContract"
 import type { Currency } from "@/lib/contracts"
 import { CURRENCY_INFO, getTokenAddress } from "@/lib/contracts"
 import { formatEther, parseEther } from "viem"
 import Link from "next/link"
+import Image from "next/image"
 import {
   UserIcon,
   CurrencyDollarIcon,
@@ -26,7 +28,6 @@ import { toast } from "react-toastify"
 import { Mento } from "@mento-protocol/mento-sdk"
 import { providers } from "ethers"
 
-// Component to load individual remittance data
 function RemittanceLoader({
   remittanceId,
   onRemittanceReady,
@@ -189,6 +190,7 @@ const exportTransactionsToCSV = (transactions: any[], userAddress: string) => {
 export default function ProfilePage() {
   const { address, isConnected } = useAccount()
   const { disconnect } = useDisconnect()
+  const { isMiniApp } = useFarcasterMiniApp()
   const [copied, setCopied] = useState(false)
   const [userStats, setUserStats] = useState({
     totalSent: 0,
@@ -355,8 +357,14 @@ export default function ProfilePage() {
           <div className="max-w-md mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">FX</span>
+                <div className="w-12 h-12 rounded-xl overflow-hidden">
+                  <Image
+                    src="/logo.png"
+                    alt="FX Remit"
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Profile</h1>
@@ -370,9 +378,9 @@ export default function ProfilePage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-green-700 font-medium">Connected</span>
                 </div>
-              ) : (
+              ) : !isMiniApp ? (
                 <ConnectButton />
-              )}
+              ) : null}
             </div>
           </div>
         </header>
