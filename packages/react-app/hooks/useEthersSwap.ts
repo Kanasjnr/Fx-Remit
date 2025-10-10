@@ -24,7 +24,7 @@ export function useEthersSwap() {
       throw new Error('Wallet not connected');
     }
 
-    console.log('🚀 Starting pure ethers.js swap following official examples...');
+    console.log(' Starting pure ethers.js swap following official examples...');
     
     const chainId = 42220;
     const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
@@ -156,7 +156,7 @@ export function useEthersSwap() {
         const hop = tradablePair.path[0];
         const providerAddr = hop.providerAddr as `0x${string}`;
         const exchangeId = hop.id as `0x${string}`; // bytes32
-        console.log('📍 Using single-hop', { providerAddr, exchangeId });
+        console.log(' Using single-hop', { providerAddr, exchangeId });
         console.log('Allowlist provider (single-hop):', { providerAddr, exchangeId });
 
         const calldata = encodeFunctionData({
@@ -273,7 +273,7 @@ export function useEthersSwap() {
       throw new Error(`Unsupported path length: ${tradablePair.path.length}`);
       
     } catch (error) {
-      console.error('❌ Swap failed:', error);
+      console.error(' Swap failed:', error);
       console.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace',
