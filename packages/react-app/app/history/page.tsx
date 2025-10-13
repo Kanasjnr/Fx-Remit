@@ -195,7 +195,7 @@ export default function HistoryPage() {
         <header className="px-4 py-4 bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="max-w-md mx-auto">
             <Link
-              href="/"
+              href="/send"
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
               <ArrowLeftIcon className="w-6 h-6 text-gray-600" />

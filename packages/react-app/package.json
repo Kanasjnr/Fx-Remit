@@ -28,6 +28,7 @@
     "@types/xlsx": "^0.0.35",
     "@wagmi/connectors": "^5.7.11",
     "@wagmi/core": "^2.16.7",
+    "cloudinary": "^2.7.0",
     "encoding": "^0.1.13",
     "ethers": "^5.8.0",
     "lucide-react": "^0.525.0",
