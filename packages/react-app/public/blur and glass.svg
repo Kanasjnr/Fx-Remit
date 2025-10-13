@@ -1,0 +1,27 @@
+<svg width="1685" height="1099" viewBox="0 0 1685 1099" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_f_476_647)">
+<circle cx="842.508" cy="481" r="342" fill="#2B76ED" fill-opacity="0.3"/>
+</g>
+<g opacity="0.5">
+<rect width="1550.03" height="104" transform="translate(112 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(224.339 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(336.678 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(449.017 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(561.355 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(673.694 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(786.033 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(898.372 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(1010.71 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(1123.05 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(1235.39 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(1347.73 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+<rect width="1550.03" height="104" transform="translate(1460.07 1353.01) rotate(-89.6917)" fill="black" fill-opacity="0.01"/>
+</g>
+<defs>
+<filter id="filter0_f_476_647" x="0.508301" y="-361" width="1684" height="1684" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="250" result="effect1_foregroundBlur_476_647"/>
+</filter>
+</defs>
+</svg>

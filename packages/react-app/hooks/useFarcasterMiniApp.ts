@@ -20,14 +20,16 @@ export function useFarcasterMiniApp(): { isMiniApp: boolean } {
 
     // Call sdk.actions.ready() after a small delay to ensure app is loaded
     if (miniAppDetected) {
+      let retryCount = 0;
+      const maxRetries = 10;
+      
       const callReady = () => {
         if (envObj.farcaster?.actions?.ready) {
-          console.log(" Calling sdk.actions.ready()");
           envObj.farcaster.actions.ready().catch((error: any) => {
-            console.warn('Failed to call sdk.actions.ready():', error);
+            // Silent error handling - no console spam
           });
-        } else {
-          console.log(" Waiting for Farcaster SDK to load...");
+        } else if (retryCount < maxRetries) {
+          retryCount++;
           setTimeout(callReady, 100);
         }
       };
