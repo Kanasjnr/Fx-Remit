@@ -24,6 +24,10 @@
     "viem": "2.23.2",
     "wagmi": "2.14.11"
   },
+  "resolutions": {
+    "@walletconnect/utils": "^2.19.1",
+    "elliptic": "6.6.1"
+  },
   "scripts": {
     "react-app:dev": "pnpm --filter @fx-remit/react-app dev",
     "react-app:build": "pnpm --filter @fx-remit/react-app build",

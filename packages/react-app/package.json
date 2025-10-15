@@ -61,10 +61,6 @@
     "tailwindcss": "^4.0.14",
     "typescript": "^5.8.2"
   },
-  "resolutions": {
-    "@walletconnect/utils": "^2.19.1",
-    "elliptic": "6.6.1"
-  },
   "browser": {
     "net": false
   },
