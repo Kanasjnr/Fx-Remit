@@ -56,14 +56,14 @@ export default function HeaderHero() {
 
                 {/* Desktop Navigation */}
                 <nav className="flex space-x-8">
-                  <a href="#pricing" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
-                    Pricing
+                  <a href="#how-it-works" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                    How it Works
                   </a>
-                  <a href="#pricing" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
-                    Pricing
+                  <a href="#why-us" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                    Why Us
                   </a>
-                  <a href="#pricing" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
-                    Pricing
+                  <a href="#contact" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                    Contact Us
                   </a>
                 </nav>
 
@@ -75,7 +75,7 @@ export default function HeaderHero() {
                       className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
                     >
                       Launch App
-                    </button>
+                  </button>
                   ) : (
                     !hideConnectBtn && !isMiniApp && (
                       <ConnectButton
@@ -124,14 +124,14 @@ export default function HeaderHero() {
           <div className="md:hidden fixed top-20 left-4 right-4 z-40">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 px-4 py-3">
               <div className="space-y-3">
-                <a href="#pricing" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
-                  Pricing
+                <a href="#how-it-works" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                  How it Works
                 </a>
-                <a href="#pricing" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
-                  Pricing
+                <a href="#why-us" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                  Why Us
                 </a>
-                <a href="#pricing" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
-                  Pricing
+                <a href="#contact" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                  Contact Us
                 </a>
                 <div className="flex justify-center">
                   {isConnected ? (
@@ -140,7 +140,7 @@ export default function HeaderHero() {
                       className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
                     >
                       Launch App
-                    </button>
+                </button>
                   ) : (
                     !hideConnectBtn && !isMiniApp && (
                       <ConnectButton

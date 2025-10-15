@@ -2,7 +2,7 @@
 
 export default function WhyChooseFX() {
   return (
-    <section className="py-16 bg-white">
+    <section id="why-us" className="py-16 bg-white">
       <div className="w-full flex flex-col items-center">
         {/* Section Header */}
         <div

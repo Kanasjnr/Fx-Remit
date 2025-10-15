@@ -2,7 +2,7 @@
 
 export default function HowItWorks() {
   return (
-    <section className="py-16 px-4 bg-white">
+    <section id="how-it-works" className="py-16 px-4 bg-white">
       <div className="w-full flex justify-center">
         <div
           className="relative p-12 overflow-hidden how-it-works-container"
