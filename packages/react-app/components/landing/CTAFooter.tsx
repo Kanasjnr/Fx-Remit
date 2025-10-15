@@ -66,10 +66,13 @@ export default function CTAFooter() {
             gap: 15px !important;
             flex-direction: column !important;
             align-items: center !important;
+            justify-content: center !important;
+            padding: 0 20px !important;
           }
           .cta-footer-button {
-            width: 344px !important;
+            width: 280px !important;
             height: 59px !important;
+            max-width: 90% !important;
           }
         }
           
