@@ -204,7 +204,7 @@ export default function ContactUs() {
                   margin: 0
                 }}
               >
-                We're here to help! Whether you have a question about our product, or need assistance or want to provide feedback, our team is ready to assist you.
+                We&apos;re here to help! Whether you have a question about our product, or need assistance or want to provide feedback, our team is ready to assist you.
               </p>
 
               {/* Email Section */}

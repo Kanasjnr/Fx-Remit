@@ -70,7 +70,7 @@ export default function HowItWorks() {
                   letterSpacing: '0%'
                 }}
               >
-                Here's how it works
+                Here&apos;s how it works
               </h2>
             </div>
           </div>
