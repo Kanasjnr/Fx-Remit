@@ -1,13 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useConnect, useAccount } from "wagmi"
+import { injected } from "wagmi/connectors"
+import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 
 export default function HeaderHero() {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [hideConnectBtn, setHideConnectBtn] = useState(false)
+  const { connect } = useConnect()
+  const { isConnected } = useAccount()
+  const { isMiniApp } = useFarcasterMiniApp()
 
-  const handleGetStarted = () => {
+  useEffect(() => {
+    if (window.ethereum && window.ethereum.isMiniPay) {
+      setHideConnectBtn(true)
+      
+      connect({ connector: injected() })
+    }
+  }, [connect])
+
+  const handleLaunchApp = () => {
     router.push("/send")
   }
 
@@ -53,9 +69,22 @@ export default function HeaderHero() {
 
                 {/* Desktop CTA Button */}
                 <div>
-                  <button className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
-                    Connect wallet
-                  </button>
+                  {isConnected ? (
+                    <button 
+                      onClick={handleLaunchApp}
+                      className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+                    >
+                      Launch App
+                    </button>
+                  ) : (
+                    !hideConnectBtn && !isMiniApp && (
+                      <ConnectButton
+                        showBalance={false}
+                        accountStatus="avatar"
+                        chainStatus="icon"
+                      />
+                    )
+                  )}
                 </div>
               </div>
             </div>
@@ -104,9 +133,24 @@ export default function HeaderHero() {
                 <a href="#pricing" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                   Pricing
                 </a>
-                <button className="w-full text-left bg-white text-blue-600 border border-blue-600 px-3 py-2 rounded-lg text-base font-medium hover:bg-blue-50 transition-colors">
-                  Connect wallet
-                </button>
+                <div className="flex justify-center">
+                  {isConnected ? (
+                    <button 
+                      onClick={handleLaunchApp}
+                      className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+                    >
+                      Launch App
+                    </button>
+                  ) : (
+                    !hideConnectBtn && !isMiniApp && (
+                      <ConnectButton
+                        showBalance={false}
+                        accountStatus="avatar"
+                        chainStatus="icon"
+                      />
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -169,7 +213,7 @@ export default function HeaderHero() {
 
             {/* CTA Button */}
             <button
-              onClick={handleGetStarted}
+              onClick={handleLaunchApp}
               style={{
                 fontFamily: 'Inter',
                 fontWeight: 500,
