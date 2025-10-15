@@ -55,6 +55,7 @@ const queryClient = new QueryClient();
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const config = useWagmiConfig();
+  
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
