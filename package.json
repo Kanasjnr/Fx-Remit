@@ -17,12 +17,16 @@
     "url": "git+https://github.com/celo-org/celo-composer.git"
   },
   "overrides": {
-    "@wagmi/connectors": "5.7.7",
-    "@wagmi/core": "2.16.7",
+    "@wagmi/connectors": "5.9.0",
+    "@wagmi/core": "2.16.0",
     "@walletconnect/utils": "^2.19.1",
     "elliptic": "6.6.1",
-    "viem": "2.23.2",
-    "wagmi": "2.14.11"
+    "viem": "2.23.13",
+    "wagmi": "2.16.0"
+  },
+  "resolutions": {
+    "@walletconnect/utils": "^2.19.1",
+    "elliptic": "6.6.1"
   },
   "scripts": {
     "react-app:dev": "pnpm --filter @fx-remit/react-app dev",
