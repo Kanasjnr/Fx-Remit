@@ -1,11 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       {
         source: '/.well-known/farcaster.json',
-        destination: 'https://api.farcaster.xyz/miniapps/hosted-manifest/0199ca30-deab-dae2-7673-ed30c8862bb8',
-        permanent: false, // 307 temporary redirect
+        destination: '/.well-known/farcaster-manifest.json',
+        permanent: false,
       },
     ]
   },

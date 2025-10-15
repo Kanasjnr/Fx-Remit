@@ -9,6 +9,17 @@ export function FarcasterDebug() {
     setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
+  const testManualReady = async () => {
+    addDebugInfo("🧪 Manual ready test...");
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      await sdk.actions.ready();
+      addDebugInfo("✅ Manual ready call succeeded!");
+    } catch (error) {
+      addDebugInfo(`❌ Manual ready failed: ${error}`);
+    }
+  };
+
   useEffect(() => {
     const testFarcasterSDK = async () => {
       addDebugInfo("🔍 Starting Farcaster SDK test...");
@@ -76,6 +87,12 @@ export function FarcasterDebug() {
   return (
     <div className="fixed bottom-4 left-4 bg-black bg-opacity-90 text-white p-4 rounded-lg max-w-md max-h-96 overflow-y-auto text-xs z-50">
       <div className="font-bold mb-2">🔧 Farcaster Debug</div>
+      <button 
+        onClick={testManualReady}
+        className="mb-2 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+      >
+        🧪 Test Ready Manually
+      </button>
       <div className="space-y-1">
         {debugInfo.map((info, index) => (
           <div key={index} className="text-xs">{info}</div>
