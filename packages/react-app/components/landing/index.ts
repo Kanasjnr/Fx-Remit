@@ -1,6 +1,6 @@
 export { default as HeaderHero } from './HeaderHero'
 export { default as HowItWorks } from './HowItWorks'
 export { default as WhyChooseFX } from './WhyChooseFX'
-export { default as ContactUs } from './ContactUs'
+// export { default as ContactUs } from './ContactUs'
 export { default as CTAFooter } from './CTAFooter'
 export { default as Footer } from './Footer'

@@ -4,7 +4,7 @@ import {
   HeaderHero,
   HowItWorks,
   WhyChooseFX,
-  ContactUs,
+  // ContactUs,
   CTAFooter,
   Footer
 } from "@/components/landing"
@@ -15,7 +15,7 @@ export default function LandingPage() {
       <HeaderHero />
       <HowItWorks />
       <WhyChooseFX />
-      <ContactUs />
+      {/* <ContactUs /> */}
       <CTAFooter />
       <Footer />
     </div>
