@@ -12,7 +12,6 @@ import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { MiniAppConnector } from '@/components/MiniAppConnector';
 import { FarcasterReady } from '@/components/FarcasterReady';
 
-import Layout from '../components/Layout';
 import {
   injectedWallet,
   metaMaskWallet,
