@@ -19,8 +19,8 @@
     ],
     "heroImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "tagline": "Cross-border payments",
-    "ogTitle": "FX Remit - Cross-border payments",
-    "ogDescription": "Send money to 15 countries with ultra-low 1.5 percent fees, lightning-fast settlements and enterprise-grade security.",
+    "ogTitle": "FX Remit - Cross-border",
+    "ogDescription": "Send money to 15 countries with ultra-low 1.5 percent fees and lightning-fast settlements.",
     "ogImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "requiredChains": ["eip155:42220"],
     "requiredCapabilities": ["actions.signIn", "wallet.getEthereumProvider"]
