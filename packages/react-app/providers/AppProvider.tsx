@@ -10,6 +10,7 @@ import { injected } from 'wagmi/connectors';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { MiniAppConnector } from '@/components/MiniAppConnector';
+import { TransactionStatusProvider } from './TransactionStatusProvider';
 import { useMemo } from 'react';
 
 import {
@@ -62,8 +63,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <MiniAppConnector />
-          {children}
+          <TransactionStatusProvider>
+            <MiniAppConnector />
+            {children}
+          </TransactionStatusProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

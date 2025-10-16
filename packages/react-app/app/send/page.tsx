@@ -8,6 +8,7 @@ import { useTokenBalance, useQuote } from "@/hooks/useMento"
 import { useEthersSwap } from "@/hooks/useEthersSwap"
 import type { Currency } from "@/lib/contracts"
 import { toast } from "react-toastify"
+import { useTransactionStatus } from "@/providers/TransactionStatusProvider"
 import Link from "next/link"
 import Image from "next/image"
 import { AssetPicker, type AssetOption } from "@/components/AssetPicker"
@@ -31,6 +32,7 @@ export default function SendPage() {
   const [recipient, setRecipient] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [pickerOpen, setPickerOpen] = useState<null | "from" | "to">(null)
+  const { startProcessing, markSuccess, markFailure, clear } = useTransactionStatus()
 
   const currencies: Array<{ code: Currency; name: string; flag: string; symbol: string }> = [
     { code: "cUSD", name: "US Dollar", flag: "🇺🇸", symbol: "$" },
@@ -62,6 +64,8 @@ export default function SendPage() {
     label: `${c.code} - ${c.name}`,
   }))
 
+  const insufficientBalance = !isLoadingBalance && amount !== "" && Number.isFinite(Number(amount)) && Number(amount) > balance
+
   const handleSwapCurrencies = () => {
     setFromCurrency(toCurrency)
     setToCurrency(fromCurrency)
@@ -75,8 +79,16 @@ export default function SendPage() {
 
     setIsProcessing(true)
     toast.dismiss()
-
-    const loadingToast = toast.loading("Processing your remittance transaction...")
+    startProcessing({
+      onRetry: () => {
+        clear()
+        void handleSend()
+      },
+      onReset: () => {
+        setAmount("")
+        setRecipient("")
+      },
+    })
 
     try {
       console.log("🚀 Starting swap with new ethers.js implementation...")
@@ -84,17 +96,13 @@ export default function SendPage() {
       const swapResult = await swap(fromCurrency, toCurrency, amount, undefined, recipient)
 
       console.log("✅ Swap completed successfully:", swapResult)
-
-      toast.dismiss(loadingToast)
-      const successMessage = swapResult.message || `🎉 Successfully sent ${amount} ${fromCurrency} to ${recipient}!`
-      toast.success(successMessage)
+      markSuccess()
 
       setAmount("")
       setRecipient("")
     } catch (error) {
       console.error("❌ Transaction failed:", error)
-      toast.dismiss(loadingToast)
-      toast.error(error instanceof Error ? error.message : "Transaction failed")
+      markFailure({ reason: error instanceof Error ? error.message : "Transaction failed" })
     } finally {
       setIsProcessing(false)
     }
@@ -196,12 +204,22 @@ export default function SendPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-lg placeholder-gray-400 pr-16"
+                    className={`w-full p-4 bg-gray-50 border rounded-xl text-gray-900 text-lg placeholder-gray-400 pr-16 focus:ring-2  ${
+                      insufficientBalance
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                    }`}
                   />
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
                     {fromCurrency}
                   </div>
                 </div>
+                {insufficientBalance && (
+                  <p className="mt-2 text-sm text-red-600">
+                    Insufficient balance. Available: {fromCurrencyInfo?.symbol}
+                    {balance.toFixed(2)} {fromCurrency}
+                  </p>
+                )}
               </div>
 
               {/* Recipient Address */}
@@ -269,7 +287,7 @@ export default function SendPage() {
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!isConnected || !amount || !recipient || !quote || isProcessing}
+            disabled={!isConnected || !amount || !recipient || !quote || isProcessing || insufficientBalance}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed text-lg flex items-center justify-center space-x-2"
           >
             {isProcessing ? (
