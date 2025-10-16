@@ -30,7 +30,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Allow embedding in Farcaster / Warpcast via CSP instead of X-Frame-Options
-    Content-Security-Policy = "frame-ancestors 'self' https://*.farcaster.xyz https://*.warpcast.com"
+    Content-Security-Policy = "frame-ancestors 'self' https://farcaster.xyz https://*.farcaster.xyz https://warpcast.com https://*.warpcast.com"
 
 # Cache static assets
 [[headers]]
