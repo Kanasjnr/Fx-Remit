@@ -26,6 +26,7 @@ export default function RootLayout({
         <link rel="icon" href="/logo.jpg" />
         <link rel="apple-touch-icon" href="/logo.jpg" />
         <meta name="theme-color" content="#2563eb" />
+        <meta property="fc:miniapp" content="https://fx-remit.xyz" />
       </head>
       <body>
         <AppProvider>
