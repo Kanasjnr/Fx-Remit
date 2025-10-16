@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AppProvider } from '@/providers/AppProvider';
 import { ToastContainer } from 'react-toastify';
 import type { Metadata } from 'next';
+import { FarcasterReady } from '@/components/FarcasterReady';
 
 export const metadata: Metadata = {
   title: 'FX Remit - Global Money Transfers',
@@ -27,8 +28,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/logo.jpg" />
         <meta name="theme-color" content="#2563eb" />
         <meta property="fc:miniapp" content="https://fx-remit.xyz" />
+        <link rel="preload" href="/fx-remit.svg" as="image" />
+        <link rel="preload" href="/blur and glass.svg" as="image" />
       </head>
       <body>
+        <FarcasterReady />
         <AppProvider>
           {children}
           <ToastContainer

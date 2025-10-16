@@ -8,25 +8,16 @@ export function FarcasterReady() {
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk');
         
-        const isInMiniApp = await sdk.isInMiniApp(); 
-        console.log('Is in mini app:', isInMiniApp);
+        await sdk.actions.ready();
+       
         
-        if (isInMiniApp) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          await sdk.actions.ready();
-          console.log(' Farcaster SDK ready() called successfully');
-        } else {
-          console.log('Not in Farcaster mini app context, skipping ready() call');
-        }
+        const isInMiniApp = await sdk.isInMiniApp(); 
       } catch (error) {
-        console.log('Farcaster SDK error:', error instanceof Error ? error.message : String(error));
+        console.log(' Farcaster SDK:', error instanceof Error ? error.message : String(error));
       }
     };
 
-    const timeoutId = setTimeout(initializeFarcaster, 100);
-    
-    return () => clearTimeout(timeoutId);
+    initializeFarcaster();
   }, []);
 
   return null;

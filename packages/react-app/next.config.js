@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  
   async headers() {
     return [
       {
@@ -15,6 +17,15 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/fx-remit.svg',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ];
   },
   webpack: (config, { isServer }) => {
@@ -27,7 +38,6 @@ const nextConfig = {
       util: false,
     };
     
-    // Fix for indexedDB SSR issues
     if (isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -39,7 +49,6 @@ const nextConfig = {
       };
     }
     
-    // Add externals for server-side rendering
     if (isServer) {
       config.externals = [...(config.externals || []), 'indexedDB', 'localStorage', 'sessionStorage'];
     }
