@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNzY2MDMsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgwM2Q4YWY5MjZmOTc3OUYyQkJEODljNEFCMzM4YUU4Y0ZhN2JEYzAyIn0",
+    "payload": "eyJkb21haW4iOiJmeC1yZW1pdC54eXoifQ",
+    "signature": "0jd032r/Hw5J6tszEnVT1MsQ/P5/r+SbW79BTVKyQ5cykVPuDS1pGRVw3jMCZGwB54V1YeFc1Ybx5YxzErjmwBs="
+  },
   "miniapp": {
     "version": "1",
     "name": "FX Remit",
