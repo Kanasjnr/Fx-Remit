@@ -1,27 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
-import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp";
 
 export function FarcasterReady() {
-  const { isMiniApp } = useFarcasterMiniApp();
-
   useEffect(() => {
-    // Only call ready() when we're actually in a mini app context
-    if (!isMiniApp) return;
-
-    const callReady = async () => {
+    const initializeFarcaster = async () => {
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk');
+        
         await sdk.actions.ready();
-        console.log('Farcaster SDK ready() called successfully');
+        console.log(' Farcaster SDK ready() called successfully');
       } catch (error) {
-        console.error('Failed to call Farcaster SDK ready():', error);
+        console.log('Farcaster SDK not available or not in mini app context:', error instanceof Error ? error.message : String(error));
       }
     };
 
-    callReady();
-  }, [isMiniApp]);
+    initializeFarcaster();
+  }, []);
 
   return null;
 }
