@@ -7,11 +7,11 @@
   "miniapp": {
     "version": "1",
     "name": "FX Remit",
-    "iconUrl": "https://fx-remit.xyz/fx-remit.svg",
+    "iconUrl": "https://fx-remit.xyz/icon.jpeg",
     "imageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "splashImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "splashBackgroundColor": "#ffffff",
-    "homeUrl": "https://fx-remit.xyz",
+    "homeUrl": "https://fx-remit.xyz/send",
     "subtitle": "Cross-border payments",
     "description": "Send money to 15 countries with ultra-low 1.5 percent fees, lightning-fast settlements and enterprise-grade security. Powered by Celo blockchain and Mento Protocol.",
     "screenshotUrls": [],
