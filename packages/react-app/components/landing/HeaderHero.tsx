@@ -48,7 +48,7 @@ export default function HeaderHero() {
                 {/* Logo */}
                 <div className="flex items-center flex-shrink-0">
                   <img 
-                    src="/fx remit.svg" 
+                    src="/fx-remit.svg" 
                     alt="FX Remit" 
                     className="h-12 w-auto object-contain"
                   />
@@ -99,7 +99,7 @@ export default function HeaderHero() {
                 {/* Mobile Logo */}
                 <div className="flex items-center flex-shrink-0">
                   <img 
-                    src="/fx remit.svg" 
+                    src="/fx-remit.svg" 
                     alt="FX Remit" 
                     className="h-8 w-auto object-contain"
                   />

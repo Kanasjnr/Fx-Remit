@@ -170,7 +170,7 @@ export default function Footer() {
             >
             <div className="flex items-center mb-6">
               <img 
-                  src="/fx remit.svg" 
+                  src="/fx-remit.svg" 
                 alt="FX Remit" 
                   className="h-12 w-auto mr-3"
               />
@@ -463,7 +463,7 @@ export default function Footer() {
       {/* Watermark Logo */}
       <div className="absolute footer-watermark" style={{ left: '484px', top: '600px', zIndex: 10 }}>
         <img 
-          src="/fx remit.svg" 
+          src="/fx-remit.svg" 
           alt="FX Remit Watermark" 
           style={{
             width: '760px',

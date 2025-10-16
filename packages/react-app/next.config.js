@@ -17,20 +17,14 @@ const nextConfig = {
       },
     ];
   },
-  async redirects() {
-    return [
-      {
-        source: '/.well-known/farcaster.json',
-        destination: '/.well-known/farcaster-manifest.json',
-        permanent: false,
-      },
-    ]
-  },
   webpack: (config, { isServer }) => {
     config.resolve.fallback = {
       fs: false,
       path: false,
       stream: false,
+      crypto: false,
+      buffer: false,
+      util: false,
     };
     
     // Fix for indexedDB SSR issues
@@ -40,12 +34,14 @@ const nextConfig = {
         indexedDB: false,
         localStorage: false,
         sessionStorage: false,
+        window: false,
+        document: false,
       };
     }
     
     // Add externals for server-side rendering
     if (isServer) {
-      config.externals = [...(config.externals || []), 'indexedDB'];
+      config.externals = [...(config.externals || []), 'indexedDB', 'localStorage', 'sessionStorage'];
     }
     
     return config;
