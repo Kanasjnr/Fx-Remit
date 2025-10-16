@@ -10,7 +10,6 @@ import { injected } from 'wagmi/connectors';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { MiniAppConnector } from '@/components/MiniAppConnector';
-import { FarcasterReady } from '@/components/FarcasterReady';
 
 import {
   injectedWallet,
@@ -60,7 +59,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <FarcasterReady />
           <MiniAppConnector />
           {children}
         </RainbowKitProvider>
