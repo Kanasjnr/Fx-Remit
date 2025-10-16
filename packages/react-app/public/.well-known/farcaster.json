@@ -6,8 +6,8 @@
     "splashImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "splashBackgroundColor": "#1a1a1a",
     "homeUrl": "https://fx-remit.xyz",
-    "subtitle": "Cross-border payments reimagined",
-    "description": "Send money to 15+ countries with ultra-low 1.5% fees, lightning-fast settlements and enterprise-grade security. Powered by Celo blockchain and Mento Protocol.",
+    "subtitle": "Cross-border payments",
+    "description": "Send money to 15 countries with ultra-low 1.5 percent fees, lightning-fast settlements and enterprise-grade security. Powered by Celo blockchain and Mento Protocol.",
     "screenshotUrls": [],
     "primaryCategory": "finance",
     "tags": [
@@ -18,9 +18,9 @@
       "mento-protocol"
     ],
     "heroImageUrl": "https://fx-remit.xyz/fx-remit.svg",
-    "tagline": "Cross-border payments reimagined",
-    "ogTitle": "FX Remit - Cross-border payments reimagined",
-    "ogDescription": "Send money to 15+ countries with ultra-low 1.5% fees, lightning-fast settlements and enterprise-grade security.",
+    "tagline": "Cross-border payments",
+    "ogTitle": "FX Remit - Cross-border payments",
+    "ogDescription": "Send money to 15 countries with ultra-low 1.5 percent fees, lightning-fast settlements and enterprise-grade security.",
     "ogImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "requiredChains": ["eip155:42220"],
     "requiredCapabilities": ["actions.signIn", "wallet.getEthereumProvider"]
