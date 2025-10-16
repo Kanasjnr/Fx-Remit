@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNzY2MDMsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgwM2Q4YWY5MjZmOTc3OUYyQkJEODljNEFCMzM4YUU4Y0ZhN2JEYzAyIn0",
+    "payload": "eyJkb21haW4iOiJmeC1yZW1pdC54eXoifQ",
+    "signature": "0jd032r/Hw5J6tszEnVT1MsQ/P5/r+SbW79BTVKyQ5cykVPuDS1pGRVw3jMCZGwB54V1YeFc1Ybx5YxzErjmwBs="
+  },
   "miniapp": {
     "version": "1",
     "name": "FX Remit",
@@ -19,8 +24,8 @@
     ],
     "heroImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "tagline": "Cross-border payments",
-    "ogTitle": "FX Remit - Cross-border payments",
-    "ogDescription": "Send money to 15 countries with ultra-low 1.5 percent fees, lightning-fast settlements and enterprise-grade security.",
+    "ogTitle": "FX Remit - Cross-border",
+    "ogDescription": "Send money to 15 countries with ultra-low 1.5 percent fees and lightning-fast settlements.",
     "ogImageUrl": "https://fx-remit.xyz/fx-remit.svg",
     "requiredChains": ["eip155:42220"],
     "requiredCapabilities": ["actions.signIn", "wallet.getEthereumProvider"]
