@@ -3,7 +3,6 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { AppProvider } from '@/providers/AppProvider';
 import { ToastContainer } from 'react-toastify';
-import { FarcasterReady } from '@/components/FarcasterReady';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -30,7 +29,6 @@ export default function RootLayout({
         <meta property="fc:miniapp" content="https://fx-remit.xyz" />
       </head>
       <body>
-        <FarcasterReady />
         <AppProvider>
           {children}
           <ToastContainer
