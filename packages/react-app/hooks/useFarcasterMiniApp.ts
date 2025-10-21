@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-// Synchronous detection first for immediate results
 function detectMiniAppSync(): boolean {
   if (typeof window === "undefined") return false;
   

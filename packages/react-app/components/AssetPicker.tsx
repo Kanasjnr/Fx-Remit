@@ -2,10 +2,13 @@
 
 import { Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
+import Image from "next/image";
 
 export type AssetOption = {
   code: string;
   label: string;
+  tokenLogo: string;
+  countryFlag: string;
 };
 
 export function AssetPicker({
@@ -68,9 +71,37 @@ export function AssetPicker({
                             onSelect(opt.code);
                             onClose();
                           }}
-                          className="w-full py-4 px-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full py-4 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-gray-50 rounded-lg"
                         >
-                          <div className="text-gray-900 text-lg text-center">{opt.label}</div>
+                          <div className="flex items-center justify-between">
+                            {/* Left side - Token logo and code */}
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center">
+                                <Image
+                                  src={opt.tokenLogo}
+                                  alt={`${opt.code} token`}
+                                  width={32}
+                                  height={32}
+                                  className="w-8 h-8"
+                                />
+                              </div>
+                              <span className="text-gray-700 font-medium">{opt.code}</span>
+                            </div>
+                            
+                            {/* Right side - Country flag and currency name */}
+                            <div className="flex items-center space-x-3">
+                              <div className="w-6 h-4 rounded-sm overflow-hidden">
+                                <Image
+                                  src={opt.countryFlag}
+                                  alt={`${opt.label} flag`}
+                                  width={24}
+                                  height={16}
+                                  className="w-6 h-4 object-cover"
+                                />
+                              </div>
+                              <span className="text-gray-600">{opt.label}</span>
+                            </div>
+                          </div>
                         </button>
                         {idx < options.length - 1 && (
                           <div className="mx-12 h-px bg-gray-200/70" />
