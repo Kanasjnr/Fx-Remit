@@ -2,7 +2,7 @@ import FXRemitABI from '../ABI/FXRemit.json';
 
 export const CONTRACT_ADDRESSES = {
   // Celo Mainnet
-  42220: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT || '0x6Dc149722dAd32b906E7E5C349996e959fE8FeAc',
+  42220: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT || '0x1245211aBAe5013e7f5523013b78F50AB44C2c57',
 } as const;
 
 export const FXREMIT_CONTRACT = {

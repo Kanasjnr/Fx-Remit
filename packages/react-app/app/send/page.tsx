@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAccount } from "wagmi"
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useTokenBalance, useQuote } from "@/hooks/useMento"
 import { useEthersSwap } from "@/hooks/useEthersSwap"
+import { useFarcasterResolver } from "@/hooks/useFarcasterResolver"
 import type { Currency } from "@/lib/contracts"
 import { toast } from "react-toastify"
 import { useTransactionStatus } from "@/providers/TransactionStatusProvider"
@@ -55,6 +56,7 @@ export default function SendPage() {
   const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency)
   const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount)
   const { swap } = useEthersSwap()
+  const { resolveUsername, isLoading: isResolvingUsername } = useFarcasterResolver()
 
   const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency)
   const toCurrencyInfo = currencies.find((c) => c.code === toCurrency)
@@ -69,6 +71,46 @@ export default function SendPage() {
   const handleSwapCurrencies = () => {
     setFromCurrency(toCurrency)
     setToCurrency(fromCurrency)
+  }
+
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  const debouncedResolveUsername = useCallback((value: string) => {
+    // Clear previous timeout
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+
+    // Set new timeout
+    const newTimeout = setTimeout(async () => {
+      if (value.startsWith('@') && value.length > 1) {
+        console.log(' Attempting to resolve username:', value);
+        const resolvedAddress = await resolveUsername(value)
+        console.log(' Resolved address:', resolvedAddress);
+        if (resolvedAddress) {
+          setRecipient(resolvedAddress)
+          toast.success(`Resolved @${value.replace('@', '')} to ${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}`)
+        } else {
+          toast.error(`Could not resolve Farcaster username: ${value}. Please use wallet address (0x...) instead.`)
+        }
+      }
+    }, 1500); // Wait 1.5 seconds after user stops typing
+
+    setDebounceTimeout(newTimeout);
+  }, [resolveUsername, debounceTimeout]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+    };
+  }, [debounceTimeout]);
+
+  const handleRecipientChange = (value: string) => {
+    setRecipient(value)
+    debouncedResolveUsername(value)
   }
 
   const handleSend = async () => {
@@ -91,17 +133,17 @@ export default function SendPage() {
     })
 
     try {
-      console.log("🚀 Starting swap with new ethers.js implementation...")
+      console.log(" Starting swap with new ethers.js implementation...")
 
       const swapResult = await swap(fromCurrency, toCurrency, amount, undefined, recipient)
 
-      console.log("✅ Swap completed successfully:", swapResult)
+      console.log(" Swap completed successfully:", swapResult)
       markSuccess()
 
       setAmount("")
       setRecipient("")
     } catch (error) {
-      console.error("❌ Transaction failed:", error)
+      console.error(" Transaction failed:", error)
       markFailure({ reason: error instanceof Error ? error.message : "Transaction failed" })
     } finally {
       setIsProcessing(false)
@@ -224,14 +266,24 @@ export default function SendPage() {
 
               {/* Recipient Address */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Recipient Address</label>
-                <input
-                  type="text"
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-3">Recipient</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={recipient}
+                    onChange={(e) => handleRecipientChange(e.target.value)}
+                    placeholder="@username or 0x..."
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 pr-12"
+                  />
+                  {isResolvingUsername && (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Enter a wallet address (0x...) or Farcaster username (@username) 
+                </p>
               </div>
             </div>
           </div>
