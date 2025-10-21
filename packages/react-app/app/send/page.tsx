@@ -35,23 +35,33 @@ export default function SendPage() {
   const [pickerOpen, setPickerOpen] = useState<null | "from" | "to">(null)
   const { startProcessing, markSuccess, markFailure, clear } = useTransactionStatus()
 
-  const currencies: Array<{ code: Currency; name: string; flag: string; symbol: string }> = [
-    { code: "cUSD", name: "US Dollar", flag: "🇺🇸", symbol: "$" },
-    { code: "cEUR", name: "Euro", flag: "🇪🇺", symbol: "€" },
-    { code: "cGBP", name: "British Pound", flag: "🇬🇧", symbol: "£" },
-    { code: "cCAD", name: "Canadian Dollar", flag: "🇨🇦", symbol: "C$" },
-    { code: "cAUD", name: "Australian Dollar", flag: "🇦🇺", symbol: "A$" },
-    { code: "cCHF", name: "Swiss Franc", flag: "🇨🇭", symbol: "CHF" },
-    { code: "cJPY", name: "Japanese Yen", flag: "🇯🇵", symbol: "¥" },
-    { code: "cREAL", name: "Brazilian Real", flag: "🇧🇷", symbol: "R$" },
-    { code: "cCOP", name: "Colombian Peso", flag: "🇨🇴", symbol: "COP$" },
-    { code: "cKES", name: "Kenyan Shilling", flag: "🇰🇪", symbol: "KSh" },
-    { code: "cNGN", name: "Nigerian Naira", flag: "🇳🇬", symbol: "₦" },
-    { code: "cZAR", name: "South African Rand", flag: "🇿🇦", symbol: "R" },
-    { code: "cGHS", name: "Ghanaian Cedi", flag: "🇬🇭", symbol: "₵" },
-    { code: "eXOF", name: "CFA Franc", flag: "🌍", symbol: "XOF" },
-    { code: "PUSO", name: "Philippine Peso", flag: "🇵🇭", symbol: "₱" },
+  const currencies: Array<{ 
+    code: Currency; 
+    name: string; 
+    flag: string; 
+    symbol: string;
+    tokenLogo: string;
+    countryFlag: string;
+  }> = [
+    { code: "cUSD", name: "US Dollar", flag: "🇺🇸", symbol: "$", tokenLogo: "/cUSD .svg", countryFlag: "/US.svg" },
+    { code: "cEUR", name: "Euro", flag: "🇪🇺", symbol: "€", tokenLogo: "/cEUR.svg", countryFlag: "/EUR.svg" },
+    { code: "cGBP", name: "British Pound", flag: "🇬🇧", symbol: "£", tokenLogo: "/cGBP.svg", countryFlag: "/GB .svg" },
+    { code: "cCAD", name: "Canadian Dollar", flag: "🇨🇦", symbol: "C$", tokenLogo: "/cCAD.svg", countryFlag: "/CA .svg" },
+    { code: "cAUD", name: "Australian Dollar", flag: "🇦🇺", symbol: "A$", tokenLogo: "/cAUD.svg", countryFlag: "/AU.svg" },
+    { code: "cCHF", name: "Swiss Franc", flag: "🇨🇭", symbol: "CHF", tokenLogo: "/cCHF.svg", countryFlag: "/CH.svg" },
+    { code: "cJPY", name: "Japanese Yen", flag: "🇯🇵", symbol: "¥", tokenLogo: "/cJPY.svg", countryFlag: "/JP.svg" },
+    { code: "cREAL", name: "Brazilian Real", flag: "🇧🇷", symbol: "R$", tokenLogo: "/cREAL.svg", countryFlag: "/BR.svg" },
+    { code: "cCOP", name: "Colombian Peso", flag: "🇨🇴", symbol: "COP$", tokenLogo: "/cCOP.svg", countryFlag: "/CO.svg" },
+    { code: "cKES", name: "Kenyan Shilling", flag: "🇰🇪", symbol: "KSh", tokenLogo: "/cKES.svg", countryFlag: "/KE.svg" },
+    { code: "cNGN", name: "Nigerian Naira", flag: "🇳🇬", symbol: "₦", tokenLogo: "/cNGN.svg", countryFlag: "/NG.svg" },
+    { code: "cZAR", name: "South African Rand", flag: "🇿🇦", symbol: "R", tokenLogo: "/cZAR.svg", countryFlag: "/SA.svg" },
+    { code: "cGHS", name: "Ghanaian Cedi", flag: "🇬🇭", symbol: "₵", tokenLogo: "/cGHS.svg", countryFlag: "/GH .svg" },
+    { code: "eXOF", name: "CFA Franc", flag: "🌍", symbol: "XOF", tokenLogo: "/eXOF.svg", countryFlag: "/CF.svg" },
+    { code: "PUSO", name: "Philippine Peso", flag: "🇵🇭", symbol: "₱", tokenLogo: "/PUSO.svg", countryFlag: "/PH.svg" },
   ]
+
+console.log( amount)
+
 
   const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency)
   const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount)
@@ -63,7 +73,9 @@ export default function SendPage() {
 
   const assetOptions: AssetOption[] = currencies.map((c) => ({
     code: c.code,
-    label: `${c.code} - ${c.name}`,
+    label: c.name,
+    tokenLogo: c.tokenLogo,
+    countryFlag: c.countryFlag,
   }))
 
   const insufficientBalance = !isLoadingBalance && amount !== "" && Number.isFinite(Number(amount)) && Number(amount) > balance
@@ -252,6 +264,8 @@ export default function SendPage() {
                         : "border-gray-200 focus:ring-blue-500 focus:border-blue-500"
                     }`}
                   />
+
+                  
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
                     {fromCurrency}
                   </div>
