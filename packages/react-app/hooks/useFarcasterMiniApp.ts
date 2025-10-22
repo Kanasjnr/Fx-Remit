@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 function detectMiniAppSync(): boolean {
   if (typeof window === "undefined") return false;
@@ -20,22 +20,22 @@ function detectMiniAppSync(): boolean {
 export function useFarcasterMiniApp(): { isMiniApp: boolean } {
   const [isMiniApp, setIsMiniApp] = useState(() => detectMiniAppSync());
 
+  // Memoize the async detection function to prevent recreation
+  const checkMiniApp = useCallback(async () => {
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      const isInMiniApp = await sdk.isInMiniApp();
+      setIsMiniApp(isInMiniApp);
+      console.log('🔍 Farcaster detection:', isInMiniApp ? 'Mini App' : 'Web');
+    } catch (error) {
+      console.log('🔍 Using fallback detection');
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const checkMiniApp = async () => {
-      try {
-        const { sdk } = await import('@farcaster/miniapp-sdk');
-        const isInMiniApp = await sdk.isInMiniApp();
-        setIsMiniApp(isInMiniApp);
-        console.log(' Farcaster detection:', isInMiniApp ? 'Mini App' : 'Web');
-      } catch (error) {
-        console.log('Using fallback detection');
-      }
-    };
-
     checkMiniApp();
-  }, []);
+  }, [checkMiniApp]);
 
   return useMemo(() => ({ isMiniApp }), [isMiniApp]);
 }

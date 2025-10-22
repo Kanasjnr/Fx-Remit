@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useConnect, useAccount } from "wagmi";
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp";
 
@@ -10,21 +10,26 @@ export function MiniAppConnector() {
   const { isConnected } = useAccount();
   const [hasAttemptedConnect, setHasAttemptedConnect] = useState(false);
 
+  // Memoize the connect wallet function to prevent recreation
+  const connectWallet = useCallback(() => {
+    try {
+      connect({ connector: connectors[0] });
+    } catch (error) {
+      setTimeout(connectWallet, 500);
+    }
+  }, [connect, connectors]);
+
+  // Memoize the connection condition to prevent unnecessary effect runs
+  const shouldConnect = useMemo(() => {
+    return isMiniApp && !isConnected && connectors.length > 0 && !hasAttemptedConnect;
+  }, [isMiniApp, isConnected, connectors.length, hasAttemptedConnect]);
+
   useEffect(() => {
-    if (isMiniApp && !isConnected && connectors.length > 0 && !hasAttemptedConnect) {
+    if (shouldConnect) {
       setHasAttemptedConnect(true);
-      
-      const connectWallet = () => {
-        try {
-          connect({ connector: connectors[0] });
-        } catch (error) {
-          setTimeout(connectWallet, 500);
-        }
-      };
-      
       connectWallet();
     }
-  }, [isMiniApp, isConnected, connectors, connect, hasAttemptedConnect]);
+  }, [shouldConnect, connectWallet]);
 
   useEffect(() => {
     if (!isConnected) {

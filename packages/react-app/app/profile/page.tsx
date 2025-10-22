@@ -190,7 +190,7 @@ const exportTransactionsToCSV = (transactions: any[], userAddress: string) => {
     .join('\n');
 
   // Create and download the file with proper headers
-  const blob = new Blob(['\ufeff' + csvContent], { 
+  const blob = new Blob(['\ufeff' + csvContent], {
     type: 'text/csv;charset=utf-8;',
   });
   const link = document.createElement('a');
@@ -281,20 +281,21 @@ export default function ProfilePage() {
     address && isConnected ? address : undefined
   );
 
+  // Memoize wallet connection state to prevent unnecessary re-renders
+  const walletState = useMemo(
+    () => ({
+      isConnected,
+      address,
+      isMiniApp,
+      shouldInitialize: isMiniApp ? isConnected && address : true,
+    }),
+    [isConnected, address, isMiniApp]
+  );
+
   // Handle initialization and wallet connection states
   useEffect(() => {
-    if (isMiniApp) {
-      // In Mini App mode, wait for wallet to connect
-      if (isConnected && address) {
-        setIsInitializing(false);
-      } else {
-        setIsInitializing(true);
-      }
-    } else {
-      // In web mode, allow immediate access
-      setIsInitializing(false);
-    }
-  }, [isMiniApp, isConnected, address]);
+    setIsInitializing(!walletState.shouldInitialize);
+  }, [walletState.shouldInitialize]);
 
   // Load avatar from localStorage when address is available
   useEffect(() => {
@@ -489,8 +490,8 @@ export default function ProfilePage() {
               className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
             >
               <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
-                  <h1 className="text-xl font-bold text-gray-900">Profile</h1>
-              </Link>
+              <h1 className="text-xl font-bold text-gray-900">Profile</h1>
+            </Link>
           </div>
         </header>
 
@@ -527,7 +528,7 @@ export default function ProfilePage() {
                     {/* Edit overlay */}
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full flex items-center justify-center transition-all duration-200">
                       <div className="w-4 h-4 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-                  </div>
+                    </div>
                   </label>
                   <div>
                     <div className="text-lg font-semibold text-gray-900">
@@ -575,7 +576,7 @@ export default function ProfilePage() {
                     </span>
                   </div>
                   <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-                  </button>
+                </button>
 
                 {/* Total transactions */}
                 <button
@@ -583,9 +584,9 @@ export default function ProfilePage() {
                   className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
                 >
                   <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <ChartBarIcon className="w-5 h-5 text-blue-600" />
-                  </div>
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <ChartBarIcon className="w-5 h-5 text-blue-600" />
+                    </div>
                     <span className="text-sm font-medium text-gray-900">
                       Total transactions
                     </span>
@@ -601,7 +602,7 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                       <QuestionMarkCircleIcon className="w-5 h-5 text-blue-600" />
-                </div>
+                    </div>
                     <span className="text-sm font-medium text-gray-900">
                       Fees
                     </span>
@@ -621,7 +622,7 @@ export default function ProfilePage() {
 
               <div className="p-6 space-y-4">
                 {/* Export Transactions */}
-                <button 
+                <button
                   onClick={handleExportTransactions}
                   className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
                 >
@@ -637,7 +638,10 @@ export default function ProfilePage() {
                 </button>
 
                 {/* Security settings */}
-                <button className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200">
+                <button
+                  onClick={() => toast.info('Security settings coming soon')}
+                  className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                       <ChartBarIcon className="w-5 h-5 text-blue-600" />
@@ -650,7 +654,12 @@ export default function ProfilePage() {
                 </button>
 
                 {/* Help & support */}
-                <button className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200">
+                <button
+                  onClick={() =>
+                    toast.info('Reach out to @Kanas_01 on Telegram for support')
+                  }
+                  className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
+                >
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                       <QuestionMarkCircleIcon className="w-5 h-5 text-blue-600" />
@@ -665,13 +674,13 @@ export default function ProfilePage() {
             </div>
 
             {/* Logout Button */}
-            <button
+            {/* <button
               onClick={handleDisconnect}
               className="w-full flex items-center justify-between py-4 px-6 bg-white hover:bg-red-50 text-red-600 hover:text-red-700 font-semibold rounded-xl transition-all duration-200 border border-red-200"
             >
               <span>Logout</span>
               <ChevronRightIcon className="w-5 h-5 text-red-600" />
-            </button>
+            </button> */}
           </div>
         </main>
 
@@ -718,7 +727,7 @@ export default function ProfilePage() {
                           </div>
                         )
                       )}
-              </div>
+                    </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <div className="text-4xl mb-2">📊</div>
@@ -752,7 +761,7 @@ export default function ProfilePage() {
                     {userStats.totalTransactions}
                   </div>
                   <div className="text-sm text-green-500 mt-1">
-                    Total transactions
+                    Transactions
                   </div>
                 </div>
 
@@ -770,7 +779,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="text-sm font-medium text-gray-700">
-                      Average per transaction
+                      Average transaction size
                     </span>
                     <span className="text-sm font-bold text-gray-900">
                       {userStats.totalTransactions > 0
@@ -780,10 +789,10 @@ export default function ProfilePage() {
                           )
                         : '$0.00'}
                     </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
             {activeModal === 'fees' && (
               <div className="space-y-4">
@@ -829,7 +838,7 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
-      </div>
+        </div>
       )}
     </>
   );

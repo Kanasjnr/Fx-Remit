@@ -1,4 +1,5 @@
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
+import { useMemo } from 'react';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { providers, Wallet, utils, Contract } from 'ethers';
 import { Currency, getTokenAddress, getContractAddress } from '../lib/contracts';
@@ -8,10 +9,21 @@ import { useDivvi } from './useDivvi';
 import FXRemitABI from '../ABI/FXRemit.json';
 
 export function useEthersSwap() {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
+
+  const walletReadiness = useMemo(() => {
+    return {
+      isConnected: isConnected && !!address,
+      hasWalletClient: !!walletClient,
+      hasPublicClient: !!publicClient,
+      isFullyReady: isConnected && !!address && !!walletClient && !!publicClient
+    };
+  }, [isConnected, address, walletClient, publicClient]);
+
+  const isWalletReady = () => walletReadiness;
 
   const swap = async (
     fromCurrency: Currency,
@@ -20,9 +32,26 @@ export function useEthersSwap() {
     minAmountOut?: string,
     recipientAddress?: string
   ) => {
-    if (!address || !walletClient || !publicClient) {
-      throw new Error('Wallet not connected');
+    const walletStatus = isWalletReady();
+    
+    if (!walletStatus.isConnected) {
+      throw new Error('Wallet not connected. Please connect your wallet first.');
     }
+
+    if (!walletStatus.hasWalletClient) {
+      throw new Error('Wallet client not available. Please try reconnecting your wallet.');
+    }
+
+    if (!walletStatus.hasPublicClient) {
+      throw new Error('Network connection not available. Please check your internet connection.');
+    }
+
+    console.log(' Wallet validation passed:', {
+      isConnected: walletStatus.isConnected,
+      address: address?.slice(0, 6) + '...' + address?.slice(-4),
+      hasWalletClient: walletStatus.hasWalletClient,
+      hasPublicClient: walletStatus.hasPublicClient
+    });
 
     console.log(' Starting pure ethers.js swap following official examples...');
     
@@ -40,6 +69,10 @@ export function useEthersSwap() {
 
     // Create ethers provider
     const provider = new providers.JsonRpcProvider('https://forno.celo.org');
+    
+    // TypeScript safety: we know these are defined due to validation above
+    const safeWalletClient = walletClient!;
+    const safePublicClient = publicClient!;
     
     // Create a better signer proxy that properly handles address and signing
     const createProperSigner = (userAddress: string) => {
@@ -63,7 +96,7 @@ export function useEthersSwap() {
       
       // Override sendTransaction to use viem
       signerProxy.sendTransaction = async (transaction: any) => {
-        const hash = await walletClient.sendTransaction({
+        const hash = await safeWalletClient.sendTransaction({
           account: userAddress as `0x${string}`,
           to: transaction.to as `0x${string}`,
           data: transaction.data as `0x${string}`,
@@ -75,7 +108,7 @@ export function useEthersSwap() {
         });
         return { 
           hash, 
-          wait: () => publicClient.waitForTransactionReceipt({ hash, confirmations: 1 }) 
+          wait: () => safePublicClient.waitForTransactionReceipt({ hash, confirmations: 1 }) 
         };
       };
       
@@ -89,7 +122,7 @@ export function useEthersSwap() {
       return signerProxy;
     };
     
-    const signer = createProperSigner(address);
+    const signer = createProperSigner(address!);
     
     console.log('✨ Creating Mento SDK...');
     const mento = await Mento.create(signer);
@@ -136,7 +169,7 @@ export function useEthersSwap() {
           fxRemitAddress,
           amountInWei.toString()
         );
-        const approvalHash = await walletClient.sendTransaction({
+        const approvalHash = await safeWalletClient.sendTransaction({
           account: signer.address as `0x${string}`,
           to: fromTokenAddress as `0x${string}`,
           data: approvalTx.data as `0x${string}`,
@@ -144,7 +177,7 @@ export function useEthersSwap() {
           kzg: undefined,
           chain: celo
         });
-        await publicClient.waitForTransactionReceipt({ hash: approvalHash });
+        await safePublicClient.waitForTransactionReceipt({ hash: approvalHash });
         // Do not submit Divvi referral for approvals
       }
 
@@ -178,7 +211,7 @@ export function useEthersSwap() {
         });
 
         const dataWithReferral = addReferralTagToTransaction(calldata);
-        const hash = await walletClient.sendTransaction({
+        const hash = await safeWalletClient.sendTransaction({
           account: signer.address as `0x${string}`,
           to: fxRemitAddress as `0x${string}`,
           data: dataWithReferral as `0x${string}`,
@@ -186,7 +219,7 @@ export function useEthersSwap() {
           kzg: undefined,
           chain: celo
         });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await safePublicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== 'success') throw new Error('Swap failed on-chain');
         await submitReferralTransaction(hash);
         
@@ -249,7 +282,7 @@ export function useEthersSwap() {
         });
 
         const dataWithReferral = addReferralTagToTransaction(calldata);
-           const hash = await walletClient.sendTransaction({
+           const hash = await safeWalletClient.sendTransaction({
              account: signer.address as `0x${string}`,
           to: fxRemitAddress as `0x${string}`,
           data: dataWithReferral as `0x${string}`,
@@ -257,7 +290,7 @@ export function useEthersSwap() {
              kzg: undefined,
              chain: celo
            });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await safePublicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== 'success') throw new Error('Swap (path) failed on-chain');
           await submitReferralTransaction(hash);
           
@@ -283,5 +316,9 @@ export function useEthersSwap() {
     }
   };
 
-  return { swap };
+  return { 
+    swap, 
+    isWalletReady: walletReadiness.isFullyReady,
+    walletStatus: walletReadiness
+  };
 } 
