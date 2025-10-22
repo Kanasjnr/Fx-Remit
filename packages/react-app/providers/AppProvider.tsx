@@ -41,17 +41,21 @@ const webConnectors = connectorsForWallets(
 function useWagmiConfig() {
   const { isMiniApp } = useFarcasterMiniApp();
 
-  return useMemo(() => {
-    const connectors = isMiniApp 
+  // Memoize connectors to prevent recreation on every render
+  const connectors = useMemo(() => {
+    return isMiniApp 
       ? [injected(), miniAppConnector()] 
       : webConnectors;
+  }, [isMiniApp]);
 
+  // Memoize the entire config to prevent recreation
+  return useMemo(() => {
     return createConfig({
       connectors,
       chains: [celo],
       transports: { [celo.id]: http() },
     });
-  }, [isMiniApp]);
+  }, [connectors]);
 }
 
 const queryClient = new QueryClient();

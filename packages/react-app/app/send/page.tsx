@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useAccount } from "wagmi"
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
@@ -35,6 +35,14 @@ export default function SendPage() {
   const [pickerOpen, setPickerOpen] = useState<null | "from" | "to">(null)
   const { startProcessing, markSuccess, markFailure, clear } = useTransactionStatus()
 
+  // Memoize wallet state to prevent unnecessary re-renders
+  const walletState = useMemo(() => ({
+    address,
+    isConnected,
+    isMiniApp,
+    canSend: isConnected && address
+  }), [address, isConnected, isMiniApp])
+
   const currencies: Array<{ 
     code: Currency; 
     name: string; 
@@ -60,13 +68,11 @@ export default function SendPage() {
     { code: "PUSO", name: "Philippine Peso", flag: "🇵🇭", symbol: "₱", tokenLogo: "/PUSO.svg", countryFlag: "/PH.svg" },
   ]
 
-console.log( amount)
-
-
   const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency)
   const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount)
-  const { swap } = useEthersSwap()
+  const { swap, isWalletReady, walletStatus } = useEthersSwap()
   const { resolveUsername, isLoading: isResolvingUsername } = useFarcasterResolver()
+
 
   const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency)
   const toCurrencyInfo = currencies.find((c) => c.code === toCurrency)
@@ -126,7 +132,7 @@ console.log( amount)
   }
 
   const handleSend = async () => {
-    if (!address || !amount || !recipient || !quote) {
+    if (!walletState.canSend || !amount || !recipient || !quote) {
       toast.error("Please fill in all fields")
       return
     }
@@ -353,7 +359,7 @@ console.log( amount)
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!isConnected || !amount || !recipient || !quote || isProcessing || insufficientBalance}
+            disabled={!isWalletReady || !amount || !recipient || !quote || isProcessing || insufficientBalance}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed text-lg flex items-center justify-center space-x-2"
           >
             {isProcessing ? (
