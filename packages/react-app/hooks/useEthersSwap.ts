@@ -6,66 +6,23 @@ import { Currency, getTokenAddress, getContractAddress } from '../lib/contracts'
 import { parseEther, formatEther, encodeFunctionData, type Abi } from 'viem';
 import { celo } from 'viem/chains';
 import { useDivvi } from './useDivvi';
-import { useFarcasterMiniApp } from './useFarcasterMiniApp';
 import FXRemitABI from '../ABI/FXRemit.json';
-
-async function createFarcasterWalletClient(address: string) {
-  try {
-    const { sdk } = await import('@farcaster/miniapp-sdk');
-    const provider = await sdk.wallet.getEthereumProvider();
-    
-    if (!provider) {
-      throw new Error('Farcaster wallet provider not available');
-    }
-
-    return {
-      account: { address: address as `0x${string}` },
-      sendTransaction: async (args: any) => {
-        const hash = await provider.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: args.account.address,
-            to: args.to,
-            value: args.value ? `0x${args.value.toString(16)}` : '0x0',
-            data: args.data,
-            gas: args.gas ? `0x${args.gas.toString(16)}` : undefined,
-          }]
-        });
-        return hash;
-      },
-      waitForTransactionReceipt: async (args: any) => {
-        return { status: 'success', transactionHash: args.hash };
-      }
-    };
-  } catch (error) {
-    console.error('Failed to create Farcaster wallet client:', error);
-    return null;
-  }
-}
 
 export function useEthersSwap() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
-  const { isMiniApp } = useFarcasterMiniApp();
 
-  // Memoize wallet readiness with platform-specific logic
+  // Memoize wallet readiness (revert to working approach)
   const walletReadiness = useMemo(() => {
-    const isConnectedWithAddress = isConnected && !!address;
-    const hasPublicClient = !!publicClient;
-    
-    // For Farcaster: we'll create custom wallet client, so we don't need standard walletClient
-    // For Web: we need standard walletClient
-    const hasWalletClient = isMiniApp ? true : !!walletClient;
-    
     return {
-      isConnected: isConnectedWithAddress,
-      hasWalletClient,
-      hasPublicClient,
-      isFullyReady: isConnectedWithAddress && hasWalletClient && hasPublicClient
+      isConnected: isConnected && !!address,
+      hasWalletClient: !!walletClient,
+      hasPublicClient: !!publicClient,
+      isFullyReady: isConnected && !!address && !!walletClient && !!publicClient
     };
-  }, [isConnected, address, walletClient, publicClient, isMiniApp]);
+  }, [isConnected, address, walletClient, publicClient]);
 
   const isWalletReady = () => walletReadiness;
 
@@ -117,16 +74,8 @@ export function useEthersSwap() {
     // TypeScript safety: we know these are defined due to validation above
     const safePublicClient = publicClient!;
     
-    // Use platform-specific wallet client
-    let safeWalletClient;
-    if (isMiniApp) {
-      safeWalletClient = await createFarcasterWalletClient(address!);
-      if (!safeWalletClient) {
-        throw new Error('Failed to create Farcaster wallet client');
-      }
-    } else {
-      safeWalletClient = walletClient!;
-    }
+    // Use standard wallet client (revert to working approach)
+    const safeWalletClient = walletClient!;
     
     // Create a better signer proxy that properly handles address and signing
     const createProperSigner = (userAddress: string) => {
@@ -166,7 +115,6 @@ export function useEthersSwap() {
         };
       };
       
-      // Override populateTransaction to ensure correct from address
       signerProxy.populateTransaction = async (transaction: any) => {
         const populated = await wallet.populateTransaction(transaction);
         populated.from = userAddress;
@@ -178,16 +126,16 @@ export function useEthersSwap() {
     
     const signer = createProperSigner(address!);
     
-    console.log('✨ Creating Mento SDK...');
+    console.log(' Creating Mento SDK...');
     const mento = await Mento.create(signer);
-    console.log('🔄 Loading exchanges...');
+    console.log(' Loading exchanges...');
     const exchanges = await mento.getExchanges();
     if (exchanges.length === 0) throw new Error('No exchanges found');
     
     // Use viem's parseEther to avoid BigNumber version issues
     const amountInWei = parseEther(amount);
     
-    console.log('📊 Getting quote...');
+    console.log(' Getting quote...');
     
     const quoteAmountOut = await mento.getAmountOut(
       fromTokenAddress,
@@ -202,7 +150,7 @@ export function useEthersSwap() {
       ? parseEther(minAmountOut).toString()
       : (quoteBigInt * BigInt(98) / BigInt(100)).toString(); // default 2% slippage
     
-    console.log(`🎯 Expected amount out with 1% slippage: ${formatEther(BigInt(expectedAmountOut))} ${toCurrency}`);
+    console.log(` Expected amount out with 1% slippage: ${formatEther(BigInt(expectedAmountOut))} ${toCurrency}`);
     
     try {
       // 1) Find tradable pair and correct single-hop exchange
