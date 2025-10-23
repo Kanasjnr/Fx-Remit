@@ -7,6 +7,7 @@ import { useUserRemittances, useRemittanceDetails } from '@/hooks/useContract';
 import type { Currency } from '@/lib/contracts';
 import { CURRENCY_INFO } from '@/lib/contracts';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
+import { getFailedTransactions } from '@/providers/TransactionStatusProvider';
 import Link from 'next/link';
 import {
   ArrowRightIcon,
@@ -32,6 +33,7 @@ interface Transaction {
   time: string;
   hash: string;
   recipient: string;
+  errorReason?: string; // Optional field for failed transactions
 }
 
 function RemittanceItem({
@@ -91,6 +93,7 @@ export default function HistoryPage() {
   const { isMiniApp } = useFarcasterMiniApp();
   const [filter, setFilter] = useState('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [failedTransactions, setFailedTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [isWaitingForConnection, setIsWaitingForConnection] = useState(true);
@@ -101,6 +104,23 @@ export default function HistoryPage() {
   useEffect(() => {
     if (address) {
       setIsWaitingForConnection(false);
+      // Load failed transactions from localStorage
+      const failed = getFailedTransactions(address);
+      const failedAsTransactions: Transaction[] = failed.map(failedTx => ({
+        id: failedTx.id,
+        from: failedTx.fromCurrency as Currency,
+        to: failedTx.toCurrency as Currency,
+        amount: parseFloat(failedTx.amount),
+        received: 0, // Failed transactions don't have received amount
+        fee: 0, // Failed transactions don't have fees
+        status: 'failed' as const,
+        date: new Date(failedTx.timestamp).toLocaleDateString(),
+        time: new Date(failedTx.timestamp).toLocaleTimeString(),
+        hash: '', // Failed transactions don't have transaction hashes
+        recipient: failedTx.recipient,
+        errorReason: failedTx.errorReason, // Add error reason to Transaction type
+      }));
+      setFailedTransactions(failedAsTransactions);
     } else if (!isMiniApp) {
       setIsWaitingForConnection(false);
     }
@@ -118,9 +138,19 @@ export default function HistoryPage() {
   );
 
   const filteredTransactions = useMemo(() => {
-    if (filter === 'all') return transactions;
-    return transactions.filter((tx) => tx.status === filter);
-  }, [transactions, filter]);
+    // Merge successful and failed transactions
+    const allTransactions = [...transactions, ...failedTransactions];
+    
+    // Sort by timestamp (newest first)
+    const sortedTransactions = allTransactions.sort((a, b) => {
+      const dateA = new Date(`${a.date} ${a.time}`).getTime();
+      const dateB = new Date(`${b.date} ${b.time}`).getTime();
+      return dateB - dateA;
+    });
+
+    if (filter === 'all') return sortedTransactions;
+    return sortedTransactions.filter((tx) => tx.status === filter);
+  }, [transactions, failedTransactions, filter]);
 
   const handleTransactionClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -357,14 +387,20 @@ export default function HistoryPage() {
                             {transaction.from}
                           </span>
                         </div>
-                        <div className="text-sm text-blue-600 font-medium">
-                          They receive{' '}
-                          <span className="font-bold text-black">
-                            {getCurrencySymbol(transaction.to)}
-                            {transaction.received?.toFixed(2) || '0.00'}
-                            {transaction.to}
-                          </span>
-                        </div>
+                        {transaction.status === 'failed' ? (
+                          <div className="text-sm text-red-600 font-medium">
+                            Transaction failed
+                          </div>
+                        ) : (
+                          <div className="text-sm text-blue-600 font-medium">
+                            They receive{' '}
+                            <span className="font-bold text-black">
+                              {getCurrencySymbol(transaction.to)}
+                              {transaction.received?.toFixed(2) || '0.00'}
+                              {transaction.to}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -406,6 +442,11 @@ export default function HistoryPage() {
                     {selectedTransaction.id.slice(0, 2)}...
                   </div>
                   <div className="text-sm font-medium text-blue-600">CELO</div>
+                  {selectedTransaction.status === 'failed' && selectedTransaction.errorReason && (
+                    <div className="text-sm text-red-600 font-medium">
+                      {selectedTransaction.errorReason}
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column - Labels */}
@@ -416,22 +457,25 @@ export default function HistoryPage() {
                   <div className="text-sm text-gray-500">Recipient</div>
                   <div className="text-sm text-gray-500">Transaction ID</div>
                   <div className="text-sm text-gray-500">Network</div>
+                  {selectedTransaction.status === 'failed' && (
+                    <div className="text-sm text-gray-500">Error Reason</div>
+                  )}
                 </div>
               </div>
 
-              {/* Etherscan Link */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <a
-                  href={`https://celoscan.io/tx/${
-                    selectedTransaction.hash || selectedTransaction.id
-                  }`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
-                >
-                  View on etherscan →
-                </a>
-              </div>
+              {/* Etherscan Link - Only show for successful transactions with hash */}
+              {selectedTransaction.status !== 'failed' && selectedTransaction.hash && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <a
+                    href={`https://celoscan.io/tx/${selectedTransaction.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    View on etherscan →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         )}

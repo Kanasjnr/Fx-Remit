@@ -6,22 +6,66 @@ import { Currency, getTokenAddress, getContractAddress } from '../lib/contracts'
 import { parseEther, formatEther, encodeFunctionData, type Abi } from 'viem';
 import { celo } from 'viem/chains';
 import { useDivvi } from './useDivvi';
+import { useFarcasterMiniApp } from './useFarcasterMiniApp';
 import FXRemitABI from '../ABI/FXRemit.json';
+
+async function createFarcasterWalletClient(address: string) {
+  try {
+    const { sdk } = await import('@farcaster/miniapp-sdk');
+    const provider = await sdk.wallet.getEthereumProvider();
+    
+    if (!provider) {
+      throw new Error('Farcaster wallet provider not available');
+    }
+
+    return {
+      account: { address: address as `0x${string}` },
+      sendTransaction: async (args: any) => {
+        const hash = await provider.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: args.account.address,
+            to: args.to,
+            value: args.value ? `0x${args.value.toString(16)}` : '0x0',
+            data: args.data,
+            gas: args.gas ? `0x${args.gas.toString(16)}` : undefined,
+          }]
+        });
+        return hash;
+      },
+      waitForTransactionReceipt: async (args: any) => {
+        return { status: 'success', transactionHash: args.hash };
+      }
+    };
+  } catch (error) {
+    console.error('Failed to create Farcaster wallet client:', error);
+    return null;
+  }
+}
 
 export function useEthersSwap() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
+  const { isMiniApp } = useFarcasterMiniApp();
 
+  // Memoize wallet readiness with platform-specific logic
   const walletReadiness = useMemo(() => {
+    const isConnectedWithAddress = isConnected && !!address;
+    const hasPublicClient = !!publicClient;
+    
+    // For Farcaster: we'll create custom wallet client, so we don't need standard walletClient
+    // For Web: we need standard walletClient
+    const hasWalletClient = isMiniApp ? true : !!walletClient;
+    
     return {
-      isConnected: isConnected && !!address,
-      hasWalletClient: !!walletClient,
-      hasPublicClient: !!publicClient,
-      isFullyReady: isConnected && !!address && !!walletClient && !!publicClient
+      isConnected: isConnectedWithAddress,
+      hasWalletClient,
+      hasPublicClient,
+      isFullyReady: isConnectedWithAddress && hasWalletClient && hasPublicClient
     };
-  }, [isConnected, address, walletClient, publicClient]);
+  }, [isConnected, address, walletClient, publicClient, isMiniApp]);
 
   const isWalletReady = () => walletReadiness;
 
@@ -71,8 +115,18 @@ export function useEthersSwap() {
     const provider = new providers.JsonRpcProvider('https://forno.celo.org');
     
     // TypeScript safety: we know these are defined due to validation above
-    const safeWalletClient = walletClient!;
     const safePublicClient = publicClient!;
+    
+    // Use platform-specific wallet client
+    let safeWalletClient;
+    if (isMiniApp) {
+      safeWalletClient = await createFarcasterWalletClient(address!);
+      if (!safeWalletClient) {
+        throw new Error('Failed to create Farcaster wallet client');
+      }
+    } else {
+      safeWalletClient = walletClient!;
+    }
     
     // Create a better signer proxy that properly handles address and signing
     const createProperSigner = (userAddress: string) => {
