@@ -41,14 +41,12 @@ const webConnectors = connectorsForWallets(
 function useWagmiConfig() {
   const { isMiniApp } = useFarcasterMiniApp();
 
-  // Memoize connectors to prevent recreation on every render
   const connectors = useMemo(() => {
     return isMiniApp 
       ? [injected(), miniAppConnector()] 
       : webConnectors;
   }, [isMiniApp]);
 
-  // Memoize the entire config to prevent recreation
   return useMemo(() => {
     return createConfig({
       connectors,

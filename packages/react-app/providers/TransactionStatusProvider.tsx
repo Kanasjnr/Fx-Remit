@@ -9,6 +9,17 @@ type Callbacks = {
   onReset?: () => void;
 };
 
+type FailedTransaction = {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  amount: string;
+  recipient: string;
+  errorReason: string;
+  timestamp: number;
+  userAddress: string;
+};
+
 type TxState = {
   status: TransactionStatus;
   title?: string;
@@ -17,11 +28,17 @@ type TxState = {
   errorReason?: string;
   startedAt?: number;
   callbacks?: Callbacks;
+  transactionData?: {
+    fromCurrency: string;
+    toCurrency: string;
+    amount: string;
+    recipient: string;
+  };
 };
 
 type TxContextValue = {
   state: TxState;
-  startProcessing: (opts?: { title?: string; message?: string; onRetry?: () => void; onReset?: () => void; txHash?: string }) => void;
+  startProcessing: (opts?: { title?: string; message?: string; onRetry?: () => void; onReset?: () => void; txHash?: string; transactionData?: { fromCurrency: string; toCurrency: string; amount: string; recipient: string } }) => void;
   markSuccess: (opts?: { title?: string; message?: string; txHash?: string }) => void;
   markFailure: (opts: { reason: string; title?: string; txHash?: string }) => void;
   clear: () => void;
@@ -29,8 +46,38 @@ type TxContextValue = {
 
 const TransactionStatusContext = createContext<TxContextValue | undefined>(undefined);
 
+const saveFailedTransaction = (transaction: FailedTransaction) => {
+  try {
+    const key = `failed_transactions_${transaction.userAddress}`;
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    const updated = [...existing, transaction];
+    localStorage.setItem(key, JSON.stringify(updated));
+    console.log(' Saved failed transaction:', transaction.id);
+  } catch (error) {
+    console.error('Failed to save failed transaction:', error);
+  }
+};
+
+export const getFailedTransactions = (userAddress: string): FailedTransaction[] => {
+  try {
+    const key = `failed_transactions_${userAddress}`;
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  } catch (error) {
+    console.error('Failed to load failed transactions:', error);
+    return [];
+  }
+};
+
 export function TransactionStatusProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<TxState>({ status: "idle" });
+  const [userAddress, setUserAddress] = useState<string>('');
+
+  React.useEffect(() => {
+    const storedAddress = localStorage.getItem('current_user_address');
+    if (storedAddress) {
+      setUserAddress(storedAddress);
+    }
+  }, []);
 
   const startProcessing: TxContextValue["startProcessing"] = useCallback((opts) => {
     setState({
@@ -40,6 +87,7 @@ export function TransactionStatusProvider({ children }: { children: React.ReactN
       txHash: opts?.txHash,
       startedAt: Date.now(),
       callbacks: { onRetry: opts?.onRetry, onReset: opts?.onReset },
+      transactionData: opts?.transactionData,
     });
   }, []);
 
@@ -55,16 +103,32 @@ export function TransactionStatusProvider({ children }: { children: React.ReactN
   }, []);
 
   const markFailure: TxContextValue["markFailure"] = useCallback((opts) => {
-    setState((prev) => ({
-      status: "failure",
-      title: opts.title ?? "Failed",
-      message: undefined,
-      errorReason: opts.reason,
-      txHash: opts.txHash ?? prev.txHash,
-      startedAt: prev.startedAt,
-      callbacks: prev.callbacks,
-    }));
-  }, []);
+    setState((prev) => {
+      if (prev.transactionData && userAddress) {
+        const failedTransaction: FailedTransaction = {
+          id: `failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          fromCurrency: prev.transactionData.fromCurrency,
+          toCurrency: prev.transactionData.toCurrency,
+          amount: prev.transactionData.amount,
+          recipient: prev.transactionData.recipient,
+          errorReason: opts.reason,
+          timestamp: Date.now(),
+          userAddress: userAddress,
+        };
+        saveFailedTransaction(failedTransaction);
+      }
+
+      return {
+        status: "failure",
+        title: opts.title ?? "Failed",
+        message: undefined,
+        errorReason: opts.reason,
+        txHash: opts.txHash ?? prev.txHash,
+        startedAt: prev.startedAt,
+        callbacks: prev.callbacks,
+      };
+    });
+  }, [userAddress]);
 
   const clear = useCallback(() => setState({ status: "idle" }), []);
 
@@ -173,7 +237,6 @@ function TxStatusOverlay() {
 }
 
 function Hourglass() {
-  // Functional hourglass with flowing sand
   return (
     <div className="relative h-24 w-24">
       <div className="absolute inset-0 flex items-center justify-center">

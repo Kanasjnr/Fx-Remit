@@ -148,6 +148,12 @@ export default function SendPage() {
         setAmount("")
         setRecipient("")
       },
+      transactionData: {
+        fromCurrency,
+        toCurrency,
+        amount,
+        recipient,
+      },
     })
 
     try {
