@@ -71,16 +71,11 @@ export function useEthersSwap() {
     // Create ethers provider
     const provider = new providers.JsonRpcProvider('https://forno.celo.org');
     
-    // TypeScript safety: we know these are defined due to validation above
     const safePublicClient = publicClient!;
     
-    // Use standard wallet client (revert to working approach)
     const safeWalletClient = walletClient!;
     
-    // Create a better signer proxy that properly handles address and signing
     const createProperSigner = (userAddress: string) => {
-      // Create a wallet with a private key derived from the user's address
-      // This is a deterministic but dummy approach - the actual signing will be done by viem
       const deterministicKey = '0x' + userAddress.slice(2).padStart(64, '0');
       const wallet = new Wallet(deterministicKey, provider);
       
@@ -180,7 +175,6 @@ export function useEthersSwap() {
           chain: celo
         });
         await safePublicClient.waitForTransactionReceipt({ hash: approvalHash });
-        // Do not submit Divvi referral for approvals
       }
 
       // 3) Call FXRemit.swapAndSend with SDK-provided params
@@ -240,7 +234,7 @@ export function useEthersSwap() {
         const hop2 = tradablePair.path[1];
         const providerAddr1 = hop1.providerAddr as `0x${string}`;
         const providerAddr2 = hop2.providerAddr as `0x${string}`;
-        const exchangeId1 = hop1.id as `0x${string}`; // bytes32
+        const exchangeId1 = hop1.id as `0x${string}`; 
         const exchangeId2 = hop2.id as `0x${string}`; // bytes32
 
         // Determine intermediate token address by intersection of assets

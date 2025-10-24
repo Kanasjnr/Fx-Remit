@@ -11,6 +11,7 @@ import {
   CTAFooter,
   Footer
 } from "@/components/landing"
+import { CurrencyCarousel } from "@/components/CurrencyCarousel"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function LandingPage() {
       <HeaderHero />
       <HowItWorks />
       <WhyChooseFX />
+      <CurrencyCarousel />
       <ContactUs />
       <CTAFooter />
       <Footer />
