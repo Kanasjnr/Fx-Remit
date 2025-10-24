@@ -72,7 +72,7 @@ export function useEthersSwap() {
 
     const rpcUrls = ['https://forno.celo.org'];
 
-    let provider: providers.JsonRpcProvider;
+    let provider: providers.JsonRpcProvider | undefined;
     for (const rpcUrl of rpcUrls) {
       try {
         provider = new providers.JsonRpcProvider(rpcUrl);
@@ -89,13 +89,17 @@ export function useEthersSwap() {
       }
     }
 
+    if (!provider) {
+      throw new Error('Failed to connect to any RPC endpoint');
+    }
+
     // Get Ethereum provider based on environment
     let ethereumProvider: any;
     let signer: any;
     let signerAddress: string;
 
     if (isMiniApp) {
-      // Farcaster Mini App - use wagmi's wallet client instead of ethers
+      // Farcaster Mini App - create a proper ethers.js signer
       console.log('Using Farcaster Mini App with wagmi wallet client');
       
       if (!walletClient) {
@@ -103,41 +107,32 @@ export function useEthersSwap() {
       }
       
       signerAddress = address!;
-      signer = {
-        address: signerAddress,
-        getAddress: () => Promise.resolve(signerAddress),
-        sendTransaction: async (transaction: any) => {
-          console.log('Sending transaction via wagmi wallet client:', {
-            to: transaction.to,
-            value: transaction.value?.toString(),
-            data: transaction.data?.slice(0, 10) + '...'
-          });
-          
-          const hash = await walletClient.sendTransaction({
-            account: signerAddress as `0x${string}`,
+      
+      // Create a proper ethers.js signer that works with Mento SDK
+      signer = new Wallet(signerAddress, provider);
+      
+      // Override the sendTransaction method to use wagmi wallet client
+      const originalSendTransaction = signer.sendTransaction.bind(signer);
+      signer.sendTransaction = async (transaction: any) => {
+        console.log('Sending transaction via wagmi wallet client:', {
+          to: transaction.to,
+          value: transaction.value?.toString(),
+          data: transaction.data?.slice(0, 10) + '...'
+        });
+        
+        const hash = await walletClient.sendTransaction({
+          account: signerAddress as `0x${string}`,
           to: transaction.to as `0x${string}`,
           data: transaction.data as `0x${string}`,
           value: transaction.value ? BigInt(transaction.value.toString()) : BigInt(0),
           gas: transaction.gasLimit ? BigInt(transaction.gasLimit.toString()) : undefined,
           gasPrice: transaction.gasPrice ? BigInt(transaction.gasPrice.toString()) : undefined,
         });
-          
+        
         return { 
           hash, 
-            wait: () => provider.waitForTransaction(hash, 1) 
-          };
-        },
-        populateTransaction: async (transaction: any) => {
-          return {
-            ...transaction,
-            from: signerAddress,
-            to: transaction.to,
-            data: transaction.data,
-            value: transaction.value || 0,
-            gasLimit: transaction.gasLimit,
-            gasPrice: transaction.gasPrice
-          };
-        }
+          wait: () => provider.waitForTransaction(hash, 1) 
+        };
       };
       
       console.log('Farcaster wallet client configured:', signerAddress);
