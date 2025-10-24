@@ -146,6 +146,21 @@ export function useEthersSwap() {
         connect: (provider: any) => {
           return { ...signer, provider };
         },
+        call: async (transaction: any) => {
+          // For read-only calls, use the provider directly
+          return await provider.call(transaction);
+        },
+        estimateGas: async (transaction: any) => {
+          return await provider.estimateGas(transaction);
+        },
+        getBalance: async (address?: string) => {
+          const addr = address || signerAddress;
+          return await provider.getBalance(addr);
+        },
+        getTransactionCount: async (address?: string) => {
+          const addr = address || signerAddress;
+          return await provider.getTransactionCount(addr);
+        },
         _isSigner: true,
       };
       
