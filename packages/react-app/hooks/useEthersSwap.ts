@@ -172,9 +172,8 @@ export function useEthersSwap() {
 
     console.log('Signer created:', signerAddress);
 
-    // Create Mento SDK with pure ethers signer
     console.log('Creating Mento SDK...');
-    const mento = await Mento.create(signer);
+    const mento = await Mento.create(provider);
     console.log('Loading exchanges...');
     const exchanges = await mento.getExchanges();
     if (exchanges.length === 0) throw new Error('No exchanges found');
