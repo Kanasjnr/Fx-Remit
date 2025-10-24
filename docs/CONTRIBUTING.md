@@ -83,12 +83,12 @@ Examples of unacceptable behavior:
    ```
 
 4. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
+```bash
+pnpm install
+```
 
 5. **Set up environment variables**
-   ```bash
+```bash
    # Copy environment files
    cp packages/react-app/.env.example packages/react-app/.env.local
    cp packages/hardhat/.env.example packages/hardhat/.env
@@ -99,16 +99,16 @@ Examples of unacceptable behavior:
 6. **Start the development environment**
 
    **Option A: Full Development Setup**
-   ```bash
-   # Start frontend development server
-   pnpm react-app:dev
-   
+```bash
+# Start frontend development server
+pnpm react-app:dev
+
    # In another terminal, start hardhat node
-   pnpm hardhat:run:node
-   
+pnpm hardhat:run:node
+
    # In a third terminal, deploy contracts to local network
-   pnpm hardhat:compile
-   pnpm --filter @fx-remit/hardhat run scripts/deploy.ts --network localhost
+pnpm hardhat:compile
+pnpm --filter @fx-remit/hardhat run scripts/deploy.ts --network localhost
    ```
 
    **Option B: Quick Start**
@@ -247,35 +247,36 @@ git push origin staging
 
 **Example:**
 ```typescript
-// Good
-interface RemittanceData {
-  id: string;
-  amount: string;
-  currency: string;
-  recipient: string;
+// Good - Based on actual FX-Remit code
+interface AssetOption {
+  code: string;
+  label: string;
+  tokenLogo: string;
+  countryFlag: string;
+  balance?: number;
+  usdValue?: number;
+  symbol?: string;
 }
 
-const processRemittance = async (data: RemittanceData): Promise<void> => {
-  const response = await fetch('/api/remittance', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to process remittance');
-  }
+const AssetPicker: React.FC<{
+  open: boolean;
+  title?: string;
+  options: AssetOption[];
+  onClose: () => void;
+  onSelect: (code: string) => void;
+}> = ({ open, title = "Select Asset", options, onClose, onSelect }) => {
+  return (
+    <Transition.Root show={open} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        {/* Component implementation */}
+      </Dialog>
+    </Transition.Root>
+  );
 };
 
 // Bad
-const processRemittance = async (data: any): Promise<any> => {
-  const response = await fetch('/api/remittance', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  
-  return response.json();
+const AssetPicker = (props: any) => {
+  return <div>{props.options.map((opt: any) => opt.code)}</div>;
 };
 ```
 
@@ -292,53 +293,101 @@ const processRemittance = async (data: any): Promise<any> => {
 **Example:**
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
- * @title FXRemit Contract
- * @dev Manages cross-border remittances using Mento Protocol
- * @author FX-Remit Team
+ * @title FXRemit
+ * @dev Contract for logging and tracking cross-border remittances via Mento Protocol
+ * @notice This contract tracks remittance transactions for analytics and user history
  */
-contract FXRemit is AccessControl, ReentrancyGuard {
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant VALIDATOR_ROLE = keccak256("VALIDATOR_ROLE");
+contract FXRemit is ReentrancyGuard, Ownable, Pausable {
     
-    event RemittanceProcessed(
+    struct Remittance {
+        uint256 id;
+        address sender;
+        address recipient;
+        address fromToken;
+        address toToken;
+        string fromCurrency;
+        string toCurrency;
+        uint256 amountSent;
+        uint256 amountReceived;
+        uint256 exchangeRate;
+        uint256 platformFee;
+        uint256 timestamp;
+        bytes32 mentoTxHash;
+        string corridor;
+    }
+    
+    mapping(uint256 => Remittance) public remittances;
+    mapping(address => uint256[]) public userRemittances;
+    
+    event RemittanceLogged(
+        uint256 indexed remittanceId,
         address indexed sender,
         address indexed recipient,
-        uint256 amount,
-        string currency,
-        uint256 timestamp
+        string fromCurrency,
+        string toCurrency,
+        uint256 amountSent,
+        uint256 amountReceived,
+        string corridor
     );
     
-    constructor() {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    constructor() Ownable(msg.sender) {
+        // Contract is ready to use immediately after deployment
     }
     
     /**
-     * @dev Process a remittance transaction
-     * @param recipient Address of the recipient
-     * @param amount Amount to send
-     * @param currency Currency code
+     * @dev Log a completed remittance transaction
+     * @param recipient Address receiving the funds
+     * @param fromToken Source token contract address
+     * @param toToken Destination token contract address
+     * @param fromCurrency Source currency (e.g., "cUSD")
+     * @param toCurrency Destination currency (e.g., "cKES")
+     * @param amountSent Amount sent by sender
+     * @param amountReceived Amount received by recipient
+     * @param exchangeRate Exchange rate used (scaled by 1e18)
+     * @param platformFee Fee collected by platform
+     * @param mentoTxHash Mento protocol transaction hash
+     * @param corridor Trading corridor (e.g., "USD-KES")
+     * @return remittanceId Unique ID for this remittance
      */
-    function processRemittance(
+    function logRemittance(
         address recipient,
-        uint256 amount,
-        string calldata currency
-    ) 
-        external 
-        onlyRole(OPERATOR_ROLE) 
-        nonReentrant 
-    {
+        address fromToken,
+        address toToken,
+        string memory fromCurrency,
+        string memory toCurrency,
+        uint256 amountSent,
+        uint256 amountReceived,
+        uint256 exchangeRate,
+        uint256 platformFee,
+        bytes32 mentoTxHash,
+        string memory corridor
+    ) external nonReentrant whenNotPaused returns (uint256) {
         require(recipient != address(0), "Invalid recipient address");
-        require(amount > 0, "Amount must be greater than 0");
+        require(fromToken != address(0), "Invalid from token address");
+        require(toToken != address(0), "Invalid to token address");
+        require(amountSent > 0, "Amount sent must be greater than 0");
         
-        // Process remittance logic here
+        // Implementation details...
         
-        emit RemittanceProcessed(msg.sender, recipient, amount, currency, block.timestamp);
+        emit RemittanceLogged(
+            remittanceId,
+            msg.sender,
+            recipient,
+            fromCurrency,
+            toCurrency,
+            amountSent,
+            amountReceived,
+            corridor
+        );
+        
+        return remittanceId;
     }
 }
 ```
@@ -355,82 +404,67 @@ contract FXRemit is AccessControl, ReentrancyGuard {
 
 **Example:**
 ```typescript
-import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useChainId } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
+import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress } from '../lib/contracts';
 
-interface RemittanceFormData {
-  recipient: string;
-  amount: string;
-  currency: string;
-}
-
-export const RemittanceForm: React.FC = () => {
-  const { address } = useAccount();
-  const [formData, setFormData] = useState<RemittanceFormData>({
-    recipient: '',
-    amount: '',
-    currency: 'USD',
+export function useLogRemittance() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const chainId = useChainId();
+  const address = getContractAddress(chainId);
+  
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch('/api/remittance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, sender: address }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to process remittance');
-      }
-      
-      // Handle success
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
+  const logRemittance = async (params: {
+    recipient: string;
+    fromCurrency: Currency;
+    toCurrency: Currency;
+    amountSent: string;
+    amountReceived: string;
+    exchangeRate: string;
+    platformFee: string;
+    mentoTxHash: string;
+    corridor: string;
+  }) => {
+    if (!address) {
+      throw new Error('Contract not configured for this chain');
     }
+    
+    const fromTokenAddress = getTokenAddress(chainId as SupportedChainId, params.fromCurrency);
+    const toTokenAddress = getTokenAddress(chainId as SupportedChainId, params.toCurrency);
+
+    writeContract({
+      address: address as `0x${string}`,
+      abi: FXREMIT_CONTRACT.abi,
+      functionName: 'logRemittance',
+      args: [
+        params.recipient,
+        fromTokenAddress,
+        toTokenAddress,
+        params.fromCurrency,
+        params.toCurrency,
+        parseEther(params.amountSent),
+        parseEther(params.amountReceived),
+        parseEther(params.exchangeRate, '1'),
+        parseEther(params.platformFee),
+        params.mentoTxHash || '',
+        params.corridor,
+      ],
+    });
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="recipient">Recipient Address</label>
-        <input
-          id="recipient"
-          type="text"
-          value={formData.recipient}
-          onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
-          required
-        />
-      </div>
-      
-      <div>
-        <label htmlFor="amount">Amount</label>
-        <input
-          id="amount"
-          type="number"
-          value={formData.amount}
-          onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-          required
-        />
-      </div>
-      
-      {error && <div className="error">{error}</div>}
-      
-      <button type="submit" disabled={loading}>
-        {loading ? 'Processing...' : 'Send Remittance'}
-      </button>
-    </form>
-  );
-};
+  return {
+    logRemittance,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+  };
+}
 ```
 
 ## Testing
@@ -495,35 +529,50 @@ pnpm --filter @fx-remit/hardhat test test/FXRemit.test.ts
 **Unit Test Example:**
 ```typescript
 import { render, screen, fireEvent } from '@testing-library/react';
-import { RemittanceForm } from '@/components/RemittanceForm';
+import { AssetPicker } from '@/components/AssetPicker';
 
-describe('RemittanceForm Component', () => {
-  test('renders form with correct fields', () => {
-    render(<RemittanceForm />);
+describe('AssetPicker Component', () => {
+  const mockOptions = [
+    {
+      code: 'cUSD',
+      label: 'US Dollar',
+      tokenLogo: '/cUSD.svg',
+      countryFlag: '/US.svg',
+      balance: 100.50,
+      symbol: '$'
+    }
+  ];
+
+  test('renders asset picker with correct options', () => {
+    render(
+      <AssetPicker
+        open={true}
+        title="Select Currency"
+        options={mockOptions}
+        onClose={jest.fn()}
+        onSelect={jest.fn()}
+      />
+    );
     
-    expect(screen.getByLabelText('Recipient Address')).toBeInTheDocument();
-    expect(screen.getByLabelText('Amount')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /send remittance/i })).toBeInTheDocument();
+    expect(screen.getByText('Select Currency')).toBeInTheDocument();
+    expect(screen.getByText('cUSD')).toBeInTheDocument();
+    expect(screen.getByText('US Dollar')).toBeInTheDocument();
   });
 
-  test('calls onSubmit handler when form is submitted', async () => {
-    const mockSubmit = jest.fn();
-    render(<RemittanceForm onSubmit={mockSubmit} />);
+  test('calls onSelect when option is clicked', () => {
+    const mockOnSelect = jest.fn();
+    render(
+      <AssetPicker
+        open={true}
+        options={mockOptions}
+        onClose={jest.fn()}
+        onSelect={mockOnSelect}
+      />
+    );
     
-    fireEvent.change(screen.getByLabelText('Recipient Address'), {
-      target: { value: '0x123...' }
-    });
-    fireEvent.change(screen.getByLabelText('Amount'), {
-      target: { value: '100' }
-    });
+    fireEvent.click(screen.getByText('cUSD'));
     
-    fireEvent.click(screen.getByRole('button', { name: /send remittance/i }));
-    
-    expect(mockSubmit).toHaveBeenCalledWith({
-      recipient: '0x123...',
-      amount: '100',
-      currency: 'USD'
-    });
+    expect(mockOnSelect).toHaveBeenCalledWith('cUSD');
   });
 });
 ```
@@ -531,18 +580,34 @@ describe('RemittanceForm Component', () => {
 **Integration Test Example:**
 ```typescript
 import { renderHook } from '@testing-library/react';
-import { useFXRemit } from '@/hooks/useFXRemit';
+import { useLogRemittance } from '@/hooks/useContract';
 
-describe('useFXRemit Hook', () => {
-  test('connects to real blockchain', async () => {
-    const { result } = renderHook(() => useFXRemit({ 
-      contractAddress: '0x123...', 
-      rpcUrl: 'https://alfajores-forno.celo-testnet.org' 
-    }));
+describe('useLogRemittance Hook', () => {
+  test('connects to FX-Remit contract', async () => {
+    const { result } = renderHook(() => useLogRemittance());
     
-    // Tests real blockchain interaction
-    expect(result.current.isConnected).toBeDefined();
-    expect(result.current.processRemittance).toBeDefined();
+    expect(result.current.logRemittance).toBeDefined();
+    expect(typeof result.current.logRemittance).toBe('function');
+    expect(result.current.isPending).toBe(false);
+  });
+
+  test('handles contract interaction', async () => {
+    const { result } = renderHook(() => useLogRemittance());
+    
+    const mockParams = {
+      recipient: '0x742d35Cc6634C0532925a3b8D4c5DcfbC0e04f',
+      fromCurrency: 'cUSD' as Currency,
+      toCurrency: 'cKES' as Currency,
+      amountSent: '100',
+      amountReceived: '13245',
+      exchangeRate: '132.45',
+      platformFee: '1.5',
+      mentoTxHash: '0x123...',
+      corridor: 'USD-KES'
+    };
+
+    // Test that the function can be called
+    expect(() => result.current.logRemittance(mockParams)).not.toThrow();
   });
 });
 ```
@@ -679,7 +744,7 @@ pnpm test:coverage
    ```
 
 3. **Mainnet Deployment**
-   ```bash
+```bash
    pnpm --filter @fx-remit/hardhat run scripts/deploy.ts --network celo
    ```
 
@@ -751,7 +816,7 @@ When requesting features:
 ### Common Issues
 
 1. **Build Failures**
-   ```bash
+```bash
    # Clear cache and reinstall
    rm -rf node_modules
    pnpm store prune
@@ -759,7 +824,7 @@ When requesting features:
    ```
 
 2. **Test Failures**
-   ```bash
+```bash
    # Check test environment
    pnpm react-app:test --verbose
    ```
@@ -806,4 +871,4 @@ By contributing to FX-Remit, you agree that your contributions will be licensed 
 
 ---
 
-Thank you for contributing to FX-Remit! Your contributions help make cross-border remittances more accessible and efficient. 🌍💸 
+Thank you for contributing to FX-Remit! Your contributions help make cross-border remittances more accessible and efficient. 
