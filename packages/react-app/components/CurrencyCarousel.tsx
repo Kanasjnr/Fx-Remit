@@ -152,9 +152,9 @@ export function CurrencyCarousel() {
       <div className="relative z-10 max-w-7xl mx-auto px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <button className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full text-sm uppercase tracking-wide transition-colors duration-200 mb-8 border-0">
+          <div className="text-orange-500 font-bold py-3 px-8 text-sm uppercase tracking-wide mb-8 inline-block">
             TRY IT NOW
-          </button>
+          </div>
           <h2 className="text-5xl font-bold text-white mb-4">
             Ready to make global transactions?
           </h2>
