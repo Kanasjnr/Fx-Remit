@@ -9,6 +9,9 @@ export type AssetOption = {
   label: string;
   tokenLogo: string;
   countryFlag: string;
+  balance?: number;
+  usdValue?: number;
+  symbol?: string;
 };
 
 export function AssetPicker({
@@ -85,21 +88,37 @@ export function AssetPicker({
                                   className="w-8 h-8"
                                 />
                               </div>
-                              <span className="text-gray-700 font-medium">{opt.code}</span>
+                              <div className="text-left">
+                                <span className="text-gray-700 font-medium">{opt.code}</span>
+                                {opt.balance !== undefined && (
+                                  <div className="text-xs text-gray-500">
+                                    {opt.symbol}{opt.balance.toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             
-                            {/* Right side - Country flag and currency name */}
+                            {/* Right side - Country flag, currency name, and USD value */}
                             <div className="flex items-center space-x-3">
-                              <div className="w-6 h-4 rounded-sm overflow-hidden">
-                                <Image
-                                  src={opt.countryFlag}
-                                  alt={`${opt.label} flag`}
-                                  width={24}
-                                  height={16}
-                                  className="w-6 h-4 object-cover"
-                                />
+                              <div className="text-right">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-6 h-4 rounded-sm overflow-hidden">
+                                    <Image
+                                      src={opt.countryFlag}
+                                      alt={`${opt.label} flag`}
+                                      width={24}
+                                      height={16}
+                                      className="w-6 h-4 object-cover"
+                                    />
+                                  </div>
+                                  <span className="text-gray-600 text-sm">{opt.label}</span>
+                                </div>
+                                {opt.usdValue !== undefined && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    ${opt.usdValue.toFixed(2)}
+                                  </div>
+                                )}
                               </div>
-                              <span className="text-gray-600">{opt.label}</span>
                             </div>
                           </div>
                         </button>
