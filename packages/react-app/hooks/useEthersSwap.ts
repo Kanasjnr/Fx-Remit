@@ -99,7 +99,7 @@ export function useEthersSwap() {
     let signerAddress: string;
 
     if (isMiniApp) {
-      // Farcaster Mini App - create a proper ethers.js signer
+      // Farcaster Mini App - create a custom signer that works with Mento SDK
       console.log('Using Farcaster Mini App with wagmi wallet client');
       
       if (!walletClient) {
@@ -108,31 +108,45 @@ export function useEthersSwap() {
       
       signerAddress = address!;
       
-      // Create a proper ethers.js signer that works with Mento SDK
-      signer = new Wallet(signerAddress, provider);
-      
-      // Override the sendTransaction method to use wagmi wallet client
-      const originalSendTransaction = signer.sendTransaction.bind(signer);
-      signer.sendTransaction = async (transaction: any) => {
-        console.log('Sending transaction via wagmi wallet client:', {
-          to: transaction.to,
-          value: transaction.value?.toString(),
-          data: transaction.data?.slice(0, 10) + '...'
-        });
-        
-        const hash = await walletClient.sendTransaction({
-          account: signerAddress as `0x${string}`,
-          to: transaction.to as `0x${string}`,
-          data: transaction.data as `0x${string}`,
-          value: transaction.value ? BigInt(transaction.value.toString()) : BigInt(0),
-          gas: transaction.gasLimit ? BigInt(transaction.gasLimit.toString()) : undefined,
-          gasPrice: transaction.gasPrice ? BigInt(transaction.gasPrice.toString()) : undefined,
-        });
-        
-        return { 
-          hash, 
-          wait: () => provider.waitForTransaction(hash, 1) 
-        };
+      // Create a custom signer that implements the ethers.js Signer interface
+      signer = {
+        provider: provider,
+        getAddress: () => Promise.resolve(signerAddress),
+        signMessage: async (message: string | Uint8Array) => {
+          const messageHex = typeof message === 'string' ? message : ethers.utils.hexlify(message);
+          return await walletClient.signMessage({
+            account: signerAddress as `0x${string}`,
+            message: messageHex,
+          });
+        },
+        signTransaction: async (transaction: any) => {
+          throw new Error('signTransaction not supported in Farcaster Mini App');
+        },
+        sendTransaction: async (transaction: any) => {
+          console.log('Sending transaction via wagmi wallet client:', {
+            to: transaction.to,
+            value: transaction.value?.toString(),
+            data: transaction.data?.slice(0, 10) + '...'
+          });
+          
+          const hash = await walletClient.sendTransaction({
+            account: signerAddress as `0x${string}`,
+            to: transaction.to as `0x${string}`,
+            data: transaction.data as `0x${string}`,
+            value: transaction.value ? BigInt(transaction.value.toString()) : BigInt(0),
+            gas: transaction.gasLimit ? BigInt(transaction.gasLimit.toString()) : undefined,
+            gasPrice: transaction.gasPrice ? BigInt(transaction.gasPrice.toString()) : undefined,
+          });
+          
+          return { 
+            hash, 
+            wait: () => provider.waitForTransaction(hash, 1) 
+          };
+        },
+        connect: (provider: any) => {
+          return { ...signer, provider };
+        },
+        _isSigner: true,
       };
       
       console.log('Farcaster wallet client configured:', signerAddress);
