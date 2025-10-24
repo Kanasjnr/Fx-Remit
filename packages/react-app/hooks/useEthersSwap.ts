@@ -1,9 +1,10 @@
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
 import { useMemo } from 'react';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { providers, Wallet, Contract, ethers } from 'ethers';
 import { Currency, getTokenAddress, getContractAddress } from '../lib/contracts';
 import { useDivvi } from './useDivvi';
+import { useFarcasterMiniApp } from './useFarcasterMiniApp';
 import FXRemitABI from '../ABI/FXRemit.json';
 
 // Extend window interface for ethereum
@@ -15,15 +16,19 @@ declare global {
 
 export function useEthersSwap() {
   const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
 
-  // Simplified wallet readiness check
+  // Enhanced wallet readiness check for Farcaster compatibility
   const walletReadiness = useMemo(() => {
     return {
       isConnected: isConnected && !!address,
-      isFullyReady: isConnected && !!address
+      hasWalletClient: !!walletClient,
+      isFarcaster: isMiniApp,
+      isFullyReady: isConnected && !!address && (isMiniApp ? !!walletClient : true)
     };
-  }, [isConnected, address]);
+  }, [isConnected, address, walletClient, isMiniApp]);
 
   const isWalletReady = () => walletReadiness;
 
@@ -58,7 +63,6 @@ export function useEthersSwap() {
       chainId
     });
 
-    // Create ethers provider with multiple RPC endpoints for reliability
     const rpcUrls = [
       'https://forno.celo.org',
       
@@ -79,18 +83,46 @@ export function useEthersSwap() {
       }
     }
 
-    // Get wallet from window.ethereum (MetaMask, etc.)
-    if (!window.ethereum) {
-      throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
-    }
+    // Get Ethereum provider based on environment
+    let ethereumProvider: any;
+    let signer: any;
+    let signerAddress: string;
 
-    const ethersProvider = new providers.Web3Provider(window.ethereum);
-    const signer = ethersProvider.getSigner();
-    
-    // Verify the signer address matches
-    const signerAddress = await signer.getAddress();
-    if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
-      throw new Error('Wallet address mismatch. Please reconnect your wallet.');
+    if (isMiniApp) {
+      // Farcaster Mini App - use the SDK's Ethereum provider
+      console.log('Using Farcaster Mini App SDK');
+      try {
+        const { sdk } = await import('@farcaster/miniapp-sdk');
+        ethereumProvider = sdk.wallet.getEthereumProvider();
+        
+        if (!ethereumProvider) {
+          throw new Error('Farcaster wallet not available. Please ensure you are in a Farcaster Mini App.');
+        }
+        
+        const ethersProvider = new providers.Web3Provider(ethereumProvider);
+        signer = ethersProvider.getSigner();
+        signerAddress = await signer.getAddress();
+        
+        console.log('Farcaster wallet connected:', signerAddress);
+      } catch (error) {
+        console.error('Failed to get Farcaster wallet:', error);
+        throw new Error('Failed to connect to Farcaster wallet. Please try again.');
+      }
+    } else {
+      // Traditional Web3 wallet (MetaMask, etc.)
+      if (!window.ethereum) {
+        throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
+      }
+
+      console.log('Using traditional Web3 wallet');
+      const ethersProvider = new providers.Web3Provider(window.ethereum);
+      signer = ethersProvider.getSigner();
+      
+      // Verify the signer address matches
+      signerAddress = await signer.getAddress();
+      if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
+        throw new Error('Wallet address mismatch. Please reconnect your wallet.');
+      }
     }
 
     console.log('Signer created:', signerAddress);
