@@ -1,7 +1,7 @@
 <!-- TITLE -->
 <p align="center">
   <h2 align="center">FX-Remit</h2>
-  <p align="center">🌍 Cross-border remittances made simple with blockchain technology</p>
+  <p align="center">Cross-border remittances made simple with blockchain technology</p>
 </p>
 
 ---
@@ -9,27 +9,26 @@
 ## **Table of Contents**
 
 - [**About FX-Remit**](#about-fx-remit)
-- [**✨ Key Features**](#-key-features)
-- [**🗺️ Development Roadmap**](#️-development-roadmap)
-- [**🌍 Supported Currencies**](#-supported-currencies)
-- [**🏗️ Architecture**](#️-architecture)
-- [**🛠️ Built With**](#️-built-with)
-- [**📋 Prerequisites**](#-prerequisites)
-- [**🚀 Quick Start**](#-quick-start)
-- [**💾 Installation**](#-installation)
-- [**⚙️ Configuration**](#️-configuration)
-- [**📜 Smart Contract Deployment**](#-smart-contract-deployment)
-- [**🖥️ Frontend Development**](#️-frontend-development)
-- [**🔧 Environment Variables**](#-environment-variables)
-- [**📊 Usage Guide**](#-usage-guide)
-- [**🔌 API Reference**](#-api-reference)
-- [**🧪 Testing**](#-testing)
-- [**🚀 Deployment**](#-deployment)
-- [**🔍 Monitoring & Analytics**](#-monitoring--analytics)
-- [**🛡️ Security**](#️-security)
-- [**🤝 Contributing**](#-contributing)
-- [**📄 License**](#-license)
-- [**📞 Support**](#-support)
+- [**Key Features**](#key-features)
+- [**Supported Currencies**](#supported-currencies)
+- [**Architecture**](#architecture)
+- [**Built With**](#built-with)
+- [**Prerequisites**](#prerequisites)
+- [**Quick Start**](#quick-start)
+- [**Installation**](#installation)
+- [**Configuration**](#configuration)
+- [**Smart Contract Deployment**](#smart-contract-deployment)
+- [**Frontend Development**](#frontend-development)
+- [**Environment Variables**](#environment-variables)
+- [**Usage Guide**](#usage-guide)
+- [**API Reference**](#api-reference)
+- [**Testing**](#testing)
+- [**Deployment**](#deployment)
+- [**Monitoring & Analytics**](#monitoring--analytics)
+- [**Security**](#security)
+- [**Contributing**](#contributing)
+- [**License**](#license)
+- [**Support**](#support)
 
 ---
 
@@ -38,44 +37,44 @@
 FX-Remit is a **next-generation cross-border remittance platform** built on the Celo blockchain that enables users to send money globally with unprecedented speed, security, and low fees. By leveraging the **Mento Protocol**, FX-Remit provides seamless currency exchanges between 15 different supported currencies, making international money transfers accessible to everyone.
  
 
-### **🎯 Mission**
+### **Mission**
 To democratize cross-border payments by providing a fast, secure, and affordable alternative to traditional remittance services, powered by blockchain technology.
 
-### **💡 Vision**
+### **Vision**
 A world where sending money across borders is as easy as sending a text message, with transparent fees and instant settlements.
 
 ---
 
-## **✨ Key Features**
+## **Key Features**
 
-### **🌐 Multi-Currency Support**
+### **Multi-Currency Support**
 - **15 supported currencies** including USD, EUR, KES, NGN, GHS, and more
 - **Real-time exchange rates** powered by Mento Protocol
 - **Automatic currency conversion** with competitive rates
 
-### **⚡ Lightning Fast Transfers**
+### **Lightning Fast Transfers**
 - **Instant transactions** on the Celo blockchain
 - **Sub-second confirmation times** with Celo's 5-second block time
 - **24/7 availability** - no banking hours limitations
 
-### **💰 Ultra-Low Fees**
+### **Ultra-Low Fees**
 - **1.5% platform fee** - significantly lower than traditional services
 - **No hidden charges** - transparent fee structure
 - **Gas fees under $0.01** thanks to Celo's efficient network
 
-### **🔒 Enterprise-Grade Security**
+### **Enterprise-Grade Security**
 - **Audited smart contracts** with multiple security layers
 - **Non-custodial** - you control your funds
 - **Pausable contracts** for emergency situations
 - **Reentrancy protection** and comprehensive validation
 
-### **📊 Advanced Analytics**
+### **Advanced Analytics**
 - **Real-time transaction tracking**
 - **Historical transaction data**
 - **Corridor volume analytics**
 - **Platform-wide statistics**
 
-### **📱 Modern User Experience**
+### **Modern User Experience**
 - **Responsive web interface** works on all devices
 - **Wallet integration** with popular crypto wallets
 - **Real-time balance updates**
@@ -83,170 +82,12 @@ A world where sending money across borders is as easy as sending a text message,
 
 ---
 
-## **🗺️ Development Roadmap**
 
-FX-Remit is continuously evolving to provide the best cross-border payment experience. Here's our strategic roadmap for upcoming features and improvements:
-
-### **🚀 Phase 1: Fee Optimization & Core UX (1-2 months)**
-
-#### **💰 Tiered Fee Structure**
-- **Volume-based discounts**: 1.5% for <$100, 1.2% for $100-$500, 1.0% for $500-$1000, 0.8% for $1000+
-- **Loyalty program**: Reduce fees by 0.1% for each $1000 in lifetime volume
-- **Referral incentives**: 0.1% fee reduction for successful referrals
-- **Smart order routing**: Route transactions through most cost-effective Mento pools
-
-#### **🎨 Revolut-Inspired UI/UX**
-- **Multi-currency wallets**: Clear currency buckets with visual balance cards
-- **Quick currency switching**: Swipe between currencies like Revolut
-- **Enhanced dashboard**: Portfolio overview with total value across currencies
-- **Transaction history improvements**: Better filtering and search capabilities
-
-#### **⚡ Performance Enhancements**
-- **Batch processing**: Group multiple small transactions to reduce gas costs
-- **Real-time updates**: Faster balance and transaction status updates
-- **Mobile optimization**: Improved mobile experience and performance
-
-### **🎯 Phase 2: Advanced Trading Features (3-6 months)**
-
-#### **📈 Spot Order Trading**
-- **Limit orders**: Set target exchange rates for automatic execution
-- **Market orders**: Instant execution at current market rates
-- **Order book visualization**: Real-time market depth and order history
-- **Price alerts**: Notifications when target rates are reached
-
-
-#### **📊 Advanced Analytics**
-- **Portfolio analytics**: Spending patterns and currency allocation
-- **Market insights**: Historical rate trends and volatility analysis
-- **Personalized recommendations**: Optimal timing and currency suggestions
-- **Export capabilities**: Download transaction data and reports
-
-### **🏢 Phase 3: Business & Social Features (6-12 months)**
-
-#### **💼 Business Tools**
-- **Multi-signature wallets**: Corporate accounts with approval workflows
-- **Bulk payments**: Send to multiple recipients in one transaction
-- **API access**: RESTful API for business integration
-- **Invoice generation**: Automatic receipt and invoice creation
-
-#### **👥 Social Features**
-- **Split bills**: Group payments with friends and family
-- **Payment requests**: Request money from others via social handles
-- **Social payments**: Send money using social media integration
-- **Gift cards**: Purchase and send digital gift cards
-- **Community features**: User networks and payment discovery
-
-#### **🎁 Financial Tools**
-- **Savings goals**: Set targets in different currencies
-- **Budget tracking**: Categorize spending across currencies
-- **Investment options**: Earn yield on stablecoin holdings
-- **Credit features**: Borrow against stablecoin collateral
-
-### **🔧 Phase 4: Technical Infrastructure (Ongoing)**
-
-#### **⛓️ Multi-Chain Support**
-- **Cross-chain bridges**: Support multiple blockchains beyond Celo
-- **Chain-specific optimizations**: Tailored features for each network
-- **Unified interface**: Seamless experience across all supported chains
-
-#### **🛡️ Security & Compliance**
-- **Advanced security**: Multi-factor authentication and fraud detection
-- **Regulatory compliance**: KYC/AML integration and reporting
-- **Insurance coverage**: Smart contract risk protection
-- **Audit trails**: Complete transaction history for compliance
-
-#### **📱 Platform Expansion**
-- **Mobile apps**: Native iOS and Android applications
-
-### **🎯 Success Metrics & KPIs**
-
-#### **Fee Reduction Success**
-- **Target**: 30% average fee reduction for active users
-- **Metric**: Average fee per transaction
-- **Goal**: Achieve 0.8% average fee by end of Phase 1
-
-#### **Feature Adoption**
-- **Target**: 60% of users adopt new features within 3 months
-- **Metric**: Feature usage rates and user engagement
-- **Goal**: 80% user retention improvement
-
-#### **Business Impact**
-- **Target**: 5x increase in transaction volume
-- **Metric**: Total platform volume and revenue
-- **Goal**: $50M+ annual transaction volume
-
-### **🔄 Development Process**
-
-#### **Agile Methodology**
-- **2-week sprints** with regular releases
-- **User feedback loops** for feature validation
-- **Continuous integration** and automated testing
-- **Regular security audits** and performance reviews
-
-#### **Quality Assurance**
-- **Comprehensive testing**: Unit, integration, and E2E tests
-- **Security audits**: Regular smart contract and frontend audits
-- **Performance monitoring**: Real-time system health tracking
-- **User acceptance testing**: Beta testing with community members
-
-#### **Community Involvement**
-- **Open source development**: Community contributions welcome
-- **Transparent roadmap**: Regular updates and progress sharing
-- **User feedback**: Feature requests and bug reports
-- **Beta testing**: Early access for community members
-
-### **📅 Timeline Overview**
-
-```
-Q3 2025 (Current): Phase 1 - Fee Optimization & Core UX
-├── August: Planning & Design ✅
-├── September: Core Implementation
-└── October: Testing & Launch
-
-Q4 2025: Phase 2 - Advanced Trading Features
-├── November: Spot Order Development
-├── December: Advanced Analytics
-└── January 2026: Recurring Payments
-
-Q1 2026: Phase 3 - Business & Social Features
-├── February: Business Tools
-├── March: Social Features
-└── April: Financial Tools
-
-Q2 2026: Phase 4 - Technical Infrastructure
-├── May: Multi-Chain Support
-├── June: Security & Compliance
-└── July: Platform Expansion
-```
-
-### **🤝 Contributing to the Roadmap**
-
-We welcome community input on our roadmap! Here's how you can contribute:
-
-#### **💡 Feature Suggestions**
-- **GitHub Discussions**: Share ideas and vote on features
-- **User surveys**: Participate in feature prioritization
-- **Feedback channels**: Direct feedback through various channels
-
-#### **🛠️ Development Contributions**
-- **Open source**: Contribute code to roadmap features
-- **Testing**: Help test new features and report bugs
-- **Documentation**: Help improve documentation and guides
-- **Translation**: Help translate the platform to new languages
-
-#### **📢 Community Support**
-- **Beta testing**: Early access to new features
-- **User feedback**: Provide detailed feedback on features
-- **Bug reports**: Help identify and report issues
-- **Feature advocacy**: Share and promote new features
-
----
-
-## **🌍 Supported Currencies**
+## **Supported Currencies**
 
 FX-Remit supports **15 currencies** across major economic regions:
 
-### **🌏 Major Global Currencies**
+### **Major Global Currencies**
 | Currency | Symbol | Flag | Full Name |
 |----------|---------|------|-----------|
 | cUSD | $ | 🇺🇸 | US Dollar |
@@ -257,7 +98,7 @@ FX-Remit supports **15 currencies** across major economic regions:
 | cCHF | CHF | 🇨🇭 | Swiss Franc |
 | cJPY | ¥ | 🇯🇵 | Japanese Yen |
 
-### **🌍 Emerging Markets**
+### **Emerging Markets**
 | Currency | Symbol | Flag | Full Name |
 |----------|---------|------|-----------|
 | cREAL | R$ | 🇧🇷 | Brazilian Real |
@@ -269,7 +110,7 @@ FX-Remit supports **15 currencies** across major economic regions:
 | eXOF | XOF | 🌍 | CFA Franc |
 | PUSO | ₱ | 🇵🇭 | Philippine Peso |
 
-### **💱 Popular Corridors**
+### **Popular Corridors**
 - **USD ↔ KES** - US to Kenya
 - **EUR ↔ NGN** - Europe to Nigeria  
 - **GBP ↔ GHS** - UK to Ghana
@@ -278,11 +119,11 @@ FX-Remit supports **15 currencies** across major economic regions:
 
 ---
 
-## **🏗️ Architecture**
+## **Architecture**
 
 FX-Remit follows a **modern decentralized architecture** with clear separation of concerns:
 
-### **📐 System Overview**
+### **System Overview**
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -297,7 +138,7 @@ FX-Remit follows a **modern decentralized architecture** with clear separation o
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **🎯 Core Components**
+### **Core Components**
 
 #### **1. Smart Contract Layer (`FXRemit.sol`)**
 - **Transaction Logging**: Records all remittance transactions
@@ -318,29 +159,29 @@ FX-Remit follows a **modern decentralized architecture** with clear separation o
 
 ---
 
-## **🛠️ Built With**
+## **Built With**
 
-### **🔗 Blockchain & Smart Contracts**
+### **Blockchain & Smart Contracts**
 - **[Celo](https://celo.org/)** - Mobile-first blockchain platform
 - **[Solidity](https://docs.soliditylang.org/)** - Smart contract programming language
 - **[Hardhat](https://hardhat.org/)** - Development environment
 - **[OpenZeppelin](https://openzeppelin.com/)** - Security-focused contract libraries
 - **[Mento Protocol](https://mento.org/)** - Decentralized exchange protocol
 
-### **⚛️ Frontend Technologies**
+### **Frontend Technologies**
 - **[Next.js 15](https://nextjs.org/)** - React framework with App Router
 - **[React 19](https://reactjs.org/)** - Modern UI library
 - **[TypeScript](https://www.typescriptlang.org/)** - Type-safe JavaScript
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[Headless UI](https://headlessui.com/)** - Accessible UI components
 
-### **🌐 Web3 Integration**
+### **Web3 Integration**
 - **[Wagmi](https://wagmi.sh/)** - React hooks for Ethereum
 - **[Viem](https://viem.sh/)** - TypeScript interface for Ethereum
 - **[RainbowKit](https://www.rainbowkit.com/)** - Wallet connection library
 - **[TanStack Query](https://tanstack.com/query)** - Data fetching and caching
 
-### **🛠️ Development Tools**
+### **Development Tools**
 - **[pnpm](https://pnpm.io/)** - Fast, disk space efficient package manager
 - **[ESLint](https://eslint.org/)** - Code linting
 - **[Prettier](https://prettier.io/)** - Code formatting
@@ -348,42 +189,42 @@ FX-Remit follows a **modern decentralized architecture** with clear separation o
 
 ---
 
-## **📋 Prerequisites**
+## **Prerequisites**
 
 Before getting started with FX-Remit, ensure you have the following installed:
 
-### **💻 System Requirements**
+### **System Requirements**
 - **Node.js** v20.0.0 or higher
 - **Git** v2.38.0 or higher
 - **pnpm** v8.0.0 or higher (recommended) or **npm**/**yarn**
 
-### **🔧 Development Tools**
+### **Development Tools**
 - **Code Editor**: VS Code, Cursor, or your preferred IDE
 - **Browser**: Chrome, Firefox, or any modern browser
 - **Terminal**: Any terminal application
 
-### **🪙 Blockchain Requirements**
+### **Blockchain Requirements**
 - **Celo Wallet** (Valora, MetaMask, or any Celo-compatible wallet)
 - **Test Funds**: Get CELO tokens from [Celo Faucet](https://faucet.celo.org/alfajores)
 - **API Keys**: WalletConnect Project ID, Celoscan API key (optional)
 
-### **📚 Knowledge Prerequisites**
+### **Knowledge Prerequisites**
 - Basic understanding of **React** and **TypeScript**
 - Familiarity with **blockchain concepts** and **smart contracts**
 - Understanding of **DeFi** and **decentralized exchanges**
 
 ---
 
-## **🚀 Quick Start**
+## **Quick Start**
 
 Get FX-Remit running locally in under 5 minutes:
 
-### **⚡ One-Line Setup**
+### **One-Line Setup**
 ```bash
 git clone https://github.com/your-username/fx-remit.git && cd fx-remit && pnpm install && pnpm run react-app:dev
 ```
 
-### **📋 Step-by-Step Setup**
+### **Step-by-Step Setup**
 
 1. **Clone the repository**
    ```bash
@@ -412,13 +253,13 @@ git clone https://github.com/your-username/fx-remit.git && cd fx-remit && pnpm i
    http://localhost:3000
    ```
 
-🎉 **Congratulations!** FX-Remit is now running locally!
+**Congratulations!** FX-Remit is now running locally!
 
 ---
 
-## **💾 Installation**
+## **Installation**
 
-### **📥 Installation Options**
+### **Installation Options**
 
 #### **Option 1: Using pnpm (Recommended)**
 ```bash
@@ -445,7 +286,7 @@ cd fx-remit
 yarn install
 ```
 
-### **📁 Project Structure**
+### **Project Structure**
 ```
 fx-remit/
 ├── packages/
@@ -474,9 +315,9 @@ fx-remit/
 
 ---
 
-## **⚙️ Configuration**
+## **Configuration**
 
-### **🔧 Environment Variables**
+### **Environment Variables**
 
 FX-Remit uses environment variables for configuration. You'll need to set up variables for both the frontend and smart contract development.
 
@@ -512,7 +353,7 @@ CELO_MAINNET_URL=https://forno.celo.org
 CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 ```
 
-### **📚 Configuration Guide**
+### **Configuration Guide**
 
 #### **1. WalletConnect Setup**
 1. Visit [WalletConnect Cloud](https://cloud.walletconnect.com/)
@@ -521,7 +362,7 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 4. Add it to your `.env` file
 
 #### **2. Private Key Setup**
-⚠️ **Security Warning**: Never use your main wallet's private key for development!
+**Security Warning**: Never use your main wallet's private key for development!
 
 1. Create a new wallet for development
 2. Export the private key
@@ -535,16 +376,16 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 
 ---
 
-## **📜 Smart Contract Deployment**
+## **Smart Contract Deployment**
 
-### **🚀 Deployed Contracts**
+### **Deployed Contracts**
 
-#### **📍 Celo Mainnet**
+#### **Celo Mainnet**
 - **FXRemit Contract**: [`0x1245211aBAe5013e7f5523013b78F50AB44C2c57`](https://celoscan.io/address/0x1245211aBAe5013e7f5523013b78F50AB44C2c57)
 - **Network**: Celo Mainnet
 - **Status**: ✅ Verified and Active
 
-### **🚀 Deployment Process**
+### **Deployment Process**
 
 #### **1. Compile Contracts**
 ```bash
@@ -567,7 +408,7 @@ pnpm run deploy --network celo
 npx hardhat verify CONTRACT_ADDRESS --network alfajores
 ```
 
-### **📋 Deployment Checklist**
+### **Deployment Checklist**
 
 - [ ] **Environment variables configured**
 - [ ] **Private key has sufficient CELO for gas**
@@ -576,7 +417,7 @@ npx hardhat verify CONTRACT_ADDRESS --network alfajores
 - [ ] **Network connection stable**
 - [ ] **Contract verified on Celoscan**
 
-### **🔧 Custom Deployment Scripts**
+### **Custom Deployment Scripts**
 
 The deployment script (`packages/hardhat/scripts/deploy.ts`) includes:
 - **Automated deployment** of FXRemit contract
@@ -584,7 +425,7 @@ The deployment script (`packages/hardhat/scripts/deploy.ts`) includes:
 - **Contract verification** on Celoscan
 - **Deployment logging** with addresses and network info
 
-### **📊 Contract Functions**
+### **Contract Functions**
 
 #### **Core Functions**
 - `swapAndSend(...)` - Single-hop swap + send with deadline and provider allowlist
@@ -608,9 +449,9 @@ The deployment script (`packages/hardhat/scripts/deploy.ts`) includes:
 
 ---
 
-## **🖥️ Frontend Development**
+## **Frontend Development**
 
-### **🎨 Development Server**
+### **Development Server**
 
 #### **Start Development Server**
 ```bash
@@ -627,15 +468,15 @@ pnpm run react-app:build
 pnpm run react-app:start
 ```
 
-### **📱 Application Features**
+### **Application Features**
 
-#### **🏠 Landing Page (`/`)**
+#### **Landing Page (`/`)**
 - Hero section with platform overview
 - Key features highlighting
 - Platform statistics display
 - Getting started call-to-action
 
-#### **💸 Send Money (`/send`)**
+#### **Send Money (`/send`)**
 - Currency selection (from/to)
 - Amount input with balance display
 - Real-time exchange rate quotes
@@ -643,19 +484,19 @@ pnpm run react-app:start
 - Transaction execution
 - Success/error feedback
 
-#### **📊 Transaction History (`/history`)**
+#### **Transaction History (`/history`)**
 - User's transaction history
 - Detailed transaction information
 - Filter and search capabilities
 - Export functionality
 
-#### **👤 Profile (`/profile`)**
+#### **Profile (`/profile`)**
 - User statistics
 - Transaction summaries
 - Platform analytics
 - Account settings
 
-### **🔧 Custom Hooks**
+### **Custom Hooks**
 
 #### **Contract Hooks (`hooks/useContract.ts`)**
 - `useFXRemitContract()` - Contract instance
@@ -669,7 +510,7 @@ pnpm run react-app:start
 - `useTokenSwap()` - Execute token swap
 - `useExchangeRate()` - Real-time exchange rates
 
-### **🎨 UI Components**
+### **UI Components**
 
 #### **Navigation**
 - `Header.tsx` - Main navigation bar
@@ -684,9 +525,9 @@ pnpm run react-app:start
 
 ---
 
-## **🔧 Environment Variables**
+## **Environment Variables**
 
-### **📋 Complete Environment Variables Reference**
+### **Complete Environment Variables Reference**
 
 #### **Frontend Variables**
 ```env
@@ -731,7 +572,7 @@ CELO_MAINNET_URL=https://forno.celo.org
 CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 ```
 
-### **🔒 Security Best Practices**
+### **Security Best Practices**
 
 1. **Never commit `.env` files** to version control
 2. **Use different private keys** for development and production
@@ -741,9 +582,9 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 
 ---
 
-## **📊 Usage Guide**
+## **Usage Guide**
 
-### **💸 Sending Money**
+### **Sending Money**
 
 #### **Step 1: Connect Wallet**
 1. Click "Connect Wallet" button
@@ -773,7 +614,7 @@ Recipient Gets: 132.45 cKES
 4. Wait for transaction confirmation
 5. Share transaction receipt
 
-### **📈 Viewing Transaction History**
+### **Viewing Transaction History**
 
 #### **Transaction Details**
 Each transaction includes:
@@ -791,7 +632,7 @@ Each transaction includes:
 - **Status** filtering
 - **Amount range** filtering
 
-### **📊 Platform Analytics**
+### **Platform Analytics**
 
 #### **User Statistics**
 - Total amount sent
@@ -807,9 +648,9 @@ Each transaction includes:
 
 ---
 
-## **🔌 API Reference**
+## **API Reference**
 
-### **📜 Smart Contract API**
+### **Smart Contract API**
 
 #### **Write Functions**
 
@@ -875,7 +716,7 @@ function getPlatformStats() external view returns (
 )
 ```
 
-### **⚛️ React Hooks API**
+### **React Hooks API**
 
 #### **Contract Hooks**
 
@@ -942,9 +783,9 @@ const result = await swap('cUSD', 'cKES', '100', recipientAddress);
 
 ---
 
-## **🧪 Testing**
+## **Testing**
 
-### **🔬 Smart Contract Testing**
+### **Smart Contract Testing**
 
 #### **Run Tests**
 ```bash
@@ -963,7 +804,7 @@ pnpm run test:coverage
 - **Security Tests**: Vulnerability testing
 - **Gas Tests**: Gas optimization testing
 
-### **⚛️ Frontend Testing**
+### **Frontend Testing**
 
 #### **Run Frontend Tests**
 ```bash
@@ -977,7 +818,7 @@ pnpm run test
 - **Integration Tests**: User flow testing
 - **E2E Tests**: End-to-end testing
 
-### **🚀 Continuous Integration**
+### **Continuous Integration**
 
 GitHub Actions workflow includes:
 - **Automated testing** on every PR
@@ -988,9 +829,9 @@ GitHub Actions workflow includes:
 
 ---
 
-## **🚀 Deployment**
+## **Deployment**
 
-### **🌐 Frontend Deployment**
+### **Frontend Deployment**
 
 #### **Deploy to Vercel**
 1. **Connect GitHub repository** to Vercel
@@ -1009,7 +850,7 @@ pnpm run react-app:build
 npx netlify deploy --prod --dir=packages/react-app/dist
 ```
 
-### **⛓️ Smart Contract Deployment**
+### **Smart Contract Deployment**
 
 #### **Alfajores Testnet**
 ```bash
@@ -1023,7 +864,7 @@ cd packages/hardhat
 pnpm run deploy --network celo
 ```
 
-### **🔧 Production Checklist**
+### **Production Checklist**
 
 - [ ] **Environment variables configured**
 - [ ] **Smart contracts audited**
@@ -1035,9 +876,9 @@ pnpm run deploy --network celo
 
 ---
 
-## **🔍 Monitoring & Analytics**
+## **Monitoring & Analytics**
 
-### **📊 Platform Metrics**
+### **Platform Metrics**
 
 #### **Transaction Metrics**
 - **Total Volume**: All-time transaction volume
@@ -1057,7 +898,7 @@ pnpm run deploy --network celo
 - **Average Fee**: Mean platform fee
 - **Profit Margins**: Platform profitability
 
-### **🔍 Real-time Monitoring**
+### **Real-time Monitoring**
 
 #### **System Health**
 - **Network Status**: Celo network health
@@ -1073,9 +914,9 @@ pnpm run deploy --network celo
 
 ---
 
-## **🛡️ Security**
+## **Security**
 
-### **🔒 Smart Contract Security**
+### **Smart Contract Security**
 
 #### **Security Features**
 - **Reentrancy Protection**: Using OpenZeppelin's ReentrancyGuard
@@ -1092,7 +933,7 @@ pnpm run deploy --network celo
 - [ ] **Gas optimization**
 - [ ] **Denial of service attacks**
 
-### **🔐 Frontend Security**
+### **Frontend Security**
 
 #### **Security Measures**
 - **Input Sanitization**: All user inputs sanitized
@@ -1107,7 +948,7 @@ pnpm run deploy --network celo
 - **Transaction Verification**: Double-check transaction details
 - **Phishing Protection**: Domain verification
 
-### **🚨 Security Best Practices**
+### **Security Best Practices**
 
 1. **Regular Security Audits**
 2. **Dependency Updates**
@@ -1118,101 +959,37 @@ pnpm run deploy --network celo
 
 ---
 
-## **🤝 Contributing**
+## **Contributing**
 
-We welcome contributions from the community! Here's how you can help make FX-Remit better:
+We welcome contributions from the community! For detailed guidelines on how to contribute to FX-Remit, please see our comprehensive [Contributing Guide](docs/CONTRIBUTING.md).
 
-### **🎯 Ways to Contribute**
+### **Quick Start for Contributors**
 
-#### **🐛 Bug Reports**
-- **Search existing issues** before creating new ones
-- **Use bug report template** with detailed information
-- **Include reproduction steps** and environment details
-- **Add screenshots** if applicable
+1. **Fork the repository** and clone your fork
+2. **Read the [Contributing Guide](docs/CONTRIBUTING.md)** for detailed instructions
+3. **Set up your development environment** following the guide
+4. **Create a feature branch** and make your changes
+5. **Submit a pull request** with proper documentation
 
-#### **✨ Feature Requests**
-- **Check existing requests** to avoid duplicates
-- **Use feature request template**
-- **Explain the use case** and benefits
-- **Consider implementation complexity**
+### **Ways to Contribute**
 
-#### **💻 Code Contributions**
-- **Fork the repository** and create feature branch
-- **Follow coding standards** and best practices
-- **Add tests** for new functionality
-- **Update documentation** as needed
+- **Bug Reports**: Use our issue templates for detailed bug reports
+- **Feature Requests**: Suggest new features with clear use cases
+- **Code Contributions**: Follow our coding standards and testing requirements
+- **Documentation**: Help improve our guides and API documentation
+- **Testing**: Help test new features and report issues
 
-### **📋 Development Process**
+### **Development Process**
 
-#### **1. Setup Development Environment**
-```bash
-git clone https://github.com/your-username/fx-remit.git
-cd fx-remit
-pnpm install
-```
-
-#### **2. Create Feature Branch**
-```bash
-git checkout -b feature/your-feature-name
-```
-
-#### **3. Make Changes**
-- Follow coding standards
-- Add appropriate tests
-- Update documentation
-- Test thoroughly
-
-#### **4. Submit Pull Request**
-- **Clear description** of changes
-- **Link related issues**
-- **Ensure tests pass**
-- **Update documentation**
-
-### **📝 Coding Standards**
-
-#### **TypeScript/JavaScript**
-- Use **TypeScript** for type safety
-- Follow **ESLint** configuration
-- Use **Prettier** for formatting
-- Write **comprehensive tests**
-
-#### **Solidity**
-- Follow **Solidity style guide**
-- Use **OpenZeppelin** libraries
-- Write **comprehensive tests**
-- Include **NatSpec** documentation
-
-#### **Git Conventions**
-```
-feat: add new currency support
-fix: resolve exchange rate calculation bug
-docs: update API documentation
-test: add integration tests for remittances
-refactor: optimize gas usage in contract
-```
-
-### **🧪 Testing Requirements**
-
-#### **Before Submitting**
-- [ ] All tests pass
-- [ ] Code coverage maintained
-- [ ] No linting errors
-- [ ] Documentation updated
-- [ ] Manual testing completed
-
-#### **Test Categories**
-- **Unit Tests**: Individual function testing
-- **Integration Tests**: Component interaction testing
-- **E2E Tests**: Full user flow testing
-- **Security Tests**: Vulnerability testing
+For detailed information about our development workflow, coding standards, testing requirements, and pull request process, please refer to the [Contributing Guide](docs/CONTRIBUTING.md).
 
 ---
 
-## **📄 License**
+## **License**
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-### **📋 License Summary**
+### **License Summary**
 
 ```
 MIT License
@@ -1240,51 +1017,51 @@ SOFTWARE.
 
 ---
 
-## **📞 Support**
+## **Support**
 
-### **🆘 Getting Help**
+### **Getting Help**
 
-#### **📚 Documentation**
+#### **Documentation**
 - **README**: This comprehensive guide
 - **API Reference**: Smart contract and React hooks
 - **Wiki**: Additional guides and tutorials
 - **FAQ**: Common questions and answers
 
-#### **💬 Community Support**
+#### **Community Support**
 - **GitHub Issues**: Bug reports and feature requests
 - **GitHub Discussions**: Community discussions
 - **Discord**: Real-time chat support
 - **Telegram**: Community group
 
-#### **🔗 Useful Links**
+#### **Useful Links**
 - **[Celo Documentation](https://docs.celo.org/)** - Celo blockchain docs
 - **[Mento Protocol](https://mento.org/)** - Mento protocol docs
 - **[Next.js Documentation](https://nextjs.org/docs)** - Next.js framework docs
 - **[Hardhat Documentation](https://hardhat.org/docs)** - Smart contract development
 
-### **📧 Contact Information**
+### **Contact Information**
 
-#### **👥 Team**
+#### **Team**
 - **Lead Developer**: [@kanas](https://github.com/kanas)
 - **Email**: support@fx-remit.com
 - **Twitter**: [@FXRemit](https://twitter.com/FXRemit)
 
-#### **🐛 Bug Reports**
+#### **Bug Reports**
 - **GitHub Issues**: [Report a bug](https://github.com/your-username/fx-remit/issues/new?template=bug_report.md)
 - **Email**: bugs@fx-remit.com
 
-#### **💡 Feature Requests**
+#### **Feature Requests**
 - **GitHub Issues**: [Request a feature](https://github.com/your-username/fx-remit/issues/new?template=feature_request.md)
 - **Email**: features@fx-remit.com
 
 ---
 
 <p align="center">
-  <b>🌍 Making cross-border payments accessible to everyone</b>
+  <b>Making cross-border payments accessible to everyone</b>
 </p>
 
 <p align="center">
-  Built with ❤️ on the Celo blockchain
+  Built on the Celo blockchain
 </p>
 
 <p align="right">(<a href="#top">Back to top</a>)</p>
