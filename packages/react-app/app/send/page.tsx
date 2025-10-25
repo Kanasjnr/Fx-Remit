@@ -166,7 +166,9 @@ export default function SendPage() {
       // Farcaster batch path returns immediately (pending). Do NOT mark success yet.
       if ((swapResult as any)?.pending) {
         toast.info("Transaction submitted. Please confirm in your wallet.")
-        // Keep isProcessing true so UI shows spinner while user confirms in wallet
+        // Close overlay and stop spinner while wallet handles confirmations
+        clear()
+        setIsProcessing(false)
         return
       }
 
