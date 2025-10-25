@@ -396,16 +396,53 @@ export function useEthersSwap() {
           console.log('Submitting Farcaster batch calls:', calls.length);
           if (!walletClient) throw new Error('Wallet client unavailable');
 
-          // Submit batch via EIP-5792 and get a request id
-          const requestId = await (walletClient as any).request({
-            method: 'wallet_sendCalls',
-            params: [{
-              chainId: '0x' + chainId.toString(16),
-              atomicRequired: true,
-              from: signerAddress as `0x${string}`,
-              calls,
-            }],
-          });
+          // Submit batch via EIP-5792 if supported, else fallback to sequential txs
+          let requestId: any;
+          try {
+            requestId = await (walletClient as any).request({
+              method: 'wallet_sendCalls',
+              params: [{
+                chainId: '0x' + chainId.toString(16),
+                atomicRequired: true,
+                from: signerAddress as `0x${string}`,
+                calls,
+              }],
+            });
+          } catch (batchError: any) {
+            console.warn('wallet_sendCalls not supported. Falling back to sequential transactions.', batchError);
+
+            // 1) Send approve if needed
+            if (currentAllowance.lt(amountInWei)) {
+              const approveHash = await walletClient.sendTransaction({
+                account: signerAddress as `0x${string}`,
+                to: fromTokenAddress as `0x${string}`,
+                data: calls[0]?.to.toLowerCase() === fromTokenAddress.toLowerCase() ? calls[0].data : encodeFunctionData({
+                  abi: ERC20_ABI,
+                  functionName: 'approve',
+                  args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())],
+                }),
+                value: BigInt(0),
+              });
+              await provider.waitForTransaction(approveHash, 1);
+            }
+
+            // 2) Send swap transaction
+            const swapHash = await walletClient.sendTransaction({
+              account: signerAddress as `0x${string}`,
+              to: fxRemitAddress as `0x${string}`,
+              data: dataWithReferral as `0x${string}`,
+              value: BigInt(0),
+            });
+            const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+
+            return {
+              success: true,
+              hash: swapHash,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (sequential fallback)`,
+            } as any;
+          }
 
           console.log('Batch submitted, requestId:', requestId);
 
@@ -664,15 +701,52 @@ export function useEthersSwap() {
           console.log('Submitting Farcaster multi-hop batch calls:', calls.length);
           if (!walletClient) throw new Error('Wallet client unavailable');
 
-          const requestId = await (walletClient as any).request({
-            method: 'wallet_sendCalls',
-            params: [{
-              chainId: '0x' + chainId.toString(16),
-              atomicRequired: true,
-              from: signerAddress as `0x${string}`,
-              calls,
-            }],
-          });
+          let requestId: any;
+          try {
+            requestId = await (walletClient as any).request({
+              method: 'wallet_sendCalls',
+              params: [{
+                chainId: '0x' + chainId.toString(16),
+                atomicRequired: true,
+                from: signerAddress as `0x${string}`,
+                calls,
+              }],
+            });
+          } catch (batchError: any) {
+            console.warn('wallet_sendCalls not supported. Falling back to sequential transactions (multi-hop).', batchError);
+
+            // 1) Send approve if needed
+            if (currentAllowance.lt(amountInWei)) {
+              const approveHash = await walletClient.sendTransaction({
+                account: signerAddress as `0x${string}`,
+                to: fromTokenAddress as `0x${string}`,
+                data: calls[0]?.to.toLowerCase() === fromTokenAddress.toLowerCase() ? calls[0].data : encodeFunctionData({
+                  abi: ERC20_ABI,
+                  functionName: 'approve',
+                  args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())],
+                }),
+                value: BigInt(0),
+              });
+              await provider.waitForTransaction(approveHash, 1);
+            }
+
+            // 2) Send multi-hop swap transaction
+            const swapHash = await walletClient.sendTransaction({
+              account: signerAddress as `0x${string}`,
+              to: fxRemitAddress as `0x${string}`,
+              data: dataWithReferral as `0x${string}`,
+              value: BigInt(0),
+            });
+            const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+
+            return {
+              success: true,
+              hash: swapHash,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop, sequential fallback)`,
+            } as any;
+          }
 
           console.log('Multi-hop batch submitted, requestId:', requestId);
 
