@@ -399,7 +399,12 @@ export function useEthersSwap() {
           // Submit batch via EIP-5792 and get a request id
           const requestId = await (walletClient as any).request({
             method: 'wallet_sendCalls',
-            params: [{ calls }],
+            params: [{
+              chainId: '0x' + chainId.toString(16),
+              atomicRequired: true,
+              from: signerAddress as `0x${string}`,
+              calls,
+            }],
           });
 
           console.log('Batch submitted, requestId:', requestId);
@@ -661,7 +666,12 @@ export function useEthersSwap() {
 
           const requestId = await (walletClient as any).request({
             method: 'wallet_sendCalls',
-            params: [{ calls }],
+            params: [{
+              chainId: '0x' + chainId.toString(16),
+              atomicRequired: true,
+              from: signerAddress as `0x${string}`,
+              calls,
+            }],
           });
 
           console.log('Multi-hop batch submitted, requestId:', requestId);
