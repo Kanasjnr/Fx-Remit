@@ -352,7 +352,7 @@ export function useEthersSwap() {
 
       // 3) Execute swap
       const corridor = `${fromCurrency}-${toCurrency}`;
-      const deadline = Math.floor(Date.now() / 1000) + 300; // 5 minutes for mobile wallets
+      const deadline = Math.floor(Date.now() / 1000) + 600; // 10 minutes max
 
       if (tradablePair.path.length === 1) {
         const hop = tradablePair.path[0];
@@ -386,9 +386,14 @@ export function useEthersSwap() {
         swapTx.data = dataWithReferral;
 
         console.log('Sending swap transaction...');
+        
+        // Add gas configuration for better reliability
+        const gasEstimate = await signer.estimateGas(swapTx);
+        swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
+        
         const swapResponse = await signer.sendTransaction(swapTx);
         console.log('Waiting for swap confirmation...');
-        const receipt = await swapResponse.wait(1);
+        const receipt = await swapResponse.wait(1); // Wait for 1 confirmation
 
         if (receipt.status !== 1) {
           throw new Error('Swap transaction failed on-chain');
@@ -515,9 +520,13 @@ export function useEthersSwap() {
         });
 
         try {
+          // Add gas configuration for better reliability
+          const gasEstimate = await signer.estimateGas(swapTx);
+          swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
+          
           const swapResponse = await signer.sendTransaction(swapTx);
           console.log('Waiting for swap confirmation...');
-          const receipt = await swapResponse.wait(1);
+          const receipt = await swapResponse.wait(1); // Wait for 1 confirmation
 
           if (receipt.status !== 1) {
             throw new Error('Multi-hop swap transaction failed on-chain');
