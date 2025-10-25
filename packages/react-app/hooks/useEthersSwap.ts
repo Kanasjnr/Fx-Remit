@@ -394,11 +394,54 @@ export function useEthersSwap() {
           calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
 
           console.log('Submitting Farcaster batch calls:', calls.length);
-          await sendCalls({ calls });
+          if (!walletClient) throw new Error('Wallet client unavailable');
+
+          // Submit batch via EIP-5792 and get a request id
+          const requestId = await (walletClient as any).request({
+            method: 'wallet_sendCalls',
+            params: [{ calls }],
+          });
+
+          console.log('Batch submitted, requestId:', requestId);
+
+          // Poll for status up to ~60s
+          const startMs = Date.now();
+          let confirmed = false;
+          let lastStatus: any = null;
+          while (Date.now() - startMs < 60_000) {
+            try {
+              lastStatus = await (walletClient as any).request({
+                method: 'wallet_getCallsStatus',
+                params: [requestId],
+              });
+              if (
+                lastStatus?.status === 'CONFIRMED' ||
+                lastStatus?.status === 'SUCCESS' ||
+                (Array.isArray(lastStatus?.receipts) && lastStatus.receipts.length > 0)
+              ) {
+                confirmed = true;
+                break;
+              }
+            } catch (e) {
+              console.warn('Status poll failed:', e);
+            }
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+
+          if (confirmed) {
+            console.log('Batch confirmed');
+            return {
+              success: true,
+              hash: (lastStatus?.receipts?.[0]?.transactionHash ?? 'batch-confirmed') as string,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
+            } as any;
+          }
 
           return {
             success: true,
-            hash: 'pending-batch',
+            hash: String(requestId ?? 'pending-batch'),
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
             message: `Submitted ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
@@ -614,11 +657,53 @@ export function useEthersSwap() {
           calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
 
           console.log('Submitting Farcaster multi-hop batch calls:', calls.length);
-          await sendCalls({ calls });
+          if (!walletClient) throw new Error('Wallet client unavailable');
+
+          const requestId = await (walletClient as any).request({
+            method: 'wallet_sendCalls',
+            params: [{ calls }],
+          });
+
+          console.log('Multi-hop batch submitted, requestId:', requestId);
+
+          // Poll for status up to ~60s
+          const startMs = Date.now();
+          let confirmed = false;
+          let lastStatus: any = null;
+          while (Date.now() - startMs < 60_000) {
+            try {
+              lastStatus = await (walletClient as any).request({
+                method: 'wallet_getCallsStatus',
+                params: [requestId],
+              });
+              if (
+                lastStatus?.status === 'CONFIRMED' ||
+                lastStatus?.status === 'SUCCESS' ||
+                (Array.isArray(lastStatus?.receipts) && lastStatus.receipts.length > 0)
+              ) {
+                confirmed = true;
+                break;
+              }
+            } catch (e) {
+              console.warn('Status poll failed:', e);
+            }
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+
+          if (confirmed) {
+            console.log('Multi-hop batch confirmed');
+            return {
+              success: true,
+              hash: (lastStatus?.receipts?.[0]?.transactionHash ?? 'batch-confirmed') as string,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
+            } as any;
+          }
 
           return {
             success: true,
-            hash: 'pending-batch',
+            hash: String(requestId ?? 'pending-batch'),
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
             message: `Submitted ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
