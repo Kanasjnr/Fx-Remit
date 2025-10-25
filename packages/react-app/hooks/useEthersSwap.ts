@@ -40,7 +40,6 @@ export function useEthersSwap() {
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
 
-  // Enhanced wallet readiness check for Farcaster compatibility
   const walletReadiness = useMemo(() => {
     return {
       isConnected: isConnected && !!address,
@@ -108,7 +107,6 @@ export function useEthersSwap() {
       throw new Error('Failed to connect to any RPC endpoint');
     }
 
-    // Get Ethereum provider based on environment
     let ethereumProvider: any;
     let signer: any;
     let signerAddress: string;
@@ -335,7 +333,7 @@ export function useEthersSwap() {
       if (!fxRemitAddress) throw new Error('FXRemit address not configured');
 
       const corridor = `${fromCurrency}-${toCurrency}`;
-      const deadline = Math.floor(Date.now() / 1000) + 600; // 10 minutes max
+      const deadline = Math.floor(Date.now() / 1000) + 300; // 10 minutes max
 
       if (tradablePair.path.length === 1) {
         const hop = tradablePair.path[0];
@@ -345,85 +343,85 @@ export function useEthersSwap() {
         console.log('Using single-hop swap:', { providerAddr, exchangeId });
 
         if (isMiniApp) {
-          // Use Farcaster batch transactions
-          console.log('Using Farcaster batch transaction for approval + swap');
+          // Use individual transactions for Farcaster but with better error handling
+          console.log('Using individual transactions for Farcaster with improved flow');
           
-          // Check current allowance first
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)',
+            'function approve(address spender, uint256 amount) returns (bool)',
           ];
           const tokenContract = new Contract(
             fromTokenAddress,
             tokenInterface,
-            provider
+            signer
           );
-          
+
+          console.log('Checking current allowance...');
           const currentAllowance = await tokenContract.allowance(
             signerAddress,
             fxRemitAddress
           );
 
-          const calls = [];
-          
-          // Add approval call if needed
           if (currentAllowance.lt(amountInWei)) {
-            console.log('Adding approval to batch transaction');
-            calls.push({
-              to: fromTokenAddress as `0x${string}`,
-              data: encodeFunctionData({
-                abi: ERC20_ABI,
-                functionName: 'approve',
-                args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())]
-              })
-            });
+            console.log('Approving token spend for Farcaster...');
+            const approvalTx = await tokenContract.approve(
+              fxRemitAddress,
+              amountInWei
+            );
+            console.log('Waiting for approval transaction confirmation...');
+            await approvalTx.wait(1); // Wait for 1 confirmation
+            console.log('Approval confirmed!');
+          } else {
+            console.log('Sufficient allowance already exists');
           }
 
-          // Add swap call
-          console.log('Adding swap to batch transaction');
-          const swapData = encodeFunctionData({
-            abi: FXRemitABI,
-            functionName: 'swapAndSend',
-            args: [
-              recipientAddress ?? signerAddress,
-              fromTokenAddress,
-              toTokenAddress,
-              amountInWei.toString(),
-              expectedAmountOut,
+          const fxRemitContract = new Contract(
+            fxRemitAddress,
+            FXRemitABI,
+            signer
+          );
+
+          // Add referral tag to transaction data
+          const swapTx = await fxRemitContract.populateTransaction.swapAndSend(
+            recipientAddress ?? signerAddress,
+            fromTokenAddress,
+            toTokenAddress,
+              amountInWei,
+            expectedAmountOut,
               fromCurrency,
               toCurrency,
               corridor,
               providerAddr,
               exchangeId,
-              deadline
-            ]
-          });
+            deadline
+          );
 
-          const dataWithReferral = addReferralTagToTransaction(swapData);
-          
-          calls.push({
-            to: fxRemitAddress as `0x${string}`,
-            data: dataWithReferral as `0x${string}`
-          });
+          const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
+          swapTx.data = dataWithReferral;
 
-          console.log('Sending batch transaction with', calls.length, 'calls');
+          console.log('Sending swap transaction for Farcaster...');
           
-          // sendCalls is fire-and-forget - it submits the transaction and returns immediately
-          // The actual confirmation happens asynchronously in the background
-          await sendCalls({ calls });
+          // Add gas configuration for better reliability
+          const gasEstimate = await signer.estimateGas(swapTx);
+          swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
           
-          console.log('Batch transaction submitted - waiting for confirmation...');
-          
-          // For batch transactions, we can't easily track the specific transaction hash
-          // The transaction will be processed by Farcaster in the background
-          // We return a pending state and let the UI handle the confirmation
+          const swapResponse = await signer.sendTransaction(swapTx);
+          console.log('Waiting for swap confirmation...');
+          const receipt = await swapResponse.wait(1); // Wait for 1 confirmation
+
+          if (receipt.status !== 1) {
+            throw new Error('Swap transaction failed on-chain');
+          }
+
+          console.log('Swap completed successfully!');
+          await submitReferralTransaction(swapResponse.hash);
           
           return {
             success: true,
-            hash: 'pending-batch-transaction', // Indicates transaction is pending
+            hash: swapResponse.hash,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Transaction submitted - ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
-            pending: true // Flag to indicate this is a pending transaction
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
           };
         } else {
           // Use traditional individual transactions for regular wallets
@@ -582,89 +580,115 @@ export function useEthersSwap() {
         });
 
         if (isMiniApp) {
-          // Use Farcaster batch transactions for multi-hop
-          console.log('Using Farcaster batch transaction for multi-hop approval + swap');
+          // Use individual transactions for Farcaster multi-hop with better error handling
+          console.log('Using individual transactions for Farcaster multi-hop with improved flow');
           
-          // Check current allowance first
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)',
+            'function approve(address spender, uint256 amount) returns (bool)',
           ];
           const tokenContract = new Contract(
             fromTokenAddress,
             tokenInterface,
-            provider
+            signer
           );
-          
+
+          console.log('Checking current allowance...');
           const currentAllowance = await tokenContract.allowance(
             signerAddress,
             fxRemitAddress
           );
 
-          const calls = [];
-          
-          // Add approval call if needed
           if (currentAllowance.lt(amountInWei)) {
-            console.log('Adding approval to multi-hop batch transaction');
-            calls.push({
-              to: fromTokenAddress as `0x${string}`,
-              data: encodeFunctionData({
-                abi: ERC20_ABI,
-                functionName: 'approve',
-                args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())]
-              })
-            });
+            console.log('Approving token spend for Farcaster multi-hop...');
+            const approvalTx = await tokenContract.approve(
+              fxRemitAddress,
+              amountInWei
+            );
+            console.log('Waiting for approval transaction confirmation...');
+            await approvalTx.wait(1); // Wait for 1 confirmation
+            console.log('Approval confirmed!');
+          } else {
+            console.log('Sufficient allowance already exists');
           }
 
-          // Add multi-hop swap call
-          console.log('Adding multi-hop swap to batch transaction');
-          const swapData = encodeFunctionData({
-            abi: FXRemitABI,
-            functionName: 'swapAndSendPath',
-            args: [
-              recipientAddress ?? signerAddress,
-              fromTokenAddress,
-              intermediateTokenAddress,
-              toTokenAddress,
-              amountInWei.toString(),
-              expectedAmountOut,
-              fromCurrency,
-              toCurrency,
-              corridor,
-              hop1.providerAddr,
-              hop1.id,
-              hop2.providerAddr,
-              hop2.id,
-              deadline
-            ]
+          const fxRemitContract = new Contract(
+            fxRemitAddress,
+            FXRemitABI,
+            signer
+          );
+
+          // Use the correct parameter order for swapAndSendPath
+          const swapTx =
+            await fxRemitContract.populateTransaction.swapAndSendPath(
+              recipientAddress ?? signerAddress, // recipient
+              fromTokenAddress, // tokenIn
+              intermediateTokenAddress, // intermediateToken
+              toTokenAddress, // tokenOut
+              amountInWei, // amountIn
+              expectedAmountOut, // minAmountOut
+              fromCurrency, // fromCurrency
+              toCurrency, // toCurrency
+              corridor, // corridor
+              hop1.providerAddr, // providerAddr1
+              hop1.id, // exchangeId1
+              hop2.providerAddr, // providerAddr2
+              hop2.id, // exchangeId2
+              deadline // deadline
+            );
+
+          const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
+          swapTx.data = dataWithReferral;
+
+          console.log('Sending multi-hop swap transaction for Farcaster...');
+          console.log('Transaction details:', {
+            to: fxRemitAddress,
+            from: signerAddress,
+            value: '0',
+            data: swapTx.data?.slice(0, 10) + '...', // Show function selector
           });
 
-          const dataWithReferral = addReferralTagToTransaction(swapData);
-          
-          calls.push({
-            to: fxRemitAddress as `0x${string}`,
-            data: dataWithReferral as `0x${string}`
-          });
+          try {
+            // Add gas configuration for better reliability
+            const gasEstimate = await signer.estimateGas(swapTx);
+            swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
+            
+            const swapResponse = await signer.sendTransaction(swapTx);
+            console.log('Waiting for swap confirmation...');
+            const receipt = await swapResponse.wait(1); // Wait for 1 confirmation
 
-          console.log('Sending multi-hop batch transaction with', calls.length, 'calls');
-          
-          // sendCalls is fire-and-forget - it submits the transaction and returns immediately
-          // The actual confirmation happens asynchronously in the background
-          await sendCalls({ calls });
-          
-          console.log('Multi-hop batch transaction submitted - waiting for confirmation...');
-          
-          // For batch transactions, we can't easily track the specific transaction hash
-          // The transaction will be processed by Farcaster in the background
-          // We return a pending state and let the UI handle the confirmation
-          
-          return {
-            success: true,
-            hash: 'pending-multi-hop-batch-transaction', // Indicates transaction is pending
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
-            message: `Transaction submitted - ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
-            pending: true // Flag to indicate this is a pending transaction
-          };
+            if (receipt.status !== 1) {
+              throw new Error('Multi-hop swap transaction failed on-chain');
+            }
+
+            console.log('Multi-hop swap completed successfully!');
+            await submitReferralTransaction(swapResponse.hash);
+            
+            return {
+              success: true,
+              hash: swapResponse.hash,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop)`,
+            };
+          } catch (multiHopError) {
+            console.error('Multi-hop swap failed:', multiHopError);
+
+            // Check if it's the specific "tokenIn and tokenOut must match exchange" error
+            if (
+              multiHopError instanceof Error &&
+              multiHopError.message.includes(
+                'tokenIn and tokenOut must match exchange'
+              )
+            ) {
+              throw new Error(
+                `Multi-hop swap failed: The exchange parameters don't match the token pair. This might be due to exchange configuration issues. Please try a different token pair or contact support.`
+              );
+            }
+
+            // Re-throw other errors
+            throw multiHopError;
+          }
         } else {
           // Use traditional individual transactions for regular wallets
           console.log('Using traditional individual transactions for multi-hop');
