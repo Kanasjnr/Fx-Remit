@@ -161,15 +161,25 @@ export default function SendPage() {
 
       const swapResult = await swap(fromCurrency, toCurrency, amount, undefined, recipient)
 
-      console.log(" Swap completed successfully:", swapResult)
+      console.log(" Swap result:", swapResult)
+      
+      // Check if this is a pending batch transaction (Farcaster)
+      if (swapResult.pending) {
+        console.log(" Batch transaction submitted - transaction is pending confirmation")
+        // Don't mark success yet - the transaction is still pending
+        // The user will see the confirmation prompt from Farcaster
+        // We'll keep the processing state until the transaction completes
+        return // Don't clear the form or mark success yet
+      }
+      
+      // For regular wallets, mark success immediately
       markSuccess()
-
       setAmount("")
       setRecipient("")
+      setIsProcessing(false) // Only stop processing for completed transactions
     } catch (error) {
       console.error(" Transaction failed:", error)
       markFailure({ reason: error instanceof Error ? error.message : "Transaction failed" })
-    } finally {
       setIsProcessing(false)
     }
   }

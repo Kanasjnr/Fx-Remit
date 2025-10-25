@@ -1,4 +1,4 @@
-import { useAccount, useWalletClient, useSendCalls } from 'wagmi';
+import { useAccount, useWalletClient, useSendCalls, useWaitForTransactionReceipt } from 'wagmi';
 import { useMemo } from 'react';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { providers, Wallet, Contract, ethers } from 'ethers';
@@ -406,17 +406,24 @@ export function useEthersSwap() {
           });
 
           console.log('Sending batch transaction with', calls.length, 'calls');
+          
+          // sendCalls is fire-and-forget - it submits the transaction and returns immediately
+          // The actual confirmation happens asynchronously in the background
           await sendCalls({ calls });
           
-          console.log('Batch transaction submitted successfully');
-          // Note: sendCalls doesn't return a hash, it handles the transaction internally
+          console.log('Batch transaction submitted - waiting for confirmation...');
+          
+          // For batch transactions, we can't easily track the specific transaction hash
+          // The transaction will be processed by Farcaster in the background
+          // We return a pending state and let the UI handle the confirmation
           
           return {
             success: true,
-            hash: 'batch-transaction', // sendCalls handles transaction internally
+            hash: 'pending-batch-transaction', // Indicates transaction is pending
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
+            message: `Transaction submitted - ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
+            pending: true // Flag to indicate this is a pending transaction
           };
         } else {
           // Use traditional individual transactions for regular wallets
@@ -639,17 +646,24 @@ export function useEthersSwap() {
           });
 
           console.log('Sending multi-hop batch transaction with', calls.length, 'calls');
+          
+          // sendCalls is fire-and-forget - it submits the transaction and returns immediately
+          // The actual confirmation happens asynchronously in the background
           await sendCalls({ calls });
           
-          console.log('Multi-hop batch transaction submitted successfully');
-          // Note: sendCalls doesn't return a hash, it handles the transaction internally
+          console.log('Multi-hop batch transaction submitted - waiting for confirmation...');
+          
+          // For batch transactions, we can't easily track the specific transaction hash
+          // The transaction will be processed by Farcaster in the background
+          // We return a pending state and let the UI handle the confirmation
           
           return {
             success: true,
-            hash: 'multi-hop-batch-transaction', // sendCalls handles transaction internally
+            hash: 'pending-multi-hop-batch-transaction', // Indicates transaction is pending
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
+            message: `Transaction submitted - ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
+            pending: true // Flag to indicate this is a pending transaction
           };
         } else {
           // Use traditional individual transactions for regular wallets
