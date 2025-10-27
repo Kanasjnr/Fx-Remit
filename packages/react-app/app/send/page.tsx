@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useAccount } from "wagmi"
+import { useAccount, useWalletClient } from "wagmi"
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useTokenBalance, useQuote } from "@/hooks/useMento"
@@ -26,6 +26,7 @@ import {
 
 export default function SendPage() {
   const { address, isConnected } = useAccount()
+  const { data: walletClient } = useWalletClient()
   const { isMiniApp } = useFarcasterMiniApp()
   const [fromCurrency, setFromCurrency] = useState<Currency>("cUSD")
   const [toCurrency, setToCurrency] = useState<Currency>("cNGN")
@@ -163,16 +164,58 @@ export default function SendPage() {
 
       console.log(" Swap result:", swapResult)
 
-      // Farcaster batch path returns immediately (pending). Do NOT mark success yet.
       if ((swapResult as any)?.pending) {
-        toast.info("Transaction submitted. Please confirm in your wallet.")
-        // Close overlay and stop spinner while wallet handles confirmations
-        clear()
-        setIsProcessing(false)
+        toast.info("Transaction submitted. Waiting for confirmations...")
+        
+        // Poll for status up to ~90s
+        const requestId = (swapResult as any)?.requestId;
+        if (requestId && walletClient) {
+          const startMs = Date.now();
+          let confirmed = false;
+          let lastStatus: any = null;
+          
+          while (Date.now() - startMs < 90_000) {
+            try {
+              lastStatus = await (walletClient as any).request({
+                method: 'wallet_getCallsStatus',
+                params: [requestId],
+              });
+              
+              if (
+                lastStatus?.status === 'CONFIRMED' ||
+                lastStatus?.status === 'SUCCESS' ||
+                (Array.isArray(lastStatus?.receipts) && lastStatus.receipts.length > 0)
+              ) {
+                confirmed = true;
+                break;
+              }
+            } catch (e) {
+              console.warn('Status poll failed:', e);
+            }
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+          
+          if (confirmed) {
+            console.log('Batch confirmed');
+            markSuccess()
+            setAmount("")
+            setRecipient("")
+            setIsProcessing(false)
+          } else {
+            // Timeout - show submitted state
+            clear()
+            setIsProcessing(false)
+            toast.info("Transaction submitted. Check history for status.")
+          }
+        } else {
+          // No requestId or walletClient - can't poll, just show submitted
+          clear()
+          setIsProcessing(false)
+          toast.info("Transaction submitted. Check history for status.")
+        }
         return
       }
 
-      // Non-Farcaster (or immediate confirmed) path
       markSuccess()
       setAmount("")
       setRecipient("")

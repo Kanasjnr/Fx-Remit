@@ -396,6 +396,8 @@ export function useEthersSwap() {
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
             message: `Submitted ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
+            requestId: (result as any)?.id,
+            chainId: chainId.toString(),
           } as any;
         } else {
           // Use traditional individual transactions for regular wallets
@@ -615,6 +617,8 @@ export function useEthersSwap() {
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
             message: `Submitted ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
+            requestId: (result as any)?.id,
+            chainId: chainId.toString(),
           } as any;
         } else {
           // Use traditional individual transactions for regular wallets
