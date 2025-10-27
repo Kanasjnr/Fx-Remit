@@ -71,13 +71,11 @@ export function useEthersSwap() {
       address: address?.slice(0, 6) + '...' + address?.slice(-4),
     });
     
-    // Get chain ID from wallet client and switch to Celo if needed
     if (walletClient) {
       try {
         const currentChainId = await walletClient.getChainId();
         console.log('Current wallet chain ID:', currentChainId);
         
-        // Switch to Celo if not already on it
         if (currentChainId !== 42220) {
           console.log('Switching wallet to Celo (chain 42220)...');
           await walletClient.switchChain({ id: 42220 });
@@ -89,7 +87,6 @@ export function useEthersSwap() {
       }
     }
     
-    // Always use Celo (42220) as the supported chain
     const chainId = 42220 as const;
     const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
     const toTokenAddress = getTokenAddress(chainId, toCurrency);
