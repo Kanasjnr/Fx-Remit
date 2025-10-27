@@ -41,7 +41,7 @@ export function useLogRemittance() {
   }) => {
     
     if (!contract.isConfigured) {
-      console.error('❌ Contract not configured for chain:', contract.chainId);
+      console.error('Contract not configured for chain:', contract.chainId);
       throw new Error('Contract not configured for this chain');
     }
     
@@ -76,10 +76,9 @@ export function useLogRemittance() {
     });
   };
 
-  // Debug logging for writeContract states
   useEffect(() => {
     if (error) {
-      console.error('❌ writeContract error:', error);
+      console.error(' writeContract error:', error);
     }
   }, [error]);
 
@@ -91,9 +90,9 @@ export function useLogRemittance() {
 
   useEffect(() => {
     if (isConfirmed && hash) {
-      console.log('✅ writeContract confirmed!');
+      console.log(' writeContract confirmed!');
       // Submit referral to Divvi after transaction confirmation
-      console.log('📬 Submitting referral to Divvi for logRemittance...');
+      console.log(' Submitting referral to Divvi for logRemittance...');
       submitReferralTransaction(hash);
     }
   }, [isConfirmed, hash, submitReferralTransaction]);
@@ -141,22 +140,20 @@ export function useRemittanceDetails(remittanceId: bigint) {
     },
   });
 
-  // Debug the actual remittanceData structure (only on first load)
   if (remittanceData && !isLoading) {
-    console.log('🔍 Successfully loaded remittance data for ID:', (remittanceData as any).id);
-    console.log('🔍 Platform fee raw value:', (remittanceData as any).platformFee, typeof (remittanceData as any).platformFee);
+    console.log(' Successfully loaded remittance data for ID:', (remittanceData as any).id);
+    console.log(' Platform fee raw value:', (remittanceData as any).platformFee, typeof (remittanceData as any).platformFee);
   }
 
-  // Safe formatting function to handle undefined values
   const safeFormatEther = (value: any) => {
     if (value === undefined || value === null) {
-      console.warn('⚠️ Undefined value passed to formatEther, using 0');
+      console.warn(' Undefined value passed to formatEther, using 0');
       return '0';
     }
     try {
       return formatEther(value);
     } catch (err) {
-      console.error('❌ Error formatting ether:', err, 'value:', value);
+      console.error(' Error formatting ether:', err, 'value:', value);
       return '0';
     }
   };

@@ -389,9 +389,6 @@ export function useEthersSwap() {
 
           console.log('Submitting Farcaster batch calls:', calls.length);
           
-          // For Farcaster, we need to track the batch transactions on-chain
-          // Since wagmi's sendCalls doesn't return trackable receipts, 
-          // we'll use the wallet provider to send and wait for confirmations
           if (!walletClient) throw new Error('Wallet client unavailable');
 
           // Send calls and wait for on-chain confirmation
