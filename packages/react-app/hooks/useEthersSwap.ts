@@ -387,20 +387,50 @@ export function useEthersSwap() {
           const dataWithReferral = addReferralTagToTransaction(rawSwapData);
           calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
 
-          console.log('Submitting Farcaster batch calls via useSendCalls:', calls.length);
-          const result = await sendCalls({ calls });
-          console.log('Batch submitted (useSendCalls) result:', result);
+          console.log('Submitting Farcaster batch calls:', calls.length);
+          
+          if (!walletClient) throw new Error('Wallet client unavailable');
+
+          // Send calls and wait for on-chain confirmation
+          const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei) 
+            ? await walletClient.sendTransaction({
+                to: fromTokenAddress as `0x${string}`,
+                data: calls[0].data,
+                value: BigInt(0),
+              })
+            : null;
+          
+          if (approveHash) {
+            console.log('Approval sent, waiting for confirmation...');
+            await provider.waitForTransaction(approveHash, 1);
+            console.log('Approval confirmed');
+          }
+          
+          // Send swap transaction
+          const swapHash = await walletClient.sendTransaction({
+            to: fxRemitAddress as `0x${string}`,
+            data: dataWithReferral as `0x${string}`,
+            value: BigInt(0),
+          });
+          
+          console.log('Swap sent, waiting for confirmation...');
+          const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+          
+          if (swapReceipt.status !== 1) {
+            throw new Error('Swap transaction failed on-chain');
+          }
+          
+          console.log('Swap completed successfully!');
+          await submitReferralTransaction(swapHash);
+
           return {
-            pending: true,
-            hash: String((result as any)?.id ?? 'pending-batch'),
+            success: true,
+            hash: swapHash,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Submitted ${amount} ${fromCurrency} → ${toCurrency} (batched)`,
-            requestId: (result as any)?.id,
-            chainId: chainId.toString(),
-          } as any;
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+          };
         } else {
-          // Use traditional individual transactions for regular wallets
           console.log('Using traditional individual transactions');
           
           const tokenInterface = [
@@ -608,18 +638,50 @@ export function useEthersSwap() {
           const dataWithReferral = addReferralTagToTransaction(rawSwapData);
           calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
 
-          console.log('Submitting Farcaster multi-hop batch calls via useSendCalls:', calls.length);
-          const result = await sendCalls({ calls });
-          console.log('Multi-hop batch submitted (useSendCalls) result:', result);
+          console.log('Submitting Farcaster multi-hop batch calls:', calls.length);
+          
+          // For Farcaster, send transactions sequentially and wait for on-chain confirmation
+          if (!walletClient) throw new Error('Wallet client unavailable');
+          
+          // Send approval if needed
+          const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei)
+            ? await walletClient.sendTransaction({
+                to: fromTokenAddress as `0x${string}`,
+                data: calls[0].data,
+                value: BigInt(0),
+              })
+            : null;
+          
+          if (approveHash) {
+            console.log('Multi-hop approval sent, waiting for confirmation...');
+            await provider.waitForTransaction(approveHash, 1);
+            console.log('Multi-hop approval confirmed');
+          }
+          
+          // Send multi-hop swap transaction
+          const swapHash = await walletClient.sendTransaction({
+            to: fxRemitAddress as `0x${string}`,
+            data: dataWithReferral as `0x${string}`,
+            value: BigInt(0),
+          });
+          
+          console.log('Multi-hop swap sent, waiting for confirmation...');
+          const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+          
+          if (swapReceipt.status !== 1) {
+            throw new Error('Multi-hop swap transaction failed on-chain');
+          }
+          
+          console.log('Multi-hop swap completed successfully!');
+          await submitReferralTransaction(swapHash);
+          
           return {
-            pending: true,
-            hash: String((result as any)?.id ?? 'pending-batch'),
+            success: true,
+            hash: swapHash,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Submitted ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batched)`,
-            requestId: (result as any)?.id,
-            chainId: chainId.toString(),
-          } as any;
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+          };
         } else {
           // Use traditional individual transactions for regular wallets
           console.log('Using traditional individual transactions for multi-hop');

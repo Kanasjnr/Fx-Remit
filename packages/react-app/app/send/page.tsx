@@ -160,64 +160,11 @@ export default function SendPage() {
       console.log(" Swap result:", swapResult)
 
       if ((swapResult as any)?.pending) {
-        // Poll for status up to ~90s
-        const requestId = (swapResult as any)?.requestId;
-        if (requestId && walletClient) {
-          const startMs = Date.now();
-          let confirmed = false;
-          let lastStatus: any = null;
-          
-          while (Date.now() - startMs < 90_000) {
-            try {
-              lastStatus = await (walletClient as any).request({
-                method: 'wallet_getCallsStatus',
-                params: [requestId],
-              });
-              
-              console.log('Polling status:', lastStatus);
-              
-              if (
-                lastStatus?.status === 'CONFIRMED' ||
-                lastStatus?.status === 'SUCCESS' ||
-                (Array.isArray(lastStatus?.receipts) && lastStatus.receipts.length > 0)
-              ) {
-                confirmed = true;
-                break;
-              }
-            } catch (e) {
-              console.warn('Status poll failed:', e);
-            }
-            await new Promise((r) => setTimeout(r, 3000));
-          }
-          
-          if (confirmed) {
-            console.log('Batch confirmed, receipts:', lastStatus?.receipts);
-            markSuccess()
-            setAmount("")
-            setRecipient("")
-            setIsProcessing(false)
-          } else {
-            // Timeout - mark as submitted but keep overlay
-            console.log('Polling timed out after 90s');
-            markFailure({ 
-              reason: 'Transaction is still pending. Check your wallet or history for status.',
-              title: 'Pending'
-            })
-            setAmount("")
-            setRecipient("")
-            setIsProcessing(false)
-          }
-        } else {
-          // No requestId or walletClient - can't poll
-          console.log('No requestId or walletClient, marking as submitted');
-          markFailure({ 
-            reason: 'Transaction submitted but status cannot be verified. Check your wallet or history.',
-            title: 'Submitted'
-          })
-          setAmount("")
-          setRecipient("")
-          setIsProcessing(false)
-        }
+        console.log('Batch transaction submitted successfully');
+       
+        setAmount("")
+        setRecipient("")
+        setIsProcessing(false)
         return
       }
 
