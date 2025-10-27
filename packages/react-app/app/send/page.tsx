@@ -108,9 +108,6 @@ export default function SendPage() {
         console.log(' Resolved address:', resolvedAddress);
         if (resolvedAddress) {
           setRecipient(resolvedAddress)
-          toast.success(`Resolved @${value.replace('@', '')} to ${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}`)
-        } else {
-          toast.error(`Could not resolve Farcaster username: ${value}. Please use wallet address (0x...) instead.`)
         }
       }
     }, 1500); // Wait 1.5 seconds after user stops typing
@@ -134,12 +131,10 @@ export default function SendPage() {
 
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
-      toast.error("Please fill in all fields")
       return
     }
 
     setIsProcessing(true)
-    toast.dismiss()
     startProcessing({
       onRetry: () => {
         clear()
@@ -165,8 +160,6 @@ export default function SendPage() {
       console.log(" Swap result:", swapResult)
 
       if ((swapResult as any)?.pending) {
-        toast.info("Transaction submitted. Waiting for confirmations...")
-        
         // Poll for status up to ~90s
         const requestId = (swapResult as any)?.requestId;
         if (requestId && walletClient) {
@@ -180,6 +173,8 @@ export default function SendPage() {
                 method: 'wallet_getCallsStatus',
                 params: [requestId],
               });
+              
+              console.log('Polling status:', lastStatus);
               
               if (
                 lastStatus?.status === 'CONFIRMED' ||
@@ -196,22 +191,32 @@ export default function SendPage() {
           }
           
           if (confirmed) {
-            console.log('Batch confirmed');
+            console.log('Batch confirmed, receipts:', lastStatus?.receipts);
             markSuccess()
             setAmount("")
             setRecipient("")
             setIsProcessing(false)
           } else {
-            // Timeout - show submitted state
-            clear()
+            // Timeout - mark as submitted but keep overlay
+            console.log('Polling timed out after 90s');
+            markFailure({ 
+              reason: 'Transaction is still pending. Check your wallet or history for status.',
+              title: 'Pending'
+            })
+            setAmount("")
+            setRecipient("")
             setIsProcessing(false)
-            toast.info("Transaction submitted. Check history for status.")
           }
         } else {
-          // No requestId or walletClient - can't poll, just show submitted
-          clear()
+          // No requestId or walletClient - can't poll
+          console.log('No requestId or walletClient, marking as submitted');
+          markFailure({ 
+            reason: 'Transaction submitted but status cannot be verified. Check your wallet or history.',
+            title: 'Submitted'
+          })
+          setAmount("")
+          setRecipient("")
           setIsProcessing(false)
-          toast.info("Transaction submitted. Check history for status.")
         }
         return
       }
