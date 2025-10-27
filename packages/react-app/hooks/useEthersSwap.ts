@@ -71,7 +71,23 @@ export function useEthersSwap() {
       address: address?.slice(0, 6) + '...' + address?.slice(-4),
     });
     
-    const chainId = 42220;
+    if (walletClient) {
+      try {
+        const currentChainId = await walletClient.getChainId();
+        console.log('Current wallet chain ID:', currentChainId);
+        
+        if (currentChainId !== 42220) {
+          console.log('Switching wallet to Celo (chain 42220)...');
+          await walletClient.switchChain({ id: 42220 });
+          console.log('Switched to Celo successfully');
+        }
+      } catch (e) {
+        console.error('Could not switch chain to Celo:', e);
+        throw new Error('Please switch your wallet to Celo network to use this app');
+      }
+    }
+    
+    const chainId = 42220 as const;
     const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
     const toTokenAddress = getTokenAddress(chainId, toCurrency);
     
@@ -642,7 +658,7 @@ export function useEthersSwap() {
           
           // For Farcaster, send transactions sequentially and wait for on-chain confirmation
           if (!walletClient) throw new Error('Wallet client unavailable');
-          
+
           // Send approval if needed
           const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei)
             ? await walletClient.sendTransaction({
@@ -674,7 +690,7 @@ export function useEthersSwap() {
           
           console.log('Multi-hop swap completed successfully!');
           await submitReferralTransaction(swapHash);
-          
+
           return {
             success: true,
             hash: swapHash,
