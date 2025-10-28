@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { celo } from 'wagmi/chains';
-import { injected } from 'wagmi/connectors';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { MiniAppConnector } from '@/components/MiniAppConnector';
@@ -43,7 +42,7 @@ function useWagmiConfig() {
 
   const connectors = useMemo(() => {
     return isMiniApp 
-      ? [injected(), miniAppConnector()] 
+      ? [miniAppConnector()] // Only use Farcaster connector, no injected() 
       : webConnectors;
   }, [isMiniApp]);
 
@@ -60,16 +59,25 @@ const queryClient = new QueryClient();
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const config = useWagmiConfig();
+  const { isMiniApp } = useFarcasterMiniApp();
   
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        {isMiniApp ? (
+          // In Mini App mode, don't show RainbowKit UI to avoid wallet popups
           <TransactionStatusProvider>
             <MiniAppConnector />
             {children}
           </TransactionStatusProvider>
-        </RainbowKitProvider>
+        ) : (
+          // In web mode, use full RainbowKit with ConnectButton
+          <RainbowKitProvider>
+            <TransactionStatusProvider>
+              {children}
+            </TransactionStatusProvider>
+          </RainbowKitProvider>
+        )}
       </QueryClientProvider>
     </WagmiProvider>
   );

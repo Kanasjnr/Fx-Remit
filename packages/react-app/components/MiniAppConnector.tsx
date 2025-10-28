@@ -13,8 +13,20 @@ export function MiniAppConnector() {
   // Memoize the connect wallet function to prevent recreation
   const connectWallet = useCallback(() => {
     try {
-      connect({ connector: connectors[0] });
+      // Find the Farcaster Mini App connector (it should be the only one in Mini App mode)
+      const farcasterConnector = connectors.find(connector => 
+        connector.id === 'farcaster_miniapp' || 
+        connector.name?.toLowerCase().includes('farcaster')
+      );
+      
+      // Use the Farcaster connector if found, otherwise use the first connector
+      const connectorToUse = farcasterConnector || connectors[0];
+      
+      if (connectorToUse) {
+        connect({ connector: connectorToUse });
+      }
     } catch (error) {
+      console.error('Failed to connect to Farcaster wallet:', error);
       setTimeout(connectWallet, 500);
     }
   }, [connect, connectors]);
