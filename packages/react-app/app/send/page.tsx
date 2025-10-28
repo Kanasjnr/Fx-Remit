@@ -161,6 +161,7 @@ export default function SendPage() {
 
       if ((swapResult as any)?.pending) {
         console.log('Batch transaction submitted successfully via Farcaster');
+        clear() // Clear the processing modal
         toast.success('Transaction submitted! Processing in Farcaster wallet...', {
           position: "top-center",
           autoClose: 3000,
