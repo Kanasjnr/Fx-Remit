@@ -160,8 +160,12 @@ export default function SendPage() {
       console.log(" Swap result:", swapResult)
 
       if ((swapResult as any)?.pending) {
-        console.log('Batch transaction submitted successfully');
-       
+        console.log('Batch transaction submitted successfully via Farcaster');
+        clear() // Clear the processing modal
+        toast.success('Transaction submitted! Processing in Farcaster wallet...', {
+          position: "top-center",
+          autoClose: 3000,
+        });
         setAmount("")
         setRecipient("")
         setIsProcessing(false)
@@ -169,6 +173,10 @@ export default function SendPage() {
       }
 
       markSuccess()
+      toast.success('Transaction completed successfully!', {
+        position: "top-center",
+        autoClose: 3000,
+      });
       setAmount("")
       setRecipient("")
       setIsProcessing(false)

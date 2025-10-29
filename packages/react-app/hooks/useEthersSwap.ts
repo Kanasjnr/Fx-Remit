@@ -458,10 +458,11 @@ export function useEthersSwap() {
 
           return {
             success: true,
-            hash: swapHash,
+            hash: transactionId as string,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
             message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+            pending: true, // Indicate transaction is submitted but pending confirmation
           };
         } else {
           console.log('Using traditional individual transactions');
@@ -727,10 +728,11 @@ export function useEthersSwap() {
 
           return {
             success: true,
-            hash: swapHash,
+            hash: transactionId as string,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
             message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+            pending: true, // Indicate transaction is submitted but pending confirmation
           };
         } else {
           // Use traditional individual transactions for regular wallets

@@ -31,7 +31,6 @@ export function MiniAppConnector() {
     }
   }, [connect, connectors]);
 
-  // Memoize the connection condition to prevent unnecessary effect runs
   const shouldConnect = useMemo(() => {
     return isMiniApp && !isConnected && connectors.length > 0 && !hasAttemptedConnect;
   }, [isMiniApp, isConnected, connectors.length, hasAttemptedConnect]);
