@@ -414,23 +414,43 @@ export function useEthersSwap() {
             dataPreview: c.data.slice(0, 10) + '...'
           })));
           
-          // Use sendCalls as per Farcaster documentation
-          const callsId = await sendCalls({
-            calls: calls
-          });
+          console.log('[FARCASTER] Checking sendCalls availability:', typeof sendCalls);
           
-          console.log('[FARCASTER] Batch submitted! Calls ID:', callsId);
-          console.log('[FARCASTER] Transactions are being processed by Farcaster wallet');
-          console.log('[FARCASTER] Note: Individual transaction hashes will be available after processing');
-
-          return {
-            success: true,
-            pending: true,
-            callsId: callsId,
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
-            message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
-          };
+          if (!sendCalls) {
+            throw new Error('sendCalls is not available. This might be a Farcaster wallet configuration issue.');
+          }
+          
+          try {
+            // Use sendCalls as per Farcaster documentation
+            // Note: sendCalls returns void, the result comes in sendCallsData
+            console.log('[FARCASTER] Calling sendCalls...');
+            sendCalls({
+              calls: calls
+            });
+            
+            console.log('[FARCASTER] sendCalls triggered successfully');
+            console.log('[FARCASTER] Batch transaction prompt shown to user');
+            console.log('[FARCASTER] Result data:', sendCallsData);
+            
+            // Return immediately with pending status
+            // The actual callsId will be available in sendCallsData after user confirms
+            return {
+              success: true,
+              pending: true,
+              callsId: sendCallsData,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
+            };
+          } catch (error) {
+            console.error('[FARCASTER] Error calling sendCalls:', error);
+            console.error('[FARCASTER] Error details:', {
+              name: error instanceof Error ? error.name : 'Unknown',
+              message: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : 'No stack'
+            });
+            throw new Error(`Failed to submit batch transaction: ${error instanceof Error ? error.message : String(error)}`);
+          }
         } else {
           console.log('Using traditional individual transactions');
           
@@ -537,7 +557,6 @@ export function useEthersSwap() {
         const assets1: string[] = hop1.assets;
         const assets2: string[] = hop2.assets;
 
-        // Find the intermediate token that both hops support
         let intermediateTokenAddress: string | undefined;
         for (const a1 of assets1) {
           if (
@@ -646,25 +665,44 @@ export function useEthersSwap() {
             dataPreview: c.data.slice(0, 10) + '...'
           })));
           
-          // Use sendCalls as per Farcaster documentation
-          const callsId = await sendCalls({
-            calls: calls
-          });
+          console.log('[FARCASTER-MULTIHOP] Checking sendCalls availability:', typeof sendCalls);
           
-          console.log('[FARCASTER-MULTIHOP] Batch submitted! Calls ID:', callsId);
-          console.log('[FARCASTER-MULTIHOP] Multi-hop transactions are being processed by Farcaster wallet');
-          console.log('[FARCASTER-MULTIHOP] Note: Individual transaction hashes will be available after processing');
-
-          return {
-            success: true,
-            pending: true,
-            callsId: callsId,
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
-            message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
-          };
+          if (!sendCalls) {
+            throw new Error('sendCalls is not available. This might be a Farcaster wallet configuration issue.');
+          }
+          
+          try {
+            // Use sendCalls as per Farcaster documentation
+            // Note: sendCalls returns void, the result comes in sendCallsData
+            console.log('[FARCASTER-MULTIHOP] Calling sendCalls...');
+            sendCalls({
+              calls: calls
+            });
+            
+            console.log('[FARCASTER-MULTIHOP] sendCalls triggered successfully');
+            console.log('[FARCASTER-MULTIHOP] Multi-hop batch transaction prompt shown to user');
+            console.log('[FARCASTER-MULTIHOP] Result data:', sendCallsData);
+            
+            // Return immediately with pending status
+            // The actual callsId will be available in sendCallsData after user confirms
+            return {
+              success: true,
+              pending: true,
+              callsId: sendCallsData,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
+              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
+            };
+          } catch (error) {
+            console.error('[FARCASTER-MULTIHOP] Error calling sendCalls:', error);
+            console.error('[FARCASTER-MULTIHOP] Error details:', {
+              name: error instanceof Error ? error.name : 'Unknown',
+              message: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : 'No stack'
+            });
+            throw new Error(`Failed to submit multi-hop batch transaction: ${error instanceof Error ? error.message : String(error)}`);
+          }
         } else {
-          // Use traditional individual transactions for regular wallets
           console.log('Using traditional individual transactions for multi-hop');
           
           const tokenInterface = [
@@ -702,7 +740,6 @@ export function useEthersSwap() {
             signer
           );
 
-          // Use the correct parameter order for swapAndSendPath
           const swapTx =
             await fxRemitContract.populateTransaction.swapAndSendPath(
               recipientAddress ?? signerAddress, // recipient
@@ -758,7 +795,6 @@ export function useEthersSwap() {
           } catch (multiHopError) {
             console.error('Multi-hop swap failed:', multiHopError);
 
-            // Check if it's the specific "tokenIn and tokenOut must match exchange" error
             if (
               multiHopError instanceof Error &&
               multiHopError.message.includes(
@@ -770,7 +806,6 @@ export function useEthersSwap() {
               );
             }
 
-            // Re-throw other errors
             throw multiHopError;
           }
         }
