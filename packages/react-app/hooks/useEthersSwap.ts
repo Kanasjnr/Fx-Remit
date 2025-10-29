@@ -419,13 +419,27 @@ export function useEthersSwap() {
           if (approveHash) {
             console.log('[FARCASTER] Approval transaction SENT');
             console.log('[FARCASTER] Approval hash:', approveHash);
+            console.log('[FARCASTER] Celoscan link: https://celoscan.io/tx/' + approveHash);
             console.log('[FARCASTER] Now waiting for approval confirmation...');
             const approvalStartTime = Date.now();
             
-            await provider.waitForTransaction(approveHash, 1);
+            // Wait for transaction with a 60 second timeout
+            const approvalTimeout = 60000; // 60 seconds
+            const approvalWaitPromise = provider.waitForTransaction(approveHash, 1);
+            const approvalTimeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => {
+                reject(new Error('Approval transaction confirmation timed out after 60 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + approveHash));
+              }, approvalTimeout);
+            });
             
-            const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
-            console.log('[FARCASTER] Approval CONFIRMED after', approvalElapsed, 'seconds');
+            try {
+              await Promise.race([approvalWaitPromise, approvalTimeoutPromise]);
+              const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
+              console.log('[FARCASTER] Approval CONFIRMED after', approvalElapsed, 'seconds');
+            } catch (error) {
+              console.error('[FARCASTER] Approval confirmation error:', error);
+              throw error;
+            }
           } else {
             console.log('[FARCASTER] Approval not needed (sufficient allowance)');
           }
@@ -440,10 +454,26 @@ export function useEthersSwap() {
           
           console.log('[FARCASTER] Swap transaction SENT');
           console.log('[FARCASTER] Swap hash:', swapHash);
+          console.log('[FARCASTER] Celoscan link: https://celoscan.io/tx/' + swapHash);
           console.log('[FARCASTER] Now waiting for swap confirmation...');
           const swapStartTime = Date.now();
           
-          const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+          // Wait for transaction with a 120 second timeout
+          const swapTimeout = 120000; // 120 seconds (2 minutes)
+          const swapWaitPromise = provider.waitForTransaction(swapHash, 1);
+          const swapTimeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Swap transaction confirmation timed out after 120 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + swapHash));
+            }, swapTimeout);
+          });
+          
+          let swapReceipt: providers.TransactionReceipt;
+          try {
+            swapReceipt = await Promise.race([swapWaitPromise, swapTimeoutPromise]);
+          } catch (error) {
+            console.error('[FARCASTER] Swap confirmation error:', error);
+            throw error;
+          }
           
           const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
           
@@ -688,13 +718,27 @@ export function useEthersSwap() {
           if (approveHash) {
             console.log('[FARCASTER-MULTIHOP] Approval transaction SENT');
             console.log('[FARCASTER-MULTIHOP] Approval hash:', approveHash);
+            console.log('[FARCASTER-MULTIHOP] Celoscan link: https://celoscan.io/tx/' + approveHash);
             console.log('[FARCASTER-MULTIHOP] Now waiting for approval confirmation...');
             const approvalStartTime = Date.now();
             
-            await provider.waitForTransaction(approveHash, 1);
+            // Wait for transaction with a 60 second timeout
+            const approvalTimeout = 60000; // 60 seconds
+            const approvalWaitPromise = provider.waitForTransaction(approveHash, 1);
+            const approvalTimeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => {
+                reject(new Error('Approval transaction confirmation timed out after 60 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + approveHash));
+              }, approvalTimeout);
+            });
             
-            const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
-            console.log('[FARCASTER-MULTIHOP] Approval CONFIRMED after', approvalElapsed, 'seconds');
+            try {
+              await Promise.race([approvalWaitPromise, approvalTimeoutPromise]);
+              const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
+              console.log('[FARCASTER-MULTIHOP] Approval CONFIRMED after', approvalElapsed, 'seconds');
+            } catch (error) {
+              console.error('[FARCASTER-MULTIHOP] Approval confirmation error:', error);
+              throw error;
+            }
           } else {
             console.log('[FARCASTER-MULTIHOP] Approval not needed (sufficient allowance)');
           }
@@ -709,10 +753,26 @@ export function useEthersSwap() {
           
           console.log('[FARCASTER-MULTIHOP] Swap transaction SENT');
           console.log('[FARCASTER-MULTIHOP] Swap hash:', swapHash);
+          console.log('[FARCASTER-MULTIHOP] Celoscan link: https://celoscan.io/tx/' + swapHash);
           console.log('[FARCASTER-MULTIHOP] Now waiting for swap confirmation...');
           const swapStartTime = Date.now();
           
-          const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+          // Wait for transaction with a 120 second timeout
+          const swapTimeout = 120000; // 120 seconds (2 minutes)
+          const swapWaitPromise = provider.waitForTransaction(swapHash, 1);
+          const swapTimeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Swap transaction confirmation timed out after 120 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + swapHash));
+            }, swapTimeout);
+          });
+          
+          let swapReceipt: providers.TransactionReceipt;
+          try {
+            swapReceipt = await Promise.race([swapWaitPromise, swapTimeoutPromise]);
+          } catch (error) {
+            console.error('[FARCASTER-MULTIHOP] Swap confirmation error:', error);
+            throw error;
+          }
           
           const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
           
