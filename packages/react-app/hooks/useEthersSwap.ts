@@ -1,4 +1,5 @@
 import { useAccount, useWalletClient, useSendCalls, useWaitForTransactionReceipt } from 'wagmi';
+import { celo } from 'wagmi/chains';
 import { useMemo } from 'react';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { providers, Wallet, Contract, ethers } from 'ethers';
@@ -34,7 +35,7 @@ declare global {
 export function useEthersSwap() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const { sendCalls } = useSendCalls();
+  const { sendCalls, data: sendCallsData } = useSendCalls();
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
 
@@ -354,7 +355,7 @@ export function useEthersSwap() {
         console.log('Using single-hop swap:', { providerAddr, exchangeId });
 
         if (isMiniApp) {
-          console.log('Using Farcaster batch transaction for approval + swap');
+          console.log('[FARCASTER] Using Farcaster wallet_sendCalls for batch transaction (following official docs)');
 
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)'
@@ -373,12 +374,15 @@ export function useEthersSwap() {
           const calls: { to: `0x${string}`; data: `0x${string}` }[] = [];
 
           if (currentAllowance.lt(amountInWei)) {
+            console.log('[FARCASTER] Approval needed, adding to batch');
             const approveData = encodeFunctionData({
               abi: ERC20_ABI,
               functionName: 'approve',
               args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())],
             });
             calls.push({ to: fromTokenAddress as `0x${string}`, data: approveData as `0x${string}` });
+          } else {
+            console.log('[FARCASTER] Approval not needed (sufficient allowance)');
           }
 
           const amountInBig = BigInt(amountInWei.toString());
@@ -403,95 +407,29 @@ export function useEthersSwap() {
           const dataWithReferral = addReferralTagToTransaction(rawSwapData);
           calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
 
-          console.log('Submitting Farcaster batch calls:', calls.length);
+          console.log('[FARCASTER] Submitting', calls.length, 'transaction(s) via wallet_sendCalls');
+          console.log('[FARCASTER] Transactions:', calls.map((c, i) => ({
+            index: i,
+            to: c.to,
+            dataPreview: c.data.slice(0, 10) + '...'
+          })));
           
-          if (!walletClient) throw new Error('Wallet client unavailable');
-
-          // Send calls and wait for on-chain confirmation
-          const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei) 
-            ? await walletClient.sendTransaction({
-                to: fromTokenAddress as `0x${string}`,
-                data: calls[0].data,
-                value: BigInt(0),
-              })
-            : null;
-          
-          if (approveHash) {
-            console.log('[FARCASTER] Approval transaction SENT');
-            console.log('[FARCASTER] Approval hash:', approveHash);
-            console.log('[FARCASTER] Celoscan link: https://celoscan.io/tx/' + approveHash);
-            console.log('[FARCASTER] Now waiting for approval confirmation...');
-            const approvalStartTime = Date.now();
-            
-            // Wait for transaction with a 60 second timeout
-            const approvalTimeout = 60000; // 60 seconds
-            const approvalWaitPromise = provider.waitForTransaction(approveHash, 1);
-            const approvalTimeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => {
-                reject(new Error('Approval transaction confirmation timed out after 60 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + approveHash));
-              }, approvalTimeout);
-            });
-            
-            try {
-              await Promise.race([approvalWaitPromise, approvalTimeoutPromise]);
-              const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
-              console.log('[FARCASTER] Approval CONFIRMED after', approvalElapsed, 'seconds');
-            } catch (error) {
-              console.error('[FARCASTER] Approval confirmation error:', error);
-              throw error;
-            }
-          } else {
-            console.log('[FARCASTER] Approval not needed (sufficient allowance)');
-          }
-          
-          // Send swap transaction
-          console.log('[FARCASTER] Now sending SWAP transaction...');
-          const swapHash = await walletClient.sendTransaction({
-            to: fxRemitAddress as `0x${string}`,
-            data: dataWithReferral as `0x${string}`,
-            value: BigInt(0),
+          // Use sendCalls as per Farcaster documentation
+          const callsId = await sendCalls({
+            calls: calls
           });
           
-          console.log('[FARCASTER] Swap transaction SENT');
-          console.log('[FARCASTER] Swap hash:', swapHash);
-          console.log('[FARCASTER] Celoscan link: https://celoscan.io/tx/' + swapHash);
-          console.log('[FARCASTER] Now waiting for swap confirmation...');
-          const swapStartTime = Date.now();
-          
-          // Wait for transaction with a 120 second timeout
-          const swapTimeout = 120000; // 120 seconds (2 minutes)
-          const swapWaitPromise = provider.waitForTransaction(swapHash, 1);
-          const swapTimeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => {
-              reject(new Error('Swap transaction confirmation timed out after 120 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + swapHash));
-            }, swapTimeout);
-          });
-          
-          let swapReceipt: providers.TransactionReceipt;
-          try {
-            swapReceipt = await Promise.race([swapWaitPromise, swapTimeoutPromise]);
-          } catch (error) {
-            console.error('[FARCASTER] Swap confirmation error:', error);
-            throw error;
-          }
-          
-          const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
-          
-          if (swapReceipt.status !== 1) {
-            console.error('[FARCASTER] Swap transaction FAILED on-chain after', swapElapsed, 'seconds');
-            throw new Error('Swap transaction failed on-chain');
-          }
-          
-          console.log('[FARCASTER] Swap CONFIRMED after', swapElapsed, 'seconds');
-          console.log('[FARCASTER] Swap completed successfully!');
-          await submitReferralTransaction(swapHash);
+          console.log('[FARCASTER] Batch submitted! Calls ID:', callsId);
+          console.log('[FARCASTER] Transactions are being processed by Farcaster wallet');
+          console.log('[FARCASTER] Note: Individual transaction hashes will be available after processing');
 
           return {
             success: true,
-            hash: swapHash,
+            pending: true,
+            callsId: callsId,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
           };
         } else {
           console.log('Using traditional individual transactions');
@@ -701,96 +639,29 @@ export function useEthersSwap() {
           const dataWithReferral = addReferralTagToTransaction(rawSwapData);
           calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
 
-          console.log('Submitting Farcaster multi-hop batch calls:', calls.length);
+          console.log('[FARCASTER-MULTIHOP] Submitting', calls.length, 'transaction(s) via wallet_sendCalls');
+          console.log('[FARCASTER-MULTIHOP] Transactions:', calls.map((c, i) => ({
+            index: i,
+            to: c.to,
+            dataPreview: c.data.slice(0, 10) + '...'
+          })));
           
-          // For Farcaster, send transactions sequentially and wait for on-chain confirmation
-          if (!walletClient) throw new Error('Wallet client unavailable');
-
-          // Send approval if needed
-          const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei)
-            ? await walletClient.sendTransaction({
-                to: fromTokenAddress as `0x${string}`,
-                data: calls[0].data,
-                value: BigInt(0),
-              })
-            : null;
-          
-          if (approveHash) {
-            console.log('[FARCASTER-MULTIHOP] Approval transaction SENT');
-            console.log('[FARCASTER-MULTIHOP] Approval hash:', approveHash);
-            console.log('[FARCASTER-MULTIHOP] Celoscan link: https://celoscan.io/tx/' + approveHash);
-            console.log('[FARCASTER-MULTIHOP] Now waiting for approval confirmation...');
-            const approvalStartTime = Date.now();
-            
-            // Wait for transaction with a 60 second timeout
-            const approvalTimeout = 60000; // 60 seconds
-            const approvalWaitPromise = provider.waitForTransaction(approveHash, 1);
-            const approvalTimeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => {
-                reject(new Error('Approval transaction confirmation timed out after 60 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + approveHash));
-              }, approvalTimeout);
-            });
-            
-            try {
-              await Promise.race([approvalWaitPromise, approvalTimeoutPromise]);
-              const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
-              console.log('[FARCASTER-MULTIHOP] Approval CONFIRMED after', approvalElapsed, 'seconds');
-            } catch (error) {
-              console.error('[FARCASTER-MULTIHOP] Approval confirmation error:', error);
-              throw error;
-            }
-          } else {
-            console.log('[FARCASTER-MULTIHOP] Approval not needed (sufficient allowance)');
-          }
-          
-          // Send multi-hop swap transaction
-          console.log('[FARCASTER-MULTIHOP] Now sending SWAP transaction...');
-          const swapHash = await walletClient.sendTransaction({
-            to: fxRemitAddress as `0x${string}`,
-            data: dataWithReferral as `0x${string}`,
-            value: BigInt(0),
+          // Use sendCalls as per Farcaster documentation
+          const callsId = await sendCalls({
+            calls: calls
           });
           
-          console.log('[FARCASTER-MULTIHOP] Swap transaction SENT');
-          console.log('[FARCASTER-MULTIHOP] Swap hash:', swapHash);
-          console.log('[FARCASTER-MULTIHOP] Celoscan link: https://celoscan.io/tx/' + swapHash);
-          console.log('[FARCASTER-MULTIHOP] Now waiting for swap confirmation...');
-          const swapStartTime = Date.now();
-          
-          // Wait for transaction with a 120 second timeout
-          const swapTimeout = 120000; // 120 seconds (2 minutes)
-          const swapWaitPromise = provider.waitForTransaction(swapHash, 1);
-          const swapTimeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => {
-              reject(new Error('Swap transaction confirmation timed out after 120 seconds. The transaction may not have been broadcast to the network. Please check Celoscan: https://celoscan.io/tx/' + swapHash));
-            }, swapTimeout);
-          });
-          
-          let swapReceipt: providers.TransactionReceipt;
-          try {
-            swapReceipt = await Promise.race([swapWaitPromise, swapTimeoutPromise]);
-          } catch (error) {
-            console.error('[FARCASTER-MULTIHOP] Swap confirmation error:', error);
-            throw error;
-          }
-          
-          const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
-          
-          if (swapReceipt.status !== 1) {
-            console.error('[FARCASTER-MULTIHOP] Swap transaction FAILED on-chain after', swapElapsed, 'seconds');
-            throw new Error('Multi-hop swap transaction failed on-chain');
-          }
-          
-          console.log('[FARCASTER-MULTIHOP] Swap CONFIRMED after', swapElapsed, 'seconds');
-          console.log('[FARCASTER-MULTIHOP] Swap completed successfully!');
-          await submitReferralTransaction(swapHash);
+          console.log('[FARCASTER-MULTIHOP] Batch submitted! Calls ID:', callsId);
+          console.log('[FARCASTER-MULTIHOP] Multi-hop transactions are being processed by Farcaster wallet');
+          console.log('[FARCASTER-MULTIHOP] Note: Individual transaction hashes will be available after processing');
 
           return {
             success: true,
-            hash: swapHash,
+            pending: true,
+            callsId: callsId,
             amountOut: ethers.utils.formatEther(expectedAmountOut),
             recipient: recipientAddress ?? signerAddress,
-            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
           };
         } else {
           // Use traditional individual transactions for regular wallets
