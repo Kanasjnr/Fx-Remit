@@ -432,19 +432,29 @@ export function useEthersSwap() {
             console.log('[FARCASTER] sendCallsAsync completed!');
             console.log('[FARCASTER] Calls Result:', callsResult);
             console.log('[FARCASTER] Calls ID:', callsResult?.id);
+            console.log('[FARCASTER] Calls Result Type:', typeof callsResult);
+            console.log('[FARCASTER] Calls Result Keys:', callsResult ? Object.keys(callsResult) : 'null');
             console.log('[FARCASTER] User confirmed batch transaction');
             
             // Extract the ID string from the result object
             const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
             console.log('[FARCASTER] Extracted ID string:', callsId);
             
+            // WARNING: Getting a callsId does NOT guarantee blockchain broadcast!
+            console.warn('[FARCASTER]  WARNING: Farcaster may return ID without broadcasting!');
+            console.warn('[FARCASTER]  Users should verify transaction on Celoscan');
+            
+            if (!callsId) {
+              throw new Error('No callsId returned from sendCallsAsync - transaction may have failed');
+            }
+            
             // Return with the actual callsId string
-          return {
-            success: true,
+            return {
+              success: true,
               pending: true,
               callsId: callsId,
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
             };
           } catch (error) {
@@ -688,19 +698,29 @@ export function useEthersSwap() {
             console.log('[FARCASTER-MULTIHOP] sendCallsAsync completed!');
             console.log('[FARCASTER-MULTIHOP] Calls Result:', callsResult);
             console.log('[FARCASTER-MULTIHOP] Calls ID:', callsResult?.id);
+            console.log('[FARCASTER-MULTIHOP] Calls Result Type:', typeof callsResult);
+            console.log('[FARCASTER-MULTIHOP] Calls Result Keys:', callsResult ? Object.keys(callsResult) : 'null');
             console.log('[FARCASTER-MULTIHOP] User confirmed multi-hop batch transaction');
             
             // Extract the ID string from the result object
             const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
             console.log('[FARCASTER-MULTIHOP] Extracted ID string:', callsId);
             
+            // WARNING: Getting a callsId does NOT guarantee blockchain broadcast!
+            console.warn('[FARCASTER-MULTIHOP] ⚠️ WARNING: Farcaster may return ID without broadcasting!');
+            console.warn('[FARCASTER-MULTIHOP] ⚠️ Users should verify transaction on Celoscan');
+            
+            if (!callsId) {
+              throw new Error('No callsId returned from sendCallsAsync - transaction may have failed');
+            }
+            
             // Return with the actual callsId string
-          return {
-            success: true,
+            return {
+              success: true,
               pending: true,
               callsId: callsId,
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
             };
           } catch (error) {
