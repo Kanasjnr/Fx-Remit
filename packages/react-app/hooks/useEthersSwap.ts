@@ -417,26 +417,43 @@ export function useEthersSwap() {
             : null;
           
           if (approveHash) {
-            console.log('Approval sent, waiting for confirmation...');
+            console.log('[FARCASTER] Approval transaction SENT');
+            console.log('[FARCASTER] Approval hash:', approveHash);
+            console.log('[FARCASTER] Now waiting for approval confirmation...');
+            const approvalStartTime = Date.now();
+            
             await provider.waitForTransaction(approveHash, 1);
-            console.log('Approval confirmed');
+            
+            const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
+            console.log('[FARCASTER] Approval CONFIRMED after', approvalElapsed, 'seconds');
+          } else {
+            console.log('[FARCASTER] Approval not needed (sufficient allowance)');
           }
           
           // Send swap transaction
+          console.log('[FARCASTER] Now sending SWAP transaction...');
           const swapHash = await walletClient.sendTransaction({
             to: fxRemitAddress as `0x${string}`,
             data: dataWithReferral as `0x${string}`,
             value: BigInt(0),
           });
           
-          console.log('Swap sent, waiting for confirmation...');
+          console.log('[FARCASTER] Swap transaction SENT');
+          console.log('[FARCASTER] Swap hash:', swapHash);
+          console.log('[FARCASTER] Now waiting for swap confirmation...');
+          const swapStartTime = Date.now();
+          
           const swapReceipt = await provider.waitForTransaction(swapHash, 1);
           
+          const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
+          
           if (swapReceipt.status !== 1) {
+            console.error('[FARCASTER] Swap transaction FAILED on-chain after', swapElapsed, 'seconds');
             throw new Error('Swap transaction failed on-chain');
           }
           
-          console.log('Swap completed successfully!');
+          console.log('[FARCASTER] Swap CONFIRMED after', swapElapsed, 'seconds');
+          console.log('[FARCASTER] Swap completed successfully!');
           await submitReferralTransaction(swapHash);
 
           return {
@@ -669,26 +686,43 @@ export function useEthersSwap() {
             : null;
           
           if (approveHash) {
-            console.log('Multi-hop approval sent, waiting for confirmation...');
+            console.log('[FARCASTER-MULTIHOP] Approval transaction SENT');
+            console.log('[FARCASTER-MULTIHOP] Approval hash:', approveHash);
+            console.log('[FARCASTER-MULTIHOP] Now waiting for approval confirmation...');
+            const approvalStartTime = Date.now();
+            
             await provider.waitForTransaction(approveHash, 1);
-            console.log('Multi-hop approval confirmed');
+            
+            const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
+            console.log('[FARCASTER-MULTIHOP] Approval CONFIRMED after', approvalElapsed, 'seconds');
+          } else {
+            console.log('[FARCASTER-MULTIHOP] Approval not needed (sufficient allowance)');
           }
           
           // Send multi-hop swap transaction
+          console.log('[FARCASTER-MULTIHOP] Now sending SWAP transaction...');
           const swapHash = await walletClient.sendTransaction({
             to: fxRemitAddress as `0x${string}`,
             data: dataWithReferral as `0x${string}`,
             value: BigInt(0),
           });
           
-          console.log('Multi-hop swap sent, waiting for confirmation...');
+          console.log('[FARCASTER-MULTIHOP] Swap transaction SENT');
+          console.log('[FARCASTER-MULTIHOP] Swap hash:', swapHash);
+          console.log('[FARCASTER-MULTIHOP] Now waiting for swap confirmation...');
+          const swapStartTime = Date.now();
+          
           const swapReceipt = await provider.waitForTransaction(swapHash, 1);
           
+          const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
+          
           if (swapReceipt.status !== 1) {
+            console.error('[FARCASTER-MULTIHOP] Swap transaction FAILED on-chain after', swapElapsed, 'seconds');
             throw new Error('Multi-hop swap transaction failed on-chain');
           }
           
-          console.log('Multi-hop swap completed successfully!');
+          console.log('[FARCASTER-MULTIHOP] Swap CONFIRMED after', swapElapsed, 'seconds');
+          console.log('[FARCASTER-MULTIHOP] Swap completed successfully!');
           await submitReferralTransaction(swapHash);
 
           return {
