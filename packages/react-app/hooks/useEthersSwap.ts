@@ -405,39 +405,56 @@ export function useEthersSwap() {
 
           console.log('Submitting Farcaster batch calls:', calls.length);
           
-          if (!sendCalls) throw new Error('Batch transaction API unavailable');
+          if (!walletClient) throw new Error('Wallet client unavailable');
 
-          // Use Farcaster's batch transaction API - submits all calls in one user prompt
-          await sendCalls({ calls });
+          // Send calls and wait for on-chain confirmation
+          const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei) 
+            ? await walletClient.sendTransaction({
+                to: fromTokenAddress as `0x${string}`,
+                data: calls[0].data,
+                value: BigInt(0),
+              })
+            : null;
           
-          console.log('Batch transaction submitted to Farcaster wallet');
+          if (approveHash) {
+            console.log('[FARCASTER] Approval transaction SENT');
+            console.log('[FARCASTER] Approval hash:', approveHash);
+            console.log('[FARCASTER] Now waiting for approval confirmation...');
+            const approvalStartTime = Date.now();
+            
+            await provider.waitForTransaction(approveHash, 1);
+            
+            const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
+            console.log('[FARCASTER] Approval CONFIRMED after', approvalElapsed, 'seconds');
+          } else {
+            console.log('[FARCASTER] Approval not needed (sufficient allowance)');
+          }
           
-          // Background: poll for transaction hash and submit referral tracking
-          // This doesn't block the UI - happens asynchronously
-          setTimeout(async () => {
-            try {
-              console.log('Polling for batch transaction hash...');
-              // Get recent transactions from the user's address
-              const latestBlock = await provider.getBlockNumber();
-              const block = await provider.getBlockWithTransactions(latestBlock);
-              
-              // Find the most recent transaction from this address to FXRemit contract
-              const recentTx = block.transactions.find(tx => 
-                tx.from?.toLowerCase() === signerAddress.toLowerCase() &&
-                tx.to?.toLowerCase() === fxRemitAddress.toLowerCase()
-              );
-              
-              if (recentTx?.hash) {
-                console.log('Found transaction hash:', recentTx.hash);
-                await submitReferralTransaction(recentTx.hash);
-              }
-            } catch (error) {
-              console.warn('Background referral tracking failed:', error);
-            }
-          }, 2000); // Poll after 2 seconds
+          // Send swap transaction
+          console.log('[FARCASTER] Now sending SWAP transaction...');
+          const swapHash = await walletClient.sendTransaction({
+            to: fxRemitAddress as `0x${string}`,
+            data: dataWithReferral as `0x${string}`,
+            value: BigInt(0),
+          });
           
-          const transactionId = 'pending';
-          console.log('Transactions submitted successfully via batch!');
+          console.log('[FARCASTER] Swap transaction SENT');
+          console.log('[FARCASTER] Swap hash:', swapHash);
+          console.log('[FARCASTER] Now waiting for swap confirmation...');
+          const swapStartTime = Date.now();
+          
+          const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+          
+          const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
+          
+          if (swapReceipt.status !== 1) {
+            console.error('[FARCASTER] Swap transaction FAILED on-chain after', swapElapsed, 'seconds');
+            throw new Error('Swap transaction failed on-chain');
+          }
+          
+          console.log('[FARCASTER] Swap CONFIRMED after', swapElapsed, 'seconds');
+          console.log('[FARCASTER] Swap completed successfully!');
+          await submitReferralTransaction(swapHash);
 
           return {
             success: true,
@@ -657,39 +674,57 @@ export function useEthersSwap() {
 
           console.log('Submitting Farcaster multi-hop batch calls:', calls.length);
           
-          if (!sendCalls) throw new Error('Batch transaction API unavailable');
+          // For Farcaster, send transactions sequentially and wait for on-chain confirmation
+          if (!walletClient) throw new Error('Wallet client unavailable');
 
-          // Use Farcaster's batch transaction API - submits all calls in one user prompt
-          await sendCalls({ calls });
+          // Send approval if needed
+          const approveHash = calls.length > 1 && currentAllowance.lt(amountInWei)
+            ? await walletClient.sendTransaction({
+                to: fromTokenAddress as `0x${string}`,
+                data: calls[0].data,
+                value: BigInt(0),
+              })
+            : null;
           
-          console.log('Multi-hop batch transaction submitted to Farcaster wallet');
+          if (approveHash) {
+            console.log('[FARCASTER-MULTIHOP] Approval transaction SENT');
+            console.log('[FARCASTER-MULTIHOP] Approval hash:', approveHash);
+            console.log('[FARCASTER-MULTIHOP] Now waiting for approval confirmation...');
+            const approvalStartTime = Date.now();
+            
+            await provider.waitForTransaction(approveHash, 1);
+            
+            const approvalElapsed = ((Date.now() - approvalStartTime) / 1000).toFixed(1);
+            console.log('[FARCASTER-MULTIHOP] Approval CONFIRMED after', approvalElapsed, 'seconds');
+          } else {
+            console.log('[FARCASTER-MULTIHOP] Approval not needed (sufficient allowance)');
+          }
           
-          // Background: poll for transaction hash and submit referral tracking
-          // This doesn't block the UI - happens asynchronously
-          setTimeout(async () => {
-            try {
-              console.log('Polling for multi-hop batch transaction hash...');
-              // Get recent transactions from the user's address
-              const latestBlock = await provider.getBlockNumber();
-              const block = await provider.getBlockWithTransactions(latestBlock);
-              
-              // Find the most recent transaction from this address to FXRemit contract
-              const recentTx = block.transactions.find(tx => 
-                tx.from?.toLowerCase() === signerAddress.toLowerCase() &&
-                tx.to?.toLowerCase() === fxRemitAddress.toLowerCase()
-              );
-              
-              if (recentTx?.hash) {
-                console.log('Found multi-hop transaction hash:', recentTx.hash);
-                await submitReferralTransaction(recentTx.hash);
-              }
-            } catch (error) {
-              console.warn('Background multi-hop referral tracking failed:', error);
-            }
-          }, 2000); // Poll after 2 seconds
+          // Send multi-hop swap transaction
+          console.log('[FARCASTER-MULTIHOP] Now sending SWAP transaction...');
+          const swapHash = await walletClient.sendTransaction({
+            to: fxRemitAddress as `0x${string}`,
+            data: dataWithReferral as `0x${string}`,
+            value: BigInt(0),
+          });
           
-          const transactionId = 'pending';
-          console.log('Multi-hop transactions submitted successfully via batch!');
+          console.log('[FARCASTER-MULTIHOP] Swap transaction SENT');
+          console.log('[FARCASTER-MULTIHOP] Swap hash:', swapHash);
+          console.log('[FARCASTER-MULTIHOP] Now waiting for swap confirmation...');
+          const swapStartTime = Date.now();
+          
+          const swapReceipt = await provider.waitForTransaction(swapHash, 1);
+          
+          const swapElapsed = ((Date.now() - swapStartTime) / 1000).toFixed(1);
+          
+          if (swapReceipt.status !== 1) {
+            console.error('[FARCASTER-MULTIHOP] Swap transaction FAILED on-chain after', swapElapsed, 'seconds');
+            throw new Error('Multi-hop swap transaction failed on-chain');
+          }
+          
+          console.log('[FARCASTER-MULTIHOP] Swap CONFIRMED after', swapElapsed, 'seconds');
+          console.log('[FARCASTER-MULTIHOP] Swap completed successfully!');
+          await submitReferralTransaction(swapHash);
 
           return {
             success: true,
