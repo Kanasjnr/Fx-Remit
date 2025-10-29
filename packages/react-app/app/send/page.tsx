@@ -177,26 +177,26 @@ export default function SendPage() {
     }
   }, [callsStatus, pendingCallsId, markSuccess, markFailure])
   
-  // Fallback: Auto-success after reasonable time for Farcaster transactions
+  // Fallback: Warn user to check if transaction is on blockchain
   useEffect(() => {
     if (pendingCallsId) {
       console.log('[UI] Setting 30-second fallback timer for Farcaster transaction')
       const fallbackTimer = setTimeout(() => {
-        console.log('[UI] Fallback timer triggered - assuming transaction succeeded')
-        console.log('[UI] Check Celoscan to verify: https://celoscan.io/')
-        markSuccess({
-          title: 'Transaction Submitted',
-          message: 'Your transaction was submitted successfully! Check Celoscan for confirmation.',
+        console.log('[UI] ⚠️ Fallback timer triggered - Status unknown')
+        console.log('[UI] ⚠️ Some Farcaster transactions broadcast, some do not')
+        console.log('[UI] ⚠️ PLEASE CHECK CELOSCAN: https://celoscan.io/')
+        console.log('[UI] ⚠️ Search for your address or check transaction history')
+        markFailure({
+          reason: `Transaction status unclear. Please check Celoscan to verify if your transaction was successful. Transaction may take a few minutes to appear.`,
+          title: 'Please Verify on Celoscan'
         })
         setPendingCallsId(undefined)
-        setAmount("")
-        setRecipient("")
         setIsProcessing(false)
       }, 30000) // 30 seconds
       
       return () => clearTimeout(fallbackTimer)
     }
-  }, [pendingCallsId, markSuccess])
+  }, [pendingCallsId, markFailure])
 
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
