@@ -424,22 +424,27 @@ export function useEthersSwap() {
             // Use sendCalls as per Farcaster documentation
             // Note: sendCalls returns void, the result comes in sendCallsData
             console.log('[FARCASTER] Calling sendCalls...');
+            console.log('[FARCASTER] Current sendCallsData before call:', sendCallsData);
+            
             sendCalls({
               calls: calls
             });
             
             console.log('[FARCASTER] sendCalls triggered successfully');
             console.log('[FARCASTER] Batch transaction prompt shown to user');
-            console.log('[FARCASTER] Result data:', sendCallsData);
+            
+            // Wait a moment for sendCallsData to populate
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('[FARCASTER] sendCallsData after delay:', sendCallsData);
             
             // Return immediately with pending status
             // The actual callsId will be available in sendCallsData after user confirms
-            return {
-              success: true,
+          return {
+            success: true,
               pending: true,
               callsId: sendCallsData,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
             };
           } catch (error) {
@@ -675,22 +680,27 @@ export function useEthersSwap() {
             // Use sendCalls as per Farcaster documentation
             // Note: sendCalls returns void, the result comes in sendCallsData
             console.log('[FARCASTER-MULTIHOP] Calling sendCalls...');
+            console.log('[FARCASTER-MULTIHOP] Current sendCallsData before call:', sendCallsData);
+            
             sendCalls({
               calls: calls
             });
             
             console.log('[FARCASTER-MULTIHOP] sendCalls triggered successfully');
             console.log('[FARCASTER-MULTIHOP] Multi-hop batch transaction prompt shown to user');
-            console.log('[FARCASTER-MULTIHOP] Result data:', sendCallsData);
+            
+            // Wait a moment for sendCallsData to populate
+            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('[FARCASTER-MULTIHOP] sendCallsData after delay:', sendCallsData);
             
             // Return immediately with pending status
             // The actual callsId will be available in sendCallsData after user confirms
-            return {
-              success: true,
+          return {
+            success: true,
               pending: true,
               callsId: sendCallsData,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
             };
           } catch (error) {

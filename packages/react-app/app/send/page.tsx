@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useAccount, useWalletClient } from "wagmi"
+import { useAccount, useWalletClient, useCallsStatus } from "wagmi"
 import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
 import BottomNavigation from "@/components/BottomNavigation"
 import { useTokenBalance, useQuote } from "@/hooks/useMento"
@@ -34,7 +34,17 @@ export default function SendPage() {
   const [recipient, setRecipient] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [pickerOpen, setPickerOpen] = useState<null | "from" | "to">(null)
+  const [pendingCallsId, setPendingCallsId] = useState<string | undefined>(undefined)
   const { startProcessing, markSuccess, markFailure, clear } = useTransactionStatus()
+  
+  // Track Farcaster batch transaction status
+  const { data: callsStatus } = useCallsStatus({
+    id: pendingCallsId as `0x${string}`,
+    query: {
+      enabled: !!pendingCallsId,
+      refetchInterval: 2000 // Poll every 2 seconds
+    }
+  })
 
   // Memoize wallet state to prevent unnecessary re-renders
   const walletState = useMemo(() => ({
@@ -129,6 +139,41 @@ export default function SendPage() {
     debouncedResolveUsername(value)
   }
 
+  // Monitor transaction status and update UI
+  useEffect(() => {
+    if (callsStatus && pendingCallsId) {
+      console.log('[UI] Batch transaction status:', callsStatus.status)
+      console.log('[UI] Full callsStatus:', callsStatus)
+      
+      // Check if all receipts are successful
+      const hasReceipts = callsStatus.receipts && callsStatus.receipts.length > 0
+      const allSuccess = hasReceipts && callsStatus.receipts?.every(r => r.status === 'success')
+      
+      if (hasReceipts && allSuccess) {
+        console.log('[UI] Transaction SUCCESS! Showing success overlay')
+        markSuccess({
+          title: 'Success',
+          message: 'Your transfer completed successfully!',
+          txHash: callsStatus.receipts?.[0]?.transactionHash
+        })
+        setPendingCallsId(undefined)
+        setAmount("")
+        setRecipient("")
+        setIsProcessing(false)
+      } else if (hasReceipts && callsStatus.receipts?.some(r => r.status === 'reverted')) {
+        console.log('[UI] Transaction REVERTED/FAILED')
+        markFailure({
+          reason: 'Transaction reverted on blockchain',
+          title: 'Transaction Failed'
+        })
+        setPendingCallsId(undefined)
+        setIsProcessing(false)
+      } else {
+        console.log('[UI] Transaction still processing... status:', callsStatus.status)
+      }
+    }
+  }, [callsStatus, pendingCallsId, markSuccess, markFailure])
+
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
       return
@@ -160,23 +205,24 @@ export default function SendPage() {
       console.log(" Swap result:", swapResult)
 
       if ((swapResult as any)?.pending) {
-        console.log('Batch transaction submitted successfully via Farcaster');
-        clear() // Clear the processing modal
-        toast.success('Transaction submitted! Processing in Farcaster wallet...', {
-          position: "top-center",
-          autoClose: 3000,
-        });
-        setAmount("")
-        setRecipient("")
-        setIsProcessing(false)
+        console.log('[UI] Batch transaction submitted to Farcaster');
+        console.log('[UI] Calls ID:', (swapResult as any)?.callsId)
+        
+        // Store the callsId to track status
+        if ((swapResult as any)?.callsId) {
+          setPendingCallsId((swapResult as any).callsId)
+          console.log('[UI] Now monitoring transaction status...')
+        } else {
+          console.warn('[UI] No callsId returned, will show pending state')
+          // Still keep overlay open, monitoring will happen via callsStatus hook
+        }
+        
+        // Keep the overlay open - it will update when transaction confirms
         return
       }
 
+      // For non-Farcaster transactions
       markSuccess()
-      toast.success('Transaction completed successfully!', {
-        position: "top-center",
-        autoClose: 3000,
-      });
       setAmount("")
       setRecipient("")
       setIsProcessing(false)
