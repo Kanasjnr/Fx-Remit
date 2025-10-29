@@ -35,7 +35,7 @@ declare global {
 export function useEthersSwap() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const { sendCalls, data: sendCallsData } = useSendCalls();
+  const { sendCallsAsync, data: sendCallsData } = useSendCalls();
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
 
@@ -414,41 +414,36 @@ export function useEthersSwap() {
             dataPreview: c.data.slice(0, 10) + '...'
           })));
           
-          console.log('[FARCASTER] Checking sendCalls availability:', typeof sendCalls);
+          console.log('[FARCASTER] Checking sendCallsAsync availability:', typeof sendCallsAsync);
           
-          if (!sendCalls) {
-            throw new Error('sendCalls is not available. This might be a Farcaster wallet configuration issue.');
+          if (!sendCallsAsync) {
+            throw new Error('sendCallsAsync is not available. This might be a Farcaster wallet configuration issue.');
           }
           
           try {
-            // Use sendCalls as per Farcaster documentation
-            // Note: sendCalls returns void, the result comes in sendCallsData
-            console.log('[FARCASTER] Calling sendCalls...');
-            console.log('[FARCASTER] Current sendCallsData before call:', sendCallsData);
+            // Use sendCallsAsync as per Farcaster documentation
+            // This returns a promise that resolves with the callsId after user confirms
+            console.log('[FARCASTER] Calling sendCallsAsync...');
             
-            sendCalls({
+            const callsId = await sendCallsAsync({
               calls: calls
             });
             
-            console.log('[FARCASTER] sendCalls triggered successfully');
-            console.log('[FARCASTER] Batch transaction prompt shown to user');
+            console.log('[FARCASTER] sendCallsAsync completed!');
+            console.log('[FARCASTER] Calls ID:', callsId);
+            console.log('[FARCASTER] User confirmed batch transaction');
             
-            // Wait a moment for sendCallsData to populate
-            await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('[FARCASTER] sendCallsData after delay:', sendCallsData);
-            
-            // Return immediately with pending status
-            // The actual callsId will be available in sendCallsData after user confirms
-          return {
-            success: true,
+            // Return with the actual callsId
+            return {
+              success: true,
               pending: true,
-              callsId: sendCallsData,
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
+              callsId: callsId,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
             };
           } catch (error) {
-            console.error('[FARCASTER] Error calling sendCalls:', error);
+            console.error('[FARCASTER] Error calling sendCallsAsync:', error);
             console.error('[FARCASTER] Error details:', {
               name: error instanceof Error ? error.name : 'Unknown',
               message: error instanceof Error ? error.message : String(error),
@@ -670,41 +665,36 @@ export function useEthersSwap() {
             dataPreview: c.data.slice(0, 10) + '...'
           })));
           
-          console.log('[FARCASTER-MULTIHOP] Checking sendCalls availability:', typeof sendCalls);
+          console.log('[FARCASTER-MULTIHOP] Checking sendCallsAsync availability:', typeof sendCallsAsync);
           
-          if (!sendCalls) {
-            throw new Error('sendCalls is not available. This might be a Farcaster wallet configuration issue.');
+          if (!sendCallsAsync) {
+            throw new Error('sendCallsAsync is not available. This might be a Farcaster wallet configuration issue.');
           }
           
           try {
-            // Use sendCalls as per Farcaster documentation
-            // Note: sendCalls returns void, the result comes in sendCallsData
-            console.log('[FARCASTER-MULTIHOP] Calling sendCalls...');
-            console.log('[FARCASTER-MULTIHOP] Current sendCallsData before call:', sendCallsData);
+            // Use sendCallsAsync as per Farcaster documentation
+            // This returns a promise that resolves with the callsId after user confirms
+            console.log('[FARCASTER-MULTIHOP] Calling sendCallsAsync...');
             
-            sendCalls({
+            const callsId = await sendCallsAsync({
               calls: calls
             });
             
-            console.log('[FARCASTER-MULTIHOP] sendCalls triggered successfully');
-            console.log('[FARCASTER-MULTIHOP] Multi-hop batch transaction prompt shown to user');
+            console.log('[FARCASTER-MULTIHOP] sendCallsAsync completed!');
+            console.log('[FARCASTER-MULTIHOP] Calls ID:', callsId);
+            console.log('[FARCASTER-MULTIHOP] User confirmed multi-hop batch transaction');
             
-            // Wait a moment for sendCallsData to populate
-            await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('[FARCASTER-MULTIHOP] sendCallsData after delay:', sendCallsData);
-            
-            // Return immediately with pending status
-            // The actual callsId will be available in sendCallsData after user confirms
-          return {
-            success: true,
+            // Return with the actual callsId
+            return {
+              success: true,
               pending: true,
-              callsId: sendCallsData,
-            amountOut: ethers.utils.formatEther(expectedAmountOut),
-            recipient: recipientAddress ?? signerAddress,
+              callsId: callsId,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
             };
           } catch (error) {
-            console.error('[FARCASTER-MULTIHOP] Error calling sendCalls:', error);
+            console.error('[FARCASTER-MULTIHOP] Error calling sendCallsAsync:', error);
             console.error('[FARCASTER-MULTIHOP] Error details:', {
               name: error instanceof Error ? error.name : 'Unknown',
               message: error instanceof Error ? error.message : String(error),
