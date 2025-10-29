@@ -425,21 +425,26 @@ export function useEthersSwap() {
             // This returns a promise that resolves with the callsId after user confirms
             console.log('[FARCASTER] Calling sendCallsAsync...');
             
-            const callsId = await sendCallsAsync({
+            const callsResult = await sendCallsAsync({
               calls: calls
             });
             
             console.log('[FARCASTER] sendCallsAsync completed!');
-            console.log('[FARCASTER] Calls ID:', callsId);
+            console.log('[FARCASTER] Calls Result:', callsResult);
+            console.log('[FARCASTER] Calls ID:', callsResult?.id);
             console.log('[FARCASTER] User confirmed batch transaction');
             
-            // Return with the actual callsId
-            return {
-              success: true,
+            // Extract the ID string from the result object
+            const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
+            console.log('[FARCASTER] Extracted ID string:', callsId);
+            
+            // Return with the actual callsId string
+          return {
+            success: true,
               pending: true,
               callsId: callsId,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
             };
           } catch (error) {
@@ -676,21 +681,26 @@ export function useEthersSwap() {
             // This returns a promise that resolves with the callsId after user confirms
             console.log('[FARCASTER-MULTIHOP] Calling sendCallsAsync...');
             
-            const callsId = await sendCallsAsync({
+            const callsResult = await sendCallsAsync({
               calls: calls
             });
             
             console.log('[FARCASTER-MULTIHOP] sendCallsAsync completed!');
-            console.log('[FARCASTER-MULTIHOP] Calls ID:', callsId);
+            console.log('[FARCASTER-MULTIHOP] Calls Result:', callsResult);
+            console.log('[FARCASTER-MULTIHOP] Calls ID:', callsResult?.id);
             console.log('[FARCASTER-MULTIHOP] User confirmed multi-hop batch transaction');
             
-            // Return with the actual callsId
-            return {
-              success: true,
+            // Extract the ID string from the result object
+            const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
+            console.log('[FARCASTER-MULTIHOP] Extracted ID string:', callsId);
+            
+            // Return with the actual callsId string
+          return {
+            success: true,
               pending: true,
               callsId: callsId,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
               message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
             };
           } catch (error) {
