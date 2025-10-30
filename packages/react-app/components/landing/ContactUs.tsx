@@ -9,6 +9,8 @@ export default function ContactUs() {
     email: '',
     message: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -18,10 +20,34 @@ export default function ContactUs() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted:', formData)
-    // Handle form submission here
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+
+    try {
+      const form = e.target as HTMLFormElement
+      const formDataToSend = new FormData(form)
+      
+      const response = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formDataToSend as any).toString(),
+      })
+
+      if (response.ok) {
+        setSubmitStatus('success')
+        setFormData({ firstName: '', lastName: '', email: '', message: '' })
+        setTimeout(() => setSubmitStatus('idle'), 5000)
+      } else {
+        setSubmitStatus('error')
+      }
+    } catch (error) {
+      console.error('Form submission error:', error)
+      setSubmitStatus('error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -255,6 +281,10 @@ export default function ContactUs() {
               }}
             >
               <form 
+                name="contact"
+                method="POST"
+                data-netlify="true"
+                data-netlify-honeypot="bot-field"
                 className="contact-us-form rounded-[50px] p-8"
                 onSubmit={handleSubmit}
                 style={{
@@ -265,6 +295,14 @@ export default function ContactUs() {
                   padding: '32px'
                 }}
               >
+                {/* Hidden fields for Netlify */}
+                <input type="hidden" name="form-name" value="contact" />
+                <div style={{ display: 'none' }}>
+                  <label>
+                    Don't fill this out if you're human: <input name="bot-field" />
+                  </label>
+                </div>
+
                 {/* Name Fields */}
                 {/* Name Fields */}
                 <div 
@@ -305,6 +343,7 @@ export default function ContactUs() {
                   value={formData.firstName}
                   onChange={handleInputChange}
                   placeholder="enter your first name"
+                  required
                   style={{
                     width: '331px',
                     height: '59px',
@@ -359,6 +398,7 @@ export default function ContactUs() {
                   value={formData.lastName}
                   onChange={handleInputChange}
                   placeholder="enter your last name"
+                  required
                   style={{
                     width: '331px',
                     height: '59px',
@@ -420,6 +460,7 @@ export default function ContactUs() {
                   value={formData.email}
                   onChange={handleInputChange}
                       placeholder="enter your email"
+                  required
                   style={{
                     width: '684px',
                     height: '59px',
@@ -481,6 +522,7 @@ export default function ContactUs() {
                   onChange={handleInputChange}
                   placeholder="type your message here..."
                       rows={6}
+                  required
                   style={{
                     width: '684px',
                     height: '170px',
@@ -508,11 +550,12 @@ export default function ContactUs() {
                 <div className="flex justify-center" style={{ marginTop: '30px' }}>
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="contact-us-button"
                 style={{
                   width: '210px',
                   height: '59px',
-                  backgroundColor: '#2E5EAA',
+                  backgroundColor: isSubmitting ? '#7A9CC6' : '#2E5EAA',
                       color: '#F8F8FF',
                   fontFamily: 'Inter',
                   fontWeight: 500,
@@ -527,19 +570,54 @@ export default function ContactUs() {
                       paddingLeft: '10px',
                       opacity: 1,
                       gap: '10px',
-                      cursor: 'pointer',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
                       transition: 'background-color 0.3s ease'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#1e4a8c'
+                      if (!isSubmitting) e.currentTarget.style.backgroundColor = '#1e4a8c'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#2E5EAA'
+                      if (!isSubmitting) e.currentTarget.style.backgroundColor = '#2E5EAA'
                 }}
               >
-                Send message
+                {isSubmitting ? 'Sending...' : 'Send message'}
               </button>
                 </div>
+
+                {/* Status Messages */}
+                {submitStatus === 'success' && (
+                  <div 
+                    style={{
+                      marginTop: '20px',
+                      padding: '15px',
+                      backgroundColor: '#D4EDDA',
+                      color: '#155724',
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      fontFamily: 'Inter',
+                      fontSize: '16px'
+                    }}
+                  >
+                    ✓ Thank you! Your message has been sent successfully.
+                  </div>
+                )}
+
+                {submitStatus === 'error' && (
+                  <div 
+                    style={{
+                      marginTop: '20px',
+                      padding: '15px',
+                      backgroundColor: '#F8D7DA',
+                      color: '#721C24',
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      fontFamily: 'Inter',
+                      fontSize: '16px'
+                    }}
+                  >
+                    ✗ Oops! Something went wrong. Please try again.
+                  </div>
+                )}
             </form>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 export default function WhyChooseFX() {
   return (
-    <section id="why-us" className="py-16 bg-white">
+    <section id="why-us" className="py-16 bg-white relative" style={{ zIndex: 1 }}>
       <div className="w-full flex flex-col items-center">
         {/* Section Header */}
         <div
@@ -174,7 +174,7 @@ export default function WhyChooseFX() {
           >
             {/* Text Content - Left Side */}
             <div
-              className="relative z-10"
+              className="relative"
               style={{
                 width: '514px',
                 height: '400px',

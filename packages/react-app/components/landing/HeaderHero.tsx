@@ -39,7 +39,7 @@ export default function HeaderHero() {
       </div>
 
       {/* Header Overlay */}
-      <div className="relative z-10">
+      <div className="relative">
         {/* Desktop Header */}
         <header className="hidden md:block fixed w-full top-0 left-0 z-50 p-4">
           <div className="flex justify-center">

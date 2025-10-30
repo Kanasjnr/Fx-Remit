@@ -2,7 +2,7 @@
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-16 px-4 bg-white">
+    <section id="how-it-works" className="py-16 px-4 bg-white relative" style={{ zIndex: 1 }}>
       <div className="w-full flex justify-center">
         <div
           className="relative p-12 overflow-hidden how-it-works-container"
@@ -46,7 +46,7 @@ export default function HowItWorks() {
           </div>
 
           {/* Header */}
-          <div className="relative z-10 header-section" style={{ paddingLeft: '80px', paddingTop: '60px' }}>
+          <div className="relative header-section" style={{ paddingLeft: '80px', paddingTop: '60px' }}>
             <div>
               <div 
                 className="text-[#E8A040] uppercase mb-4"
@@ -83,7 +83,6 @@ export default function HowItWorks() {
                 top: '400px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                zIndex: 10,
                 justifyContent: 'space-between',
                 opacity: 1
               }}
