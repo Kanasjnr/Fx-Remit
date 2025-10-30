@@ -299,7 +299,7 @@ export default function ContactUs() {
                 <input type="hidden" name="form-name" value="contact" />
                 <div style={{ display: 'none' }}>
                   <label>
-                    Don't fill this out if you're human: <input name="bot-field" />
+                    Don&apos;t fill this out if you&apos;re human: <input name="bot-field" />
                   </label>
                 </div>
 
