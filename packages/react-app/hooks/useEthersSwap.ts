@@ -524,7 +524,6 @@ export function useEthersSwap() {
 
           console.log('Sending swap transaction...');
           
-          // Add gas configuration for better reliability
           const gasEstimate = await signer.estimateGas(swapTx);
           swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
           

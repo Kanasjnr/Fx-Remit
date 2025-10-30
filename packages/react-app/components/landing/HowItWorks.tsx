@@ -127,7 +127,7 @@ export default function HowItWorks() {
               <div 
                 className="text-white text-center step-item"
                 style={{
-                  width: '224px',
+                  width: '255px',
                   height: '223px',
                   opacity: 1,
                   gap: '10px'
@@ -156,7 +156,7 @@ export default function HowItWorks() {
                     letterSpacing: '0%',
                   }}
                 >
-                  Link your crypto wallet or create a new one in seconds
+                  Select your source and destination currencies with live exchange rates
                 </p>
               </div>
 
@@ -164,7 +164,7 @@ export default function HowItWorks() {
               <div 
                 className="text-white text-center step-item"
                 style={{
-                  width: '224px',
+                  width: '255px',
                   height: '223px'
                 }}
               >
@@ -191,7 +191,7 @@ export default function HowItWorks() {
                     letterSpacing: '0%',
                   }}
                 >
-                  Link your crypto wallet or create a new one in seconds
+                  Complete your transfer securely with fast blockchain settlement
                 </p>
               </div>
           </div>
