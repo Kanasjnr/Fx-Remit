@@ -198,6 +198,15 @@ export function useEthersSwap() {
       }
 
       console.log('Using traditional Web3 wallet');
+      
+      // Request accounts first to ensure wallet is properly connected
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+      } catch (error) {
+        console.error('Failed to request accounts:', error);
+        throw new Error('Please connect your wallet and try again.');
+      }
+      
       const ethersProvider = new providers.Web3Provider(window.ethereum);
       signer = ethersProvider.getSigner();
 
@@ -284,47 +293,67 @@ export function useEthersSwap() {
       });
 
       if (tradablePair.path.length === 2) {
-        const hop1 = tradablePair.path[0];
-        const hop2 = tradablePair.path[1];
-
         console.log('Pre-validating multi-hop path...');
-
-        // Check if hop1 supports the fromToken
-        if (!hop1.assets.includes(fromTokenAddress)) {
-          console.error('Hop 1 validation failed:', {
-            hop1Assets: hop1.assets,
+        
+        // Determine which hop comes first based on which contains the fromToken
+        let firstHop, secondHop;
+        
+        if (tradablePair.path[0].assets.includes(fromTokenAddress)) {
+          firstHop = tradablePair.path[0];
+          secondHop = tradablePair.path[1];
+          console.log('Path order: hop[0] → hop[1]');
+        } else if (tradablePair.path[1].assets.includes(fromTokenAddress)) {
+          firstHop = tradablePair.path[1];
+          secondHop = tradablePair.path[0];
+          console.log('Path order: hop[1] → hop[0] (reversed)');
+        } else {
+          console.error('Neither hop contains fromToken:', {
+            hop0Assets: tradablePair.path[0].assets,
+            hop1Assets: tradablePair.path[1].assets,
             fromTokenAddress,
             fromCurrency,
           });
           throw new Error(
-            `Multi-hop swap failed: The first exchange doesn't support ${fromCurrency}. This token pair may not be available for trading. Please try a different currency pair.`
+            `Multi-hop swap failed: Neither exchange supports ${fromCurrency}. This token pair may not be available for trading.`
           );
         }
 
-        // Check if hop2 supports the toToken
-        if (!hop2.assets.includes(toTokenAddress)) {
-          console.error('Hop 2 validation failed:', {
-            hop2Assets: hop2.assets,
+        // Validate first hop supports fromToken (should always pass now)
+        if (!firstHop.assets.includes(fromTokenAddress)) {
+          console.error('First hop validation failed:', {
+            firstHopAssets: firstHop.assets,
+            fromTokenAddress,
+            fromCurrency,
+          });
+          throw new Error(
+            `Multi-hop swap failed: The first exchange doesn't support ${fromCurrency}.`
+          );
+        }
+
+        // Validate second hop supports toToken
+        if (!secondHop.assets.includes(toTokenAddress)) {
+          console.error('Second hop validation failed:', {
+            secondHopAssets: secondHop.assets,
             toTokenAddress,
             toCurrency,
           });
           throw new Error(
-            `Multi-hop swap failed: The second exchange doesn't support ${toCurrency}. This token pair may not be available for trading. Please try a different currency pair.`
+            `Multi-hop swap failed: The second exchange doesn't support ${toCurrency}.`
           );
         }
 
         // Find intermediate token
-        const intermediateToken = hop1.assets.find(
+        const intermediateToken = firstHop.assets.find(
           (asset) =>
-            hop2.assets.includes(asset) &&
+            secondHop.assets.includes(asset) &&
             asset !== fromTokenAddress &&
             asset !== toTokenAddress
         );
 
         if (!intermediateToken) {
           console.error('No valid intermediate token found:', {
-            hop1Assets: hop1.assets,
-            hop2Assets: hop2.assets,
+            firstHopAssets: firstHop.assets,
+            secondHopAssets: secondHop.assets,
             fromTokenAddress,
             toTokenAddress,
           });
@@ -335,8 +364,8 @@ export function useEthersSwap() {
 
         console.log('Multi-hop path pre-validation passed:', {
           intermediateToken,
-          hop1Supports: hop1.assets,
-          hop2Supports: hop2.assets,
+          firstHopSupports: firstHop.assets,
+          secondHopSupports: secondHop.assets,
         });
       }
 
@@ -549,8 +578,22 @@ export function useEthersSwap() {
       }
 
       if (tradablePair.path.length === 2) {
-        const hop1 = tradablePair.path[0];
-        const hop2 = tradablePair.path[1];
+        // Determine correct hop order based on which contains fromToken
+        let hop1, hop2;
+        
+        if (tradablePair.path[0].assets.includes(fromTokenAddress)) {
+          hop1 = tradablePair.path[0];
+          hop2 = tradablePair.path[1];
+          console.log('Execution path order: hop[0] → hop[1]');
+        } else if (tradablePair.path[1].assets.includes(fromTokenAddress)) {
+          hop1 = tradablePair.path[1];
+          hop2 = tradablePair.path[0];
+          console.log('Execution path order: hop[1] → hop[0] (reversed)');
+        } else {
+          throw new Error(
+            `Multi-hop swap setup failed: Neither exchange supports ${fromCurrency}`
+          );
+        }
 
         console.log('Analyzing multi-hop path:', {
           hop1: {
