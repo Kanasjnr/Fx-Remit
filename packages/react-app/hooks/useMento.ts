@@ -165,9 +165,9 @@ export function useQuote(
         const amountOut = formatEther(amountOutBigInt);
         const exchangeRate = formatEther(amountOutBigInt * BigInt(1e18) / amountInWei);
         
-        // Calculate platform fee (1.5% of amount sent)
+        // Calculate platform fee (1.5% of amount received - matches contract calculation)
         const platformFeeRate = 0.015;
-        const platformFee = (parseFloat(amountIn) * platformFeeRate).toString();
+        const platformFee = (parseFloat(amountOut) * platformFeeRate).toString();
         
         // Simple price impact calculation (could be more sophisticated)
         const priceImpact = '0.1'; // 0.1% as example

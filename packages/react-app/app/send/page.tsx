@@ -1,129 +1,126 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { useAccount, useWalletClient, useCallsStatus } from "wagmi"
-import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
-import BottomNavigation from "@/components/BottomNavigation"
-import { useTokenBalance, useQuote } from "@/hooks/useMento"
-import { useEthersSwap } from "@/hooks/useEthersSwap"
-import { useFarcasterResolver } from "@/hooks/useFarcasterResolver"
-import type { Currency } from "@/lib/contracts"
-import { toast } from "react-toastify"
-import { useTransactionStatus } from "@/providers/TransactionStatusProvider"
-import Link from "next/link"
-import Image from "next/image"
-import { AssetPicker, type AssetOption } from "@/components/AssetPicker"
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAccount, useCallsStatus } from 'wagmi';
+import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
+import BottomNavigation from '@/components/BottomNavigation';
+import { useTokenBalance, useQuote } from '@/hooks/useMento';
+import { useTotalBalance } from '@/hooks/useTotalBalance';
+import { useEthersSwap } from '@/hooks/useEthersSwap';
+import { useFarcasterResolver } from '@/hooks/useFarcasterResolver';
+import type { Currency } from '@/lib/contracts';
+import { CURRENCIES } from '@/lib/currencies';
+import { useTransactionStatus } from '@/providers/TransactionStatusProvider';
+import Link from 'next/link';
+import { AssetPicker, type AssetOption } from '@/components/AssetPicker';
 import {
   ArrowsUpDownIcon,
   ArrowRightIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  CurrencyDollarIcon,
-  GlobeAltIcon,
   CheckCircleIcon,
   ChevronDownIcon,
-} from "@heroicons/react/24/outline"
+} from '@heroicons/react/24/outline';
 
 export default function SendPage() {
-  const { address, isConnected } = useAccount()
-  const { data: walletClient } = useWalletClient()
-  const { isMiniApp } = useFarcasterMiniApp()
-  const [fromCurrency, setFromCurrency] = useState<Currency>("cUSD")
-  const [toCurrency, setToCurrency] = useState<Currency>("cNGN")
-  const [amount, setAmount] = useState("")
-  const [recipient, setRecipient] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [pickerOpen, setPickerOpen] = useState<null | "from" | "to">(null)
-  const [pendingCallsId, setPendingCallsId] = useState<string | undefined>(undefined)
-  const { startProcessing, markSuccess, markFailure, clear } = useTransactionStatus()
-  
+  const { address, isConnected } = useAccount();
+  const { isMiniApp } = useFarcasterMiniApp();
+  const [fromCurrency, setFromCurrency] = useState<Currency>('cUSD');
+  const [toCurrency, setToCurrency] = useState<Currency>('cNGN');
+  const [amount, setAmount] = useState('');
+  const [recipient, setRecipient] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState<null | 'from' | 'to'>(null);
+  const [pendingCallsId, setPendingCallsId] = useState<string | undefined>(
+    undefined
+  );
+  const { startProcessing, markSuccess, markFailure, clear } =
+    useTransactionStatus();
+
   // Track Farcaster batch transaction status
   const { data: callsStatus } = useCallsStatus({
     id: pendingCallsId as `0x${string}`,
     query: {
       enabled: !!pendingCallsId,
-      refetchInterval: 2000 // Poll every 2 seconds
-    }
-  })
+      refetchInterval: 2000, // Poll every 2 seconds
+    },
+  });
 
   // Memoize wallet state to prevent unnecessary re-renders
-  const walletState = useMemo(() => ({
-    address,
-    isConnected,
-    isMiniApp,
-    canSend: isConnected && address
-  }), [address, isConnected, isMiniApp])
+  const walletState = useMemo(
+    () => ({
+      address,
+      isConnected,
+      isMiniApp,
+      canSend: isConnected && address,
+    }),
+    [address, isConnected, isMiniApp]
+  );
 
-  const currencies: Array<{ 
-    code: Currency; 
-    name: string; 
-    flag: string; 
-    symbol: string;
-    tokenLogo: string;
-    countryFlag: string;
-  }> = [
-    { code: "cUSD", name: "US Dollar", flag: "🇺🇸", symbol: "$", tokenLogo: "/cUSD .svg", countryFlag: "/US.svg" },
-    { code: "cEUR", name: "Euro", flag: "🇪🇺", symbol: "€", tokenLogo: "/cEUR.svg", countryFlag: "/EUR.svg" },
-    { code: "cGBP", name: "British Pound", flag: "🇬🇧", symbol: "£", tokenLogo: "/cGBP.svg", countryFlag: "/GB .svg" },
-    { code: "cCAD", name: "Canadian Dollar", flag: "🇨🇦", symbol: "C$", tokenLogo: "/cCAD.svg", countryFlag: "/CA .svg" },
-    { code: "cAUD", name: "Australian Dollar", flag: "🇦🇺", symbol: "A$", tokenLogo: "/cAUD.svg", countryFlag: "/AU.svg" },
-    { code: "cCHF", name: "Swiss Franc", flag: "🇨🇭", symbol: "CHF", tokenLogo: "/cCHF.svg", countryFlag: "/CH.svg" },
-    { code: "cJPY", name: "Japanese Yen", flag: "🇯🇵", symbol: "¥", tokenLogo: "/cJPY.svg", countryFlag: "/JP.svg" },
-    { code: "cREAL", name: "Brazilian Real", flag: "🇧🇷", symbol: "R$", tokenLogo: "/cREAL.svg", countryFlag: "/BR.svg" },
-    { code: "cCOP", name: "Colombian Peso", flag: "🇨🇴", symbol: "COP$", tokenLogo: "/cCOP.svg", countryFlag: "/CO.svg" },
-    { code: "cKES", name: "Kenyan Shilling", flag: "🇰🇪", symbol: "KSh", tokenLogo: "/cKES.svg", countryFlag: "/KE.svg" },
-    { code: "cNGN", name: "Nigerian Naira", flag: "🇳🇬", symbol: "₦", tokenLogo: "/cNGN.svg", countryFlag: "/NG.svg" },
-    { code: "cZAR", name: "South African Rand", flag: "🇿🇦", symbol: "R", tokenLogo: "/cZAR.svg", countryFlag: "/SA.svg" },
-    { code: "cGHS", name: "Ghanaian Cedi", flag: "🇬🇭", symbol: "₵", tokenLogo: "/cGHS.svg", countryFlag: "/GH .svg" },
-    { code: "eXOF", name: "CFA Franc", flag: "🌍", symbol: "XOF", tokenLogo: "/eXOF.svg", countryFlag: "/CF.svg" },
-    { code: "PUSO", name: "Philippine Peso", flag: "🇵🇭", symbol: "₱", tokenLogo: "/PUSO.svg", countryFlag: "/PH.svg" },
-  ]
+  const currencies = CURRENCIES;
 
-  const { balance, isLoading: isLoadingBalance } = useTokenBalance(fromCurrency)
-  const { quote, isLoading: isLoadingQuote } = useQuote(fromCurrency, toCurrency, amount)
-  const { swap, isWalletReady, walletStatus } = useEthersSwap()
-  const { resolveUsername, isLoading: isResolvingUsername } = useFarcasterResolver()
+  const { totalUsdBalance, isLoading: isLoadingTotalBalance } =
+    useTotalBalance();
+  const { balance, isLoading: isLoadingBalance } =
+    useTokenBalance(fromCurrency);
+  const { quote, isLoading: isLoadingQuote } = useQuote(
+    fromCurrency,
+    toCurrency,
+    amount
+  );
+  const { swap, isWalletReady, walletStatus } = useEthersSwap();
+  const { resolveUsername, isLoading: isResolvingUsername } =
+    useFarcasterResolver();
 
-
-  const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency)
-  const toCurrencyInfo = currencies.find((c) => c.code === toCurrency)
+  const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency);
+  const toCurrencyInfo = currencies.find((c) => c.code === toCurrency);
 
   const assetOptions: AssetOption[] = currencies.map((c) => ({
     code: c.code,
     label: c.name,
     tokenLogo: c.tokenLogo,
     countryFlag: c.countryFlag,
-  }))
+  }));
 
-  const insufficientBalance = !isLoadingBalance && amount !== "" && Number.isFinite(Number(amount)) && Number(amount) > balance
+  const insufficientBalance =
+    !isLoadingBalance &&
+    amount !== '' &&
+    Number.isFinite(Number(amount)) &&
+    Number(amount) > balance;
+
+  // Calculate if user has enough total balance (in USD) to cover the transaction
+  // For simplicity, we'll still check individual currency balance for the transaction
 
   const handleSwapCurrencies = () => {
-    setFromCurrency(toCurrency)
-    setToCurrency(fromCurrency)
-  }
+    setFromCurrency(toCurrency);
+    setToCurrency(fromCurrency);
+  };
 
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
-  const debouncedResolveUsername = useCallback((value: string) => {
-    // Clear previous timeout
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout);
-    }
-
-    // Set new timeout
-    const newTimeout = setTimeout(async () => {
-      if (value.startsWith('@') && value.length > 1) {
-        console.log(' Attempting to resolve username:', value);
-        const resolvedAddress = await resolveUsername(value)
-        console.log(' Resolved address:', resolvedAddress);
-        if (resolvedAddress) {
-          setRecipient(resolvedAddress)
-        }
+  const debouncedResolveUsername = useCallback(
+    (value: string) => {
+      // Clear previous timeout
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
       }
-    }, 1500); // Wait 1.5 seconds after user stops typing
 
-    setDebounceTimeout(newTimeout);
-  }, [resolveUsername, debounceTimeout]);
+      // Set new timeout
+      const newTimeout = setTimeout(async () => {
+        if (value.startsWith('@') && value.length > 1) {
+          console.log(' Attempting to resolve username:', value);
+          const resolvedAddress = await resolveUsername(value);
+          console.log(' Resolved address:', resolvedAddress);
+          if (resolvedAddress) {
+            setRecipient(resolvedAddress);
+          }
+        }
+      }, 1500); // Wait 1.5 seconds after user stops typing
+
+      setDebounceTimeout(newTimeout);
+    },
+    [resolveUsername, debounceTimeout]
+  );
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -135,83 +132,98 @@ export default function SendPage() {
   }, [debounceTimeout]);
 
   const handleRecipientChange = (value: string) => {
-    setRecipient(value)
-    debouncedResolveUsername(value)
-  }
+    setRecipient(value);
+    debouncedResolveUsername(value);
+  };
 
   // Monitor transaction status and update UI
   useEffect(() => {
     if (callsStatus && pendingCallsId) {
-      console.log('[UI] Batch transaction status:', callsStatus.status)
-      console.log('[UI] Full callsStatus:', callsStatus)
-      console.log('[UI] callsStatus type:', typeof callsStatus)
-      console.log('[UI] callsStatus keys:', Object.keys(callsStatus))
-      
+      console.log('[UI] Batch transaction status:', callsStatus.status);
+      console.log('[UI] Full callsStatus:', callsStatus);
+      console.log('[UI] callsStatus type:', typeof callsStatus);
+      console.log('[UI] callsStatus keys:', Object.keys(callsStatus));
+
       // Check if all receipts are successful
-      const hasReceipts = callsStatus.receipts && callsStatus.receipts.length > 0
-      const allSuccess = hasReceipts && callsStatus.receipts?.every(r => r.status === 'success')
-      
+      const hasReceipts =
+        callsStatus.receipts && callsStatus.receipts.length > 0;
+      const allSuccess =
+        hasReceipts &&
+        callsStatus.receipts?.every((r) => r.status === 'success');
+
       if (hasReceipts && allSuccess) {
-        console.log('[UI] Transaction SUCCESS! Showing success overlay')
+        console.log('[UI] Transaction SUCCESS! Showing success overlay');
         markSuccess({
           title: 'Success',
           message: 'Your transfer completed successfully!',
-          txHash: callsStatus.receipts?.[0]?.transactionHash
-        })
-        setPendingCallsId(undefined)
-        setAmount("")
-        setRecipient("")
-        setIsProcessing(false)
-      } else if (hasReceipts && callsStatus.receipts?.some(r => r.status === 'reverted')) {
-        console.log('[UI] Transaction REVERTED/FAILED')
+          txHash: callsStatus.receipts?.[0]?.transactionHash,
+        });
+        setPendingCallsId(undefined);
+        setAmount('');
+        setRecipient('');
+        setIsProcessing(false);
+      } else if (
+        hasReceipts &&
+        callsStatus.receipts?.some((r) => r.status === 'reverted')
+      ) {
+        console.log('[UI] Transaction REVERTED/FAILED');
         markFailure({
           reason: 'Transaction reverted on blockchain',
-          title: 'Transaction Failed'
-        })
-        setPendingCallsId(undefined)
-        setIsProcessing(false)
+          title: 'Transaction Failed',
+        });
+        setPendingCallsId(undefined);
+        setIsProcessing(false);
       } else {
-        console.log('[UI] Transaction still processing... status:', callsStatus.status)
-        console.log('[UI] Receipts:', callsStatus.receipts)
+        console.log(
+          '[UI] Transaction still processing... status:',
+          callsStatus.status
+        );
+        console.log('[UI] Receipts:', callsStatus.receipts);
       }
     }
-  }, [callsStatus, pendingCallsId, markSuccess, markFailure])
-  
+  }, [callsStatus, pendingCallsId, markSuccess, markFailure]);
+
   // Fallback: Warn user to check if transaction is on blockchain
   useEffect(() => {
     if (pendingCallsId) {
-      console.log('[UI] Setting 30-second fallback timer for Farcaster transaction')
+      console.log(
+        '[UI] Setting 30-second fallback timer for Farcaster transaction'
+      );
       const fallbackTimer = setTimeout(() => {
-        console.log('[UI] ⚠️ Fallback timer triggered - Status unknown')
-        console.log('[UI] ⚠️ Some Farcaster transactions broadcast, some do not')
-        console.log('[UI] ⚠️ PLEASE CHECK CELOSCAN: https://celoscan.io/')
-        console.log('[UI] ⚠️ Search for your address or check transaction history')
+        console.log('[UI] ⚠️ Fallback timer triggered - Status unknown');
+        console.log(
+          '[UI] ⚠️ Some Farcaster transactions broadcast, some do not'
+        );
+        console.log('[UI] ⚠️ PLEASE CHECK CELOSCAN: https://celoscan.io/');
+        console.log(
+          '[UI] ⚠️ Search for your address or check transaction history'
+        );
         markFailure({
           reason: `Transaction status unclear. Please check Celoscan to verify if your transaction was successful. Transaction may take a few minutes to appear.`,
-          title: 'Please Verify on Celoscan'
-        })
-        setPendingCallsId(undefined)
-        setIsProcessing(false)
-      }, 30000) // 30 seconds
-      
-      return () => clearTimeout(fallbackTimer)
+          title: 'Please Verify on Celoscan',
+        });
+        setPendingCallsId(undefined);
+        setIsProcessing(false);
+      }, 30000); // 30 seconds
+
+      return () => clearTimeout(fallbackTimer);
     }
-  }, [pendingCallsId, markFailure])
+  }, [pendingCallsId, markFailure]);
 
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
-      return
+      return;
     }
 
-    setIsProcessing(true)
+    setIsProcessing(true);
     startProcessing({
       onRetry: () => {
-        clear()
-        void handleSend()
+        clear();
+        void handleSend();
       },
       onReset: () => {
-        setAmount("")
-        setRecipient("")
+        setAmount('');
+        setRecipient('');
       },
       transactionData: {
         fromCurrency,
@@ -219,68 +231,81 @@ export default function SendPage() {
         amount,
         recipient,
       },
-    })
+    });
 
     try {
-      console.log(" Starting swap with new ethers.js implementation...")
+      console.log(' Starting swap with new ethers.js implementation...');
 
-      const swapResult = await swap(fromCurrency, toCurrency, amount, undefined, recipient)
+      const swapResult = await swap(
+        fromCurrency,
+        toCurrency,
+        amount,
+        undefined,
+        recipient
+      );
 
-      console.log(" Swap result:", swapResult)
+      console.log(' Swap result:', swapResult);
 
       if ((swapResult as any)?.pending) {
         console.log('[UI] Batch transaction submitted to Farcaster');
-        console.log('[UI] Calls ID received:', (swapResult as any)?.callsId)
-        
+        console.log('[UI] Calls ID received:', (swapResult as any)?.callsId);
+
         // Store the callsId to track status
         // Extract ID string if it's an object
-        const rawCallsId = (swapResult as any)?.callsId
-        const callsIdString = typeof rawCallsId === 'string' 
-          ? rawCallsId 
-          : rawCallsId?.id
-        
-        console.log('[UI] Extracted ID string:', callsIdString)
-        
+        const rawCallsId = (swapResult as any)?.callsId;
+        const callsIdString =
+          typeof rawCallsId === 'string' ? rawCallsId : rawCallsId?.id;
+
+        console.log('[UI] Extracted ID string:', callsIdString);
+
         if (callsIdString) {
-          setPendingCallsId(callsIdString)
-          console.log('[UI] Now monitoring transaction status with ID:', callsIdString)
+          setPendingCallsId(callsIdString);
+          console.log(
+            '[UI] Now monitoring transaction status with ID:',
+            callsIdString
+          );
         } else {
-          console.warn('[UI] No callsId returned, will show pending state')
+          console.warn('[UI] No callsId returned, will show pending state');
           // Still keep overlay open, monitoring will happen via callsStatus hook
         }
-        
+
         // Keep the overlay open - it will update when transaction confirms
-        return
+        return;
       }
 
       // For non-Farcaster transactions
-      markSuccess()
-      setAmount("")
-      setRecipient("")
-      setIsProcessing(false)
+      markSuccess();
+      setAmount('');
+      setRecipient('');
+      setIsProcessing(false);
     } catch (error) {
-      console.error(" Transaction failed:", error)
-      markFailure({ reason: error instanceof Error ? error.message : "Transaction failed" })
-      setIsProcessing(false)
+      console.error(' Transaction failed:', error);
+      markFailure({
+        reason: error instanceof Error ? error.message : 'Transaction failed',
+      });
+      setIsProcessing(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="px-4 py-6 bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-md mx-auto">
-          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+          <Link
+            href="/"
+            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+          >
             <div className="w-12 h-12 rounded-xl overflow-hidden">
               <img
                 src="/logo.jpg"
                 alt="FX Remit"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  console.log("Logo failed to load:", e);
+                  console.log('Logo failed to load:', e);
                   e.currentTarget.style.display = 'none';
                 }}
-                onLoad={() => console.log("Logo loaded successfully")}
+                onLoad={() => console.log('Logo loaded successfully')}
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Send Money</h1>
@@ -293,22 +318,25 @@ export default function SendPage() {
         <div className="max-w-md mx-auto space-y-6">
           {/* Balance Card */}
           <div className="rounded-2xl p-6 bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm text-center">
-            <p className="text-sm/5 opacity-90">Available balance</p>
+            <p className="text-sm/5 opacity-90">Total Portfolio Value</p>
             <div className="mt-2 text-5xl font-bold tracking-tight">
-              {isLoadingBalance ? (
+              {isLoadingTotalBalance ? (
                 <span className="inline-block h-10 w-28 bg-white/20 rounded animate-pulse" />
               ) : (
-                `${fromCurrencyInfo?.symbol}${balance.toFixed(2)}`
+                `$${totalUsdBalance.toFixed(2)}`
               )}
             </div>
-            <p className="mt-1 text-white/80 text-sm">{fromCurrency}</p>
           </div>
 
           {/* Transfer Form */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Transfer Details</h2>
-              <p className="text-sm text-gray-500">Enter the transfer information below</p>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                Transfer Details
+              </h2>
+              <p className="text-sm text-gray-500">
+                Enter the transfer information below
+              </p>
             </div>
 
             <div className="p-6 space-y-6">
@@ -316,13 +344,17 @@ export default function SendPage() {
               <div className="space-y-4">
                 {/* From Currency */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">From</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    From
+                  </label>
                   <button
                     type="button"
-                    onClick={() => setPickerOpen("from")}
+                    onClick={() => setPickerOpen('from')}
                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-left flex items-center justify-between hover:bg-gray-100"
                   >
-                    <span className="text-gray-900">{fromCurrency} - {fromCurrencyInfo?.name}</span>
+                    <span className="text-gray-900">
+                      {fromCurrency} - {fromCurrencyInfo?.name}
+                    </span>
                     <ChevronDownIcon className="w-5 h-5 text-gray-400" />
                   </button>
                 </div>
@@ -340,13 +372,17 @@ export default function SendPage() {
 
                 {/* To Currency */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">To</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    To
+                  </label>
                   <button
                     type="button"
-                    onClick={() => setPickerOpen("to")}
+                    onClick={() => setPickerOpen('to')}
                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-left flex items-center justify-between hover:bg-gray-100"
                   >
-                    <span className="text-gray-900">{toCurrency} - {toCurrencyInfo?.name}</span>
+                    <span className="text-gray-900">
+                      {toCurrency} - {toCurrencyInfo?.name}
+                    </span>
                     <ChevronDownIcon className="w-5 h-5 text-gray-400" />
                   </button>
                 </div>
@@ -354,7 +390,9 @@ export default function SendPage() {
 
               {/* Amount Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Amount to Send</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Amount to Send
+                </label>
                 <div className="relative">
                   <input
                     type="number"
@@ -363,27 +401,39 @@ export default function SendPage() {
                     placeholder="0.00"
                     className={`w-full p-4 bg-gray-50 border rounded-xl text-gray-900 text-lg placeholder-gray-400 pr-16 focus:ring-2  ${
                       insufficientBalance
-                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
                     }`}
                   />
 
-                  
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
                     {fromCurrency}
                   </div>
                 </div>
+                <div className="mt-2 flex items-center justify-between">
+                  {isLoadingBalance ? (
+                    <span className="text-xs text-gray-400">
+                      Loading balance...
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">
+                      Available: {fromCurrencyInfo?.symbol}
+                      {balance.toFixed(2)} {fromCurrency}
+                    </span>
+                  )}
+                </div>
                 {insufficientBalance && (
                   <p className="mt-2 text-sm text-red-600">
-                    Insufficient balance. Available: {fromCurrencyInfo?.symbol}
-                    {balance.toFixed(2)} {fromCurrency}
+                    Insufficient balance
                   </p>
                 )}
               </div>
 
               {/* Recipient Address */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Recipient</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Recipient
+                </label>
                 <div className="relative">
                   <input
                     type="text"
@@ -399,7 +449,8 @@ export default function SendPage() {
                   )}
                 </div>
                 <p className="mt-2 text-xs text-gray-500">
-                  Enter a wallet address (0x...) or Farcaster username (@username) 
+                  Enter a wallet address (0x...) or Farcaster username
+                  (@username)
                 </p>
               </div>
             </div>
@@ -410,14 +461,18 @@ export default function SendPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
               <div className="flex items-center space-x-2 mb-4">
                 <CheckCircleIcon className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Transfer Summary</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Transfer Summary
+                </h3>
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Exchange Rate</span>
                   <span className="text-gray-900 font-medium">
-                    1 {fromCurrency} = {Number.parseFloat(quote.exchangeRate).toFixed(4)} {toCurrency}
+                    1 {fromCurrency} ={' '}
+                    {Number.parseFloat(quote.exchangeRate).toFixed(4)}{' '}
+                    {toCurrency}
                   </span>
                 </div>
 
@@ -433,19 +488,23 @@ export default function SendPage() {
                   <span className="text-gray-600">Platform fee (1.5%)</span>
                   <span className="text-gray-900 font-medium">
                     {fromCurrencyInfo?.symbol}
-                    {Number.parseFloat(quote.platformFee) < 0.01 && Number.parseFloat(quote.platformFee) > 0
+                    {Number.parseFloat(quote.platformFee) < 0.01 &&
+                    Number.parseFloat(quote.platformFee) > 0
                       ? Number.parseFloat(quote.platformFee).toFixed(4)
-                      : Number.parseFloat(quote.platformFee).toFixed(2)}{" "}
+                      : Number.parseFloat(quote.platformFee).toFixed(2)}{' '}
                     {fromCurrency}
                   </span>
                 </div>
 
                 <div className="border-t border-blue-200 pt-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Recipient gets</span>
+                    <span className="text-gray-600 font-medium">
+                      Recipient gets
+                    </span>
                     <span className="text-xl font-bold text-blue-600">
                       {toCurrencyInfo?.symbol}
-                      {Number.parseFloat(quote.amountOut).toFixed(2)} {toCurrency}
+                      {Number.parseFloat(quote.amountOut).toFixed(2)}{' '}
+                      {toCurrency}
                     </span>
                   </div>
                 </div>
@@ -456,7 +515,14 @@ export default function SendPage() {
           {/* Send Button */}
           <button
             onClick={handleSend}
-            disabled={!isWalletReady || !amount || !recipient || !quote || isProcessing || insufficientBalance}
+            disabled={
+              !isWalletReady ||
+              !amount ||
+              !recipient ||
+              !quote ||
+              isProcessing ||
+              insufficientBalance
+            }
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed text-lg flex items-center justify-center space-x-2"
           >
             {isProcessing ? (
@@ -481,12 +547,12 @@ export default function SendPage() {
         options={assetOptions}
         onClose={() => setPickerOpen(null)}
         onSelect={(code) => {
-          if (pickerOpen === "from") setFromCurrency(code as Currency)
-          if (pickerOpen === "to") setToCurrency(code as Currency)
+          if (pickerOpen === 'from') setFromCurrency(code as Currency);
+          if (pickerOpen === 'to') setToCurrency(code as Currency);
         }}
       />
 
       <BottomNavigation />
     </div>
-  )
+  );
 }
