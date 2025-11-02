@@ -65,13 +65,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         {isMiniApp ? (
-          // In Mini App mode, don't show RainbowKit UI to avoid wallet popups
+          
           <TransactionStatusProvider>
             <MiniAppConnector />
             {children}
           </TransactionStatusProvider>
         ) : (
-          // In web mode, use full RainbowKit with ConnectButton
+        
           <RainbowKitProvider>
             <TransactionStatusProvider>
               {children}
