@@ -1,8 +1,7 @@
-import { useAccount, useWalletClient, useSendCalls, useWaitForTransactionReceipt } from 'wagmi';
-import { celo } from 'wagmi/chains';
+import { useAccount, useWalletClient, useSendCalls } from 'wagmi';
 import { useMemo } from 'react';
 import { Mento } from '@mento-protocol/mento-sdk';
-import { providers, Wallet, Contract, ethers } from 'ethers';
+import { providers, Contract, ethers } from 'ethers';
 import { encodeFunctionData } from 'viem';
 import {
   Currency,
@@ -16,11 +15,11 @@ import FXRemitABI from '../ABI/FXRemit.json';
 const ERC20_ABI = [
   {
     "inputs": [
-      {"internalType": "address", "name": "spender", "type": "address"},
-      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+      { "internalType": "address", "name": "spender", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
     ],
     "name": "approve",
-    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
     "stateMutability": "nonpayable",
     "type": "function"
   }
@@ -35,7 +34,7 @@ declare global {
 export function useEthersSwap() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const { sendCallsAsync, data: sendCallsData } = useSendCalls();
+  const { sendCallsAsync } = useSendCalls();
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
 
@@ -59,11 +58,9 @@ export function useEthersSwap() {
     recipientAddress?: string
   ) => {
     const walletStatus = isWalletReady();
-    
+
     if (!walletStatus.isConnected) {
-      throw new Error(
-        'Wallet not connected. Please connect your wallet first.'
-      );
+      throw new Error('Wallet not connected. Please connect your wallet first.');
     }
 
     console.log('Starting pure ethers.js swap...');
@@ -71,27 +68,29 @@ export function useEthersSwap() {
       isConnected: walletStatus.isConnected,
       address: address?.slice(0, 6) + '...' + address?.slice(-4),
     });
-    
-    if (walletClient) {
-      try {
-        const currentChainId = await walletClient.getChainId();
-        console.log('Current wallet chain ID:', currentChainId);
-        
-        if (currentChainId !== 42220) {
-          console.log('Switching wallet to Celo (chain 42220)...');
-          await walletClient.switchChain({ id: 42220 });
-          console.log('Switched to Celo successfully');
-        }
-      } catch (e) {
-        console.error('Could not switch chain to Celo:', e);
-        throw new Error('Please switch your wallet to Celo network to use this app');
-      }
+
+    if (!walletClient) {
+      throw new Error('Wallet client not available');
     }
-    
+
+    try {
+      const currentChainId = await walletClient.getChainId();
+      console.log('Current wallet chain ID:', currentChainId);
+
+      if (currentChainId !== 42220) {
+        console.log('Switching wallet to Celo (chain 42220)...');
+        await walletClient.switchChain({ id: 42220 });
+        console.log('Switched to Celo successfully');
+      }
+    } catch (e) {
+      console.error('Could not switch chain to Celo:', e);
+      throw new Error('Please switch your wallet to Celo network to use this app');
+    }
+
     const chainId = 42220 as const;
     const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
     const toTokenAddress = getTokenAddress(chainId, toCurrency);
-    
+
     console.log('Token addresses:', {
       fromCurrency,
       toCurrency,
@@ -111,9 +110,7 @@ export function useEthersSwap() {
       } catch (error) {
         console.warn(`Failed to connect to ${rpcUrl}:`, error);
         if (rpcUrl === rpcUrls[rpcUrls.length - 1]) {
-          throw new Error(
-            'All RPC endpoints failed. Please check your internet connection.'
-          );
+          throw new Error('All RPC endpoints failed. Please check your internet connection.');
         }
       }
     }
@@ -122,19 +119,22 @@ export function useEthersSwap() {
       throw new Error('Failed to connect to any RPC endpoint');
     }
 
-    let ethereumProvider: any;
     let signer: any;
     let signerAddress: string;
 
     if (isMiniApp) {
-      console.log('Using Farcaster Mini App with wagmi wallet client');
-      
       if (!walletClient) {
         throw new Error('Farcaster wallet client not available. Please ensure you are connected.');
       }
-      
-      signerAddress = address!;
-      
+
+      if (!address) {
+        throw new Error('Wallet address not available');
+      }
+
+      console.log('Using Farcaster Mini App with wagmi wallet client');
+
+      signerAddress = address;
+
       signer = {
         provider: provider,
         getAddress: () => Promise.resolve(signerAddress),
@@ -154,7 +154,7 @@ export function useEthersSwap() {
             value: transaction.value?.toString(),
             data: transaction.data?.slice(0, 10) + '...'
           });
-          
+
           const hash = await walletClient.sendTransaction({
             account: signerAddress as `0x${string}`,
             to: transaction.to as `0x${string}`,
@@ -163,10 +163,10 @@ export function useEthersSwap() {
             gas: transaction.gasLimit ? BigInt(transaction.gasLimit.toString()) : undefined,
             gasPrice: transaction.gasPrice ? BigInt(transaction.gasPrice.toString()) : undefined,
           });
-          
-          return { 
-            hash, 
-            wait: () => provider.waitForTransaction(hash, 1) 
+
+          return {
+            hash,
+            wait: () => provider.waitForTransaction(hash, 1)
           };
         },
         connect: (provider: any) => {
@@ -188,13 +188,12 @@ export function useEthersSwap() {
         },
         _isSigner: true,
       };
-      
+
       console.log('Farcaster wallet client configured:', signerAddress);
+      console.log('Signer created:', signerAddress);
     } else {
       if (!window.ethereum) {
-        throw new Error(
-          'No wallet found. Please install MetaMask or another Web3 wallet.'
-        );
+        throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
       }
 
       console.log('Using traditional Web3 wallet');
@@ -209,35 +208,35 @@ export function useEthersSwap() {
       
       const ethersProvider = new providers.Web3Provider(window.ethereum);
       signer = ethersProvider.getSigner();
-
       signerAddress = await signer.getAddress();
-      if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
-        throw new Error(
-          'Wallet address mismatch. Please reconnect your wallet.'
-        );
-      }
-    }
 
-    console.log('Signer created:', signerAddress);
+      if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
+        throw new Error('Wallet address mismatch. Please reconnect your wallet.');
+      }
+
+      console.log('Signer created:', signerAddress);
+    }
 
     console.log('Creating Mento SDK...');
     const mento = await Mento.create(provider);
     console.log('Loading exchanges...');
     const exchanges = await mento.getExchanges();
-    if (exchanges.length === 0) throw new Error('No exchanges found');
-    
+    if (exchanges.length === 0) {
+      throw new Error('No exchanges found');
+    }
+
     // Convert amount to wei using ethers
     const amountInWei = ethers.utils.parseEther(amount);
-    
+
     console.log('Getting quote...');
     const quoteAmountOut = await mento.getAmountOut(
       fromTokenAddress,
       toTokenAddress,
       amountInWei.toString()
     );
-    
+
     const quoteBigInt = BigInt(quoteAmountOut.toString());
-    const expectedAmountOut = minAmountOut 
+    const expectedAmountOut = minAmountOut
       ? ethers.utils.parseEther(minAmountOut).toString()
       : ((quoteBigInt * BigInt(98)) / BigInt(100)).toString(); // 2% slippage
 
@@ -260,17 +259,13 @@ export function useEthersSwap() {
       );
 
       if (!tradablePair) {
-        console.log(
-          'No direct tradable pair found, checking available exchanges...'
-        );
+        console.log('No direct tradable pair found, checking available exchanges...');
 
-        // Get all available exchanges to see what's actually supported
-        const exchanges = await mento.getExchanges();
-        console.log('Available exchanges:', exchanges.length);
+        const allExchanges = await mento.getExchanges();
+        console.log('Available exchanges:', allExchanges.length);
 
-        // Log what tokens are actually supported
         const supportedTokens = new Set<string>();
-        exchanges.forEach((exchange) => {
+        allExchanges.forEach((exchange) => {
           exchange.assets.forEach((asset) => supportedTokens.add(asset));
         });
 
@@ -369,12 +364,17 @@ export function useEthersSwap() {
         });
       }
 
-      // 2) Prepare batch transaction for Farcaster or individual transactions for regular wallets
       const fxRemitAddress = getContractAddress(chainId);
-      if (!fxRemitAddress) throw new Error('FXRemit address not configured');
+      if (!fxRemitAddress) {
+        throw new Error('FXRemit address not configured');
+      }
 
       const corridor = `${fromCurrency}-${toCurrency}`;
-      const deadline = Math.floor(Date.now() / 1000) + 300; 
+      const deadline = Math.floor(Date.now() / 1000) + 300;
+
+      if (tradablePair.path.length !== 1 && tradablePair.path.length !== 2) {
+        throw new Error(`Unsupported path length: ${tradablePair.path.length}`);
+      }
 
       if (tradablePair.path.length === 1) {
         const hop = tradablePair.path[0];
@@ -442,41 +442,41 @@ export function useEthersSwap() {
             to: c.to,
             dataPreview: c.data.slice(0, 10) + '...'
           })));
-          
+
           console.log('[FARCASTER] Checking sendCallsAsync availability:', typeof sendCallsAsync);
-          
+
           if (!sendCallsAsync) {
             throw new Error('sendCallsAsync is not available. This might be a Farcaster wallet configuration issue.');
           }
-          
+
           try {
             // Use sendCallsAsync as per Farcaster documentation
             // This returns a promise that resolves with the callsId after user confirms
             console.log('[FARCASTER] Calling sendCallsAsync...');
-            
+
             const callsResult = await sendCallsAsync({
               calls: calls
             });
-            
+
             console.log('[FARCASTER] sendCallsAsync completed!');
             console.log('[FARCASTER] Calls Result:', callsResult);
             console.log('[FARCASTER] Calls ID:', callsResult?.id);
             console.log('[FARCASTER] Calls Result Type:', typeof callsResult);
             console.log('[FARCASTER] Calls Result Keys:', callsResult ? Object.keys(callsResult) : 'null');
             console.log('[FARCASTER] User confirmed batch transaction');
-            
+
             // Extract the ID string from the result object
             const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
             console.log('[FARCASTER] Extracted ID string:', callsId);
-            
+
             // WARNING: Getting a callsId does NOT guarantee blockchain broadcast!
             console.warn('[FARCASTER]  WARNING: Farcaster may return ID without broadcasting!');
             console.warn('[FARCASTER]  Users should verify transaction on Celoscan');
-            
+
             if (!callsId) {
               throw new Error('No callsId returned from sendCallsAsync - transaction may have failed');
             }
-            
+
             // Return with the actual callsId string
             return {
               success: true,
@@ -497,7 +497,7 @@ export function useEthersSwap() {
           }
         } else {
           console.log('Using traditional individual transactions');
-          
+
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)',
             'function approve(address spender, uint256 amount) returns (bool)',
@@ -538,13 +538,13 @@ export function useEthersSwap() {
             recipientAddress ?? signerAddress,
             fromTokenAddress,
             toTokenAddress,
-              amountInWei,
+            amountInWei,
             expectedAmountOut,
-              fromCurrency,
-              toCurrency,
-              corridor,
-              providerAddr,
-              exchangeId,
+            fromCurrency,
+            toCurrency,
+            corridor,
+            providerAddr,
+            exchangeId,
             deadline
           );
 
@@ -552,13 +552,13 @@ export function useEthersSwap() {
           swapTx.data = dataWithReferral;
 
           console.log('Sending swap transaction...');
-          
+
           const gasEstimate = await signer.estimateGas(swapTx);
           swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
-          
+
           const swapResponse = await signer.sendTransaction(swapTx);
           console.log('Waiting for swap confirmation...');
-          const receipt = await swapResponse.wait(1); // Wait for 1 confirmation
+          const receipt = await swapResponse.wait(1);
 
           if (receipt.status !== 1) {
             throw new Error('Swap transaction failed on-chain');
@@ -566,7 +566,7 @@ export function useEthersSwap() {
 
           console.log('Swap completed successfully!');
           await submitReferralTransaction(swapResponse.hash);
-          
+
           return {
             success: true,
             hash: swapResponse.hash,
@@ -627,29 +627,15 @@ export function useEthersSwap() {
         }
 
         if (!intermediateTokenAddress) {
-          throw new Error(
-            'Could not determine intermediate token for multi-hop swap'
-          );
+          throw new Error('Could not determine intermediate token for multi-hop swap');
         }
 
-        // Validate that hop1 supports fromToken → intermediateToken
-        if (
-          !assets1.includes(fromTokenAddress) ||
-          !assets1.includes(intermediateTokenAddress)
-        ) {
-          throw new Error(
-            `Hop 1 does not support ${fromCurrency} → intermediate token swap`
-          );
+        if (!assets1.includes(fromTokenAddress) || !assets1.includes(intermediateTokenAddress)) {
+          throw new Error(`Hop 1 does not support ${fromCurrency} → intermediate token swap`);
         }
 
-        // Validate that hop2 supports intermediateToken → toToken
-        if (
-          !assets2.includes(intermediateTokenAddress) ||
-          !assets2.includes(toTokenAddress)
-        ) {
-          throw new Error(
-            `Hop 2 does not support intermediate token → ${toCurrency} swap`
-          );
+        if (!assets2.includes(intermediateTokenAddress) || !assets2.includes(toTokenAddress)) {
+          throw new Error(`Hop 2 does not support intermediate token → ${toCurrency} swap`);
         }
 
         console.log('Multi-hop path validation passed:', {
@@ -721,41 +707,41 @@ export function useEthersSwap() {
             to: c.to,
             dataPreview: c.data.slice(0, 10) + '...'
           })));
-          
+
           console.log('[FARCASTER-MULTIHOP] Checking sendCallsAsync availability:', typeof sendCallsAsync);
-          
+
           if (!sendCallsAsync) {
             throw new Error('sendCallsAsync is not available. This might be a Farcaster wallet configuration issue.');
           }
-          
+
           try {
             // Use sendCallsAsync as per Farcaster documentation
             // This returns a promise that resolves with the callsId after user confirms
             console.log('[FARCASTER-MULTIHOP] Calling sendCallsAsync...');
-            
+
             const callsResult = await sendCallsAsync({
               calls: calls
             });
-            
+
             console.log('[FARCASTER-MULTIHOP] sendCallsAsync completed!');
             console.log('[FARCASTER-MULTIHOP] Calls Result:', callsResult);
             console.log('[FARCASTER-MULTIHOP] Calls ID:', callsResult?.id);
             console.log('[FARCASTER-MULTIHOP] Calls Result Type:', typeof callsResult);
             console.log('[FARCASTER-MULTIHOP] Calls Result Keys:', callsResult ? Object.keys(callsResult) : 'null');
             console.log('[FARCASTER-MULTIHOP] User confirmed multi-hop batch transaction');
-            
+
             // Extract the ID string from the result object
             const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
             console.log('[FARCASTER-MULTIHOP] Extracted ID string:', callsId);
-            
+
             // WARNING: Getting a callsId does NOT guarantee blockchain broadcast!
             console.warn('[FARCASTER-MULTIHOP] ⚠️ WARNING: Farcaster may return ID without broadcasting!');
             console.warn('[FARCASTER-MULTIHOP] ⚠️ Users should verify transaction on Celoscan');
-            
+
             if (!callsId) {
               throw new Error('No callsId returned from sendCallsAsync - transaction may have failed');
             }
-            
+
             // Return with the actual callsId string
             return {
               success: true,
@@ -776,7 +762,7 @@ export function useEthersSwap() {
           }
         } else {
           console.log('Using traditional individual transactions for multi-hop');
-          
+
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)',
             'function approve(address spender, uint256 amount) returns (bool)',
@@ -845,10 +831,10 @@ export function useEthersSwap() {
             // Add gas configuration for better reliability
             const gasEstimate = await signer.estimateGas(swapTx);
             swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
-            
+
             const swapResponse = await signer.sendTransaction(swapTx);
             console.log('Waiting for swap confirmation...');
-            const receipt = await swapResponse.wait(1); // Wait for 1 confirmation
+            const receipt = await swapResponse.wait(1);
 
             if (receipt.status !== 1) {
               throw new Error('Multi-hop swap transaction failed on-chain');
@@ -856,7 +842,7 @@ export function useEthersSwap() {
 
             console.log('Multi-hop swap completed successfully!');
             await submitReferralTransaction(swapResponse.hash);
-            
+
             return {
               success: true,
               hash: swapResponse.hash,
@@ -869,9 +855,7 @@ export function useEthersSwap() {
 
             if (
               multiHopError instanceof Error &&
-              multiHopError.message.includes(
-                'tokenIn and tokenOut must match exchange'
-              )
+              multiHopError.message.includes('tokenIn and tokenOut must match exchange')
             ) {
               throw new Error(
                 `Multi-hop swap failed: The exchange parameters don't match the token pair. This might be due to exchange configuration issues. Please try a different token pair or contact support.`
@@ -882,8 +866,6 @@ export function useEthersSwap() {
           }
         }
       }
-
-      throw new Error(`Unsupported path length: ${tradablePair.path.length}`);
     } catch (error) {
       console.error('Swap failed:', error);
       console.error('Error details:', {
@@ -895,8 +877,8 @@ export function useEthersSwap() {
     }
   };
 
-  return { 
-    swap, 
+  return {
+    swap,
     isWalletReady: walletReadiness.isFullyReady,
     walletStatus: walletReadiness,
   };

@@ -431,8 +431,8 @@ export default function HistoryPage() {
                 {/* Left Column - Values */}
                 <div className="space-y-4">
                   <div className="text-sm font-medium text-gray-900">
-                    ${selectedTransaction.fee.toFixed(4)}
-                    {selectedTransaction.from}
+                    {getCurrencySymbol(selectedTransaction.to)}
+                    {selectedTransaction.fee.toFixed(2)} {selectedTransaction.to}
                   </div>
                   <div className="text-sm font-mono text-gray-700">
                     {selectedTransaction.recipient.slice(0, 6)}...
