@@ -384,7 +384,7 @@ export function useEthersSwap() {
         console.log('Using single-hop swap:', { providerAddr, exchangeId });
 
         if (isMiniApp) {
-          console.log('[FARCASTER] Using Farcaster wallet_sendCalls for batch transaction (following official docs)');
+          console.log('[FARCASTER] Using Farcaster wallet_sendCalls for batch transaction');
 
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)'

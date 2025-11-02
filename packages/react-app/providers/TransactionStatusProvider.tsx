@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp";
 
 type TransactionStatus = "idle" | "processing" | "success" | "failure";
 
@@ -52,7 +53,6 @@ const saveFailedTransaction = (transaction: FailedTransaction) => {
     const existing = JSON.parse(localStorage.getItem(key) || '[]');
     const updated = [...existing, transaction];
     localStorage.setItem(key, JSON.stringify(updated));
-    console.log(' Saved failed transaction:', transaction.id);
   } catch (error) {
     console.error('Failed to save failed transaction:', error);
   }
@@ -99,6 +99,7 @@ export function TransactionStatusProvider({ children }: { children: React.ReactN
       txHash: opts?.txHash ?? prev.txHash,
       startedAt: prev.startedAt,
       callbacks: prev.callbacks,
+      transactionData: prev.transactionData, // Keep transaction data for sharing
     }));
   }, []);
 
@@ -148,8 +149,52 @@ export function useTransactionStatus(): TxContextValue {
   return ctx;
 }
 
+// Currency symbols mapping
+const getCurrencySymbol = (currency: string): string => {
+  const symbols: Record<string, string> = {
+    cUSD: "$", cEUR: "€", cGBP: "£", cCAD: "C$", cAUD: "A$", 
+    cCHF: "CHF", cJPY: "¥", cREAL: "R$", cCOP: "COP$", 
+    cKES: "KSh", cNGN: "₦", cZAR: "R", cGHS: "₵", 
+    eXOF: "XOF", PUSO: "₱"
+  };
+  return symbols[currency] || "";
+};
+
+// Handle share on Farcaster
+const handleShareOnFarcaster = async (state: TxState) => {
+  try {
+    const txData = state.transactionData;
+    if (!txData) return;
+
+    const { fromCurrency, toCurrency, amount } = txData;
+    const fromSymbol = getCurrencySymbol(fromCurrency);
+
+    // Create engaging share message
+    const shareText = `Just sent money across borders with @fxremit! 
+
+ ${fromSymbol}${amount} ${fromCurrency} → ${toCurrency}
+ Instant settlement
+ Only 1.5% fees
+ 15+ countries supported
+
+Try it: https://fx-remit.xyz`;
+
+    // Dynamically import Farcaster SDK
+    const { sdk } = await import('@farcaster/miniapp-sdk');
+    
+    // Use Farcaster SDK to compose cast
+    await sdk.actions.composeCast({
+      text: shareText,
+      embeds: ["https://fx-remit.xyz"]
+    });
+  } catch (error) {
+    console.error("Failed to compose cast:", error);
+  }
+};
+
 function TxStatusOverlay() {
   const { state, clear } = useTransactionStatus();
+  const { isMiniApp } = useFarcasterMiniApp();
 
   if (state.status === "idle") return null;
 
@@ -198,6 +243,18 @@ function TxStatusOverlay() {
             <button disabled className="w-full rounded-2xl bg-gray-300 py-4 text-white font-semibold">Processing…</button>
           ) : isSuccess ? (
             <div className="space-y-4">
+              {/* Only show Share button in Farcaster Mini App */}
+              {isMiniApp && (
+                <button
+                  className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 py-4 text-white font-semibold flex items-center justify-center space-x-2"
+                  onClick={() => handleShareOnFarcaster(state)}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                  </svg>
+                  <span>Share on Farcaster</span>
+                </button>
+              )}
               <button
                 className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 py-4 text-white font-semibold"
                 onClick={() => {
