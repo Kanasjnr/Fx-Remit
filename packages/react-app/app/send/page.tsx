@@ -35,16 +35,14 @@ export default function SendPage() {
   const { startProcessing, markSuccess, markFailure, clear } =
     useTransactionStatus();
 
-  // Track Farcaster batch transaction status
   const { data: callsStatus } = useCallsStatus({
     id: pendingCallsId as `0x${string}`,
     query: {
       enabled: !!pendingCallsId,
-      refetchInterval: 2000, // Poll every 2 seconds
+      refetchInterval: 2000,
     },
   });
 
-  // Memoize wallet state to prevent unnecessary re-renders
   const walletState = useMemo(
     () => ({
       address,
@@ -86,9 +84,6 @@ export default function SendPage() {
     Number.isFinite(Number(amount)) &&
     Number(amount) > balance;
 
-  // Calculate if user has enough total balance (in USD) to cover the transaction
-  // For simplicity, we'll still check individual currency balance for the transaction
-
   const handleSwapCurrencies = () => {
     setFromCurrency(toCurrency);
     setToCurrency(fromCurrency);
@@ -100,29 +95,24 @@ export default function SendPage() {
 
   const debouncedResolveUsername = useCallback(
     (value: string) => {
-      // Clear previous timeout
       if (debounceTimeout) {
         clearTimeout(debounceTimeout);
       }
 
-      // Set new timeout
       const newTimeout = setTimeout(async () => {
         if (value.startsWith('@') && value.length > 1) {
-          console.log(' Attempting to resolve username:', value);
           const resolvedAddress = await resolveUsername(value);
-          console.log(' Resolved address:', resolvedAddress);
           if (resolvedAddress) {
             setRecipient(resolvedAddress);
           }
         }
-      }, 1500); // Wait 1.5 seconds after user stops typing
+      }, 1500);
 
       setDebounceTimeout(newTimeout);
     },
     [resolveUsername, debounceTimeout]
   );
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (debounceTimeout) {
@@ -136,23 +126,12 @@ export default function SendPage() {
     debouncedResolveUsername(value);
   };
 
-  // Monitor transaction status and update UI
   useEffect(() => {
     if (callsStatus && pendingCallsId) {
-      console.log('[UI] Batch transaction status:', callsStatus.status);
-      console.log('[UI] Full callsStatus:', callsStatus);
-      console.log('[UI] callsStatus type:', typeof callsStatus);
-      console.log('[UI] callsStatus keys:', Object.keys(callsStatus));
-
-      // Check if all receipts are successful
-      const hasReceipts =
-        callsStatus.receipts && callsStatus.receipts.length > 0;
-      const allSuccess =
-        hasReceipts &&
-        callsStatus.receipts?.every((r) => r.status === 'success');
+      const hasReceipts = callsStatus.receipts && callsStatus.receipts.length > 0;
+      const allSuccess = hasReceipts && callsStatus.receipts?.every((r) => r.status === 'success');
 
       if (hasReceipts && allSuccess) {
-        console.log('[UI] Transaction SUCCESS! Showing success overlay');
         markSuccess({
           title: 'Success',
           message: 'Your transfer completed successfully!',
@@ -162,49 +141,27 @@ export default function SendPage() {
         setAmount('');
         setRecipient('');
         setIsProcessing(false);
-      } else if (
-        hasReceipts &&
-        callsStatus.receipts?.some((r) => r.status === 'reverted')
-      ) {
-        console.log('[UI] Transaction REVERTED/FAILED');
+      } else if (hasReceipts && callsStatus.receipts?.some((r) => r.status === 'reverted')) {
         markFailure({
           reason: 'Transaction reverted on blockchain',
           title: 'Transaction Failed',
         });
         setPendingCallsId(undefined);
         setIsProcessing(false);
-      } else {
-        console.log(
-          '[UI] Transaction still processing... status:',
-          callsStatus.status
-        );
-        console.log('[UI] Receipts:', callsStatus.receipts);
       }
     }
   }, [callsStatus, pendingCallsId, markSuccess, markFailure]);
 
-  // Fallback: Warn user to check if transaction is on blockchain
   useEffect(() => {
     if (pendingCallsId) {
-      console.log(
-        '[UI] Setting 30-second fallback timer for Farcaster transaction'
-      );
       const fallbackTimer = setTimeout(() => {
-        console.log('[UI] ⚠️ Fallback timer triggered - Status unknown');
-        console.log(
-          '[UI] ⚠️ Some Farcaster transactions broadcast, some do not'
-        );
-        console.log('[UI] ⚠️ PLEASE CHECK CELOSCAN: https://celoscan.io/');
-        console.log(
-          '[UI] ⚠️ Search for your address or check transaction history'
-        );
         markFailure({
-          reason: `Transaction status unclear. Please check Celoscan to verify if your transaction was successful. Transaction may take a few minutes to appear.`,
+          reason: `Transaction status unclear. Please check Celoscan to verify if your transaction was successful.`,
           title: 'Please Verify on Celoscan',
         });
         setPendingCallsId(undefined);
         setIsProcessing(false);
-      }, 30000); // 30 seconds
+      }, 30000);
 
       return () => clearTimeout(fallbackTimer);
     }
@@ -234,8 +191,6 @@ export default function SendPage() {
     });
 
     try {
-      console.log(' Starting swap with new ethers.js implementation...');
-
       const swapResult = await swap(
         fromCurrency,
         toCurrency,
@@ -244,42 +199,22 @@ export default function SendPage() {
         recipient
       );
 
-      console.log(' Swap result:', swapResult);
-
       if ((swapResult as any)?.pending) {
-        console.log('[UI] Batch transaction submitted to Farcaster');
-        console.log('[UI] Calls ID received:', (swapResult as any)?.callsId);
-
-        // Store the callsId to track status
-        // Extract ID string if it's an object
         const rawCallsId = (swapResult as any)?.callsId;
-        const callsIdString =
-          typeof rawCallsId === 'string' ? rawCallsId : rawCallsId?.id;
-
-        console.log('[UI] Extracted ID string:', callsIdString);
+        const callsIdString = typeof rawCallsId === 'string' ? rawCallsId : rawCallsId?.id;
 
         if (callsIdString) {
           setPendingCallsId(callsIdString);
-          console.log(
-            '[UI] Now monitoring transaction status with ID:',
-            callsIdString
-          );
-        } else {
-          console.warn('[UI] No callsId returned, will show pending state');
-          // Still keep overlay open, monitoring will happen via callsStatus hook
         }
 
-        // Keep the overlay open - it will update when transaction confirms
         return;
       }
 
-      // For non-Farcaster transactions
       markSuccess();
       setAmount('');
       setRecipient('');
       setIsProcessing(false);
     } catch (error) {
-      console.error(' Transaction failed:', error);
       markFailure({
         reason: error instanceof Error ? error.message : 'Transaction failed',
       });

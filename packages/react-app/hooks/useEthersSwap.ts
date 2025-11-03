@@ -14,15 +14,15 @@ import FXRemitABI from '../ABI/FXRemit.json';
 
 const ERC20_ABI = [
   {
-    "inputs": [
-      { "internalType": "address", "name": "spender", "type": "address" },
-      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    inputs: [
+      { internalType: 'address', name: 'spender', type: 'address' },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
     ],
-    "name": "approve",
-    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
+    name: 'approve',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ] as const;
 
 declare global {
@@ -38,17 +38,16 @@ export function useEthersSwap() {
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
 
-  const walletReadiness = useMemo(() => {
-    return {
+  const walletReadiness = useMemo(
+    () => ({
       isConnected: isConnected && !!address,
       hasWalletClient: !!walletClient,
       isFarcaster: isMiniApp,
       isFullyReady:
         isConnected && !!address && (isMiniApp ? !!walletClient : true),
-    };
-  }, [isConnected, address, walletClient, isMiniApp]);
-
-  const isWalletReady = () => walletReadiness;
+    }),
+    [isConnected, address, walletClient, isMiniApp]
+  );
 
   const swap = async (
     fromCurrency: Currency,
@@ -57,17 +56,9 @@ export function useEthersSwap() {
     minAmountOut?: string,
     recipientAddress?: string
   ) => {
-    const walletStatus = isWalletReady();
-
-    if (!walletStatus.isConnected) {
-      throw new Error('Wallet not connected. Please connect your wallet first.');
+    if (!walletReadiness.isConnected) {
+      throw new Error('Wallet not connected');
     }
-
-    console.log('Starting pure ethers.js swap...');
-    console.log('Wallet validation passed:', {
-      isConnected: walletStatus.isConnected,
-      address: address?.slice(0, 6) + '...' + address?.slice(-4),
-    });
 
     if (!walletClient) {
       throw new Error('Wallet client not available');
@@ -75,160 +66,101 @@ export function useEthersSwap() {
 
     try {
       const currentChainId = await walletClient.getChainId();
-      console.log('Current wallet chain ID:', currentChainId);
-
       if (currentChainId !== 42220) {
-        console.log('Switching wallet to Celo (chain 42220)...');
+        console.log('Switching to Celo network...');
         await walletClient.switchChain({ id: 42220 });
-        console.log('Switched to Celo successfully');
       }
     } catch (e) {
-      console.error('Could not switch chain to Celo:', e);
-      throw new Error('Please switch your wallet to Celo network to use this app');
+      console.error('Chain switch failed:', e);
+      throw new Error('Please switch your wallet to Celo network');
     }
 
     const chainId = 42220 as const;
     const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
     const toTokenAddress = getTokenAddress(chainId, toCurrency);
 
-    console.log('Token addresses:', {
-      fromCurrency,
-      toCurrency,
-      fromTokenAddress,
-      toTokenAddress,
-      chainId,
-    });
-
-    const rpcUrls = ['https://forno.celo.org'];
-
-    let provider: providers.JsonRpcProvider | undefined;
-    for (const rpcUrl of rpcUrls) {
-      try {
-        provider = new providers.JsonRpcProvider(rpcUrl);
-        console.log(`Connected to RPC: ${rpcUrl}`);
-        break;
-      } catch (error) {
-        console.warn(`Failed to connect to ${rpcUrl}:`, error);
-        if (rpcUrl === rpcUrls[rpcUrls.length - 1]) {
-          throw new Error('All RPC endpoints failed. Please check your internet connection.');
-        }
-      }
-    }
-
-    if (!provider) {
-      throw new Error('Failed to connect to any RPC endpoint');
+    let provider: providers.JsonRpcProvider;
+    try {
+      provider = new providers.JsonRpcProvider('https://forno.celo.org');
+    } catch (error) {
+      throw new Error('Failed to connect to RPC endpoint');
     }
 
     let signer: any;
     let signerAddress: string;
 
     if (isMiniApp) {
-      if (!walletClient) {
-        throw new Error('Farcaster wallet client not available. Please ensure you are connected.');
-      }
-
       if (!address) {
         throw new Error('Wallet address not available');
       }
 
-      console.log('Using Farcaster Mini App with wagmi wallet client');
-
       signerAddress = address;
-
       signer = {
         provider: provider,
         getAddress: () => Promise.resolve(signerAddress),
         signMessage: async (message: string | Uint8Array) => {
-          const messageHex = typeof message === 'string' ? message : ethers.utils.hexlify(message);
+          const messageHex =
+            typeof message === 'string'
+              ? message
+              : ethers.utils.hexlify(message);
           return await walletClient.signMessage({
             account: signerAddress as `0x${string}`,
             message: messageHex,
           });
         },
-        signTransaction: async (transaction: any) => {
-          throw new Error('signTransaction not supported in Farcaster Mini App');
-        },
         sendTransaction: async (transaction: any) => {
-          console.log('Sending transaction via wagmi wallet client:', {
-            to: transaction.to,
-            value: transaction.value?.toString(),
-            data: transaction.data?.slice(0, 10) + '...'
-          });
-
           const hash = await walletClient.sendTransaction({
             account: signerAddress as `0x${string}`,
             to: transaction.to as `0x${string}`,
             data: transaction.data as `0x${string}`,
-            value: transaction.value ? BigInt(transaction.value.toString()) : BigInt(0),
-            gas: transaction.gasLimit ? BigInt(transaction.gasLimit.toString()) : undefined,
-            gasPrice: transaction.gasPrice ? BigInt(transaction.gasPrice.toString()) : undefined,
+            value: transaction.value
+              ? BigInt(transaction.value.toString())
+              : BigInt(0),
+            gas: transaction.gasLimit
+              ? BigInt(transaction.gasLimit.toString())
+              : undefined,
+            gasPrice: transaction.gasPrice
+              ? BigInt(transaction.gasPrice.toString())
+              : undefined,
           });
 
           return {
             hash,
-            wait: () => provider.waitForTransaction(hash, 1)
+            wait: () => provider.waitForTransaction(hash, 1),
           };
         },
-        connect: (provider: any) => {
-          return { ...signer, provider };
-        },
-        call: async (transaction: any) => {
-          return await provider.call(transaction);
-        },
-        estimateGas: async (transaction: any) => {
-          return await provider.estimateGas(transaction);
-        },
-        getBalance: async (address?: string) => {
-          const addr = address || signerAddress;
-          return await provider.getBalance(addr);
-        },
-        getTransactionCount: async (address?: string) => {
-          const addr = address || signerAddress;
-          return await provider.getTransactionCount(addr);
-        },
+        estimateGas: async (transaction: any) =>
+          provider.estimateGas(transaction),
         _isSigner: true,
       };
-
-      console.log('Farcaster wallet client configured:', signerAddress);
-      console.log('Signer created:', signerAddress);
     } else {
       if (!window.ethereum) {
-        throw new Error('No wallet found. Please install MetaMask or another Web3 wallet.');
+        throw new Error('No wallet found. Please install a Web3 wallet.');
       }
 
-      console.log('Using traditional Web3 wallet');
-      
-      // Request accounts first to ensure wallet is properly connected
       try {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
       } catch (error) {
-        console.error('Failed to request accounts:', error);
-        throw new Error('Please connect your wallet and try again.');
+        throw new Error('Please connect your wallet and try again');
       }
-      
+
       const ethersProvider = new providers.Web3Provider(window.ethereum);
       signer = ethersProvider.getSigner();
       signerAddress = await signer.getAddress();
 
       if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
-        throw new Error('Wallet address mismatch. Please reconnect your wallet.');
+        throw new Error('Wallet address mismatch');
       }
-
-      console.log('Signer created:', signerAddress);
     }
 
-    console.log('Creating Mento SDK...');
     const mento = await Mento.create(provider);
-    console.log('Loading exchanges...');
     const exchanges = await mento.getExchanges();
+
     if (exchanges.length === 0) {
-      throw new Error('No exchanges found');
+      throw new Error('No exchanges available');
     }
 
-    // Convert amount to wei using ethers
     const amountInWei = ethers.utils.parseEther(amount);
-
-    console.log('Getting quote...');
     const quoteAmountOut = await mento.getAmountOut(
       fromTokenAddress,
       toTokenAddress,
@@ -238,106 +170,45 @@ export function useEthersSwap() {
     const quoteBigInt = BigInt(quoteAmountOut.toString());
     const expectedAmountOut = minAmountOut
       ? ethers.utils.parseEther(minAmountOut).toString()
-      : ((quoteBigInt * BigInt(98)) / BigInt(100)).toString(); // 2% slippage
+      : ((quoteBigInt * BigInt(98)) / BigInt(100)).toString();
 
-    console.log(
-      `Quote: ${ethers.utils.formatEther(
-        quoteAmountOut
-      )} ${toCurrency} for ${amount} ${fromCurrency}`
-    );
-    console.log(
-      `Expected amount out with 2% slippage: ${ethers.utils.formatEther(
-        expectedAmountOut
-      )} ${toCurrency}`
-    );
+    console.log('Swap quote:', {
+      from: fromCurrency,
+      to: toCurrency,
+      amountIn: amount,
+      amountOut: ethers.utils.formatEther(expectedAmountOut)
+    });
 
     try {
-      // 1) Find tradable pair - try multiple approaches
-      let tradablePair = await mento.findPairForTokens(
+      const tradablePair = await mento.findPairForTokens(
         fromTokenAddress,
         toTokenAddress
       );
 
       if (!tradablePair) {
-        console.log('No direct tradable pair found, checking available exchanges...');
-
-        const allExchanges = await mento.getExchanges();
-        console.log('Available exchanges:', allExchanges.length);
-
-        const supportedTokens = new Set<string>();
-        allExchanges.forEach((exchange) => {
-          exchange.assets.forEach((asset) => supportedTokens.add(asset));
-        });
-
-        console.log('Supported tokens:', Array.from(supportedTokens));
-        console.log('Looking for:', { fromTokenAddress, toTokenAddress });
-
         throw new Error(
-          `No tradable pair found for ${fromCurrency} → ${toCurrency}. This pair may not be supported by Mento exchanges.`
+          `No tradable pair found for ${fromCurrency} → ${toCurrency}`
         );
       }
 
-      console.log('Found tradable pair:', {
-        pathLength: tradablePair.path.length,
-        path: tradablePair.path.map((hop, i) => ({
-          hop: i + 1,
-          providerAddr: hop.providerAddr,
-          exchangeId: hop.id,
-          assets: hop.assets,
-        })),
-      });
-
       if (tradablePair.path.length === 2) {
-        console.log('Pre-validating multi-hop path...');
-        
-        // Determine which hop comes first based on which contains the fromToken
-        let firstHop, secondHop;
-        
-        if (tradablePair.path[0].assets.includes(fromTokenAddress)) {
-          firstHop = tradablePair.path[0];
-          secondHop = tradablePair.path[1];
-          console.log('Path order: hop[0] → hop[1]');
-        } else if (tradablePair.path[1].assets.includes(fromTokenAddress)) {
-          firstHop = tradablePair.path[1];
-          secondHop = tradablePair.path[0];
-          console.log('Path order: hop[1] → hop[0] (reversed)');
-        } else {
-          console.error('Neither hop contains fromToken:', {
-            hop0Assets: tradablePair.path[0].assets,
-            hop1Assets: tradablePair.path[1].assets,
-            fromTokenAddress,
-            fromCurrency,
-          });
-          throw new Error(
-            `Multi-hop swap failed: Neither exchange supports ${fromCurrency}. This token pair may not be available for trading.`
-          );
-        }
+        const firstHop = tradablePair.path[0].assets.includes(fromTokenAddress)
+          ? tradablePair.path[0]
+          : tradablePair.path[1];
 
-        // Validate first hop supports fromToken (should always pass now)
+        const secondHop =
+          firstHop === tradablePair.path[0]
+            ? tradablePair.path[1]
+            : tradablePair.path[0];
+
         if (!firstHop.assets.includes(fromTokenAddress)) {
-          console.error('First hop validation failed:', {
-            firstHopAssets: firstHop.assets,
-            fromTokenAddress,
-            fromCurrency,
-          });
-          throw new Error(
-            `Multi-hop swap failed: The first exchange doesn't support ${fromCurrency}.`
-          );
+          throw new Error(`First exchange doesn't support ${fromCurrency}`);
         }
 
-        // Validate second hop supports toToken
         if (!secondHop.assets.includes(toTokenAddress)) {
-          console.error('Second hop validation failed:', {
-            secondHopAssets: secondHop.assets,
-            toTokenAddress,
-            toCurrency,
-          });
-          throw new Error(
-            `Multi-hop swap failed: The second exchange doesn't support ${toCurrency}.`
-          );
+          throw new Error(`Second exchange doesn't support ${toCurrency}`);
         }
 
-        // Find intermediate token
         const intermediateToken = firstHop.assets.find(
           (asset) =>
             secondHop.assets.includes(asset) &&
@@ -346,21 +217,13 @@ export function useEthersSwap() {
         );
 
         if (!intermediateToken) {
-          console.error('No valid intermediate token found:', {
-            firstHopAssets: firstHop.assets,
-            secondHopAssets: secondHop.assets,
-            fromTokenAddress,
-            toTokenAddress,
-          });
-          throw new Error(
-            'No valid intermediate token found between the two hops'
-          );
+          throw new Error('No valid intermediate token found');
         }
 
-        console.log('Multi-hop path pre-validation passed:', {
-          intermediateToken,
-          firstHopSupports: firstHop.assets,
-          secondHopSupports: secondHop.assets,
+        console.log('Multi-hop swap path validated:', {
+          from: fromCurrency,
+          to: toCurrency,
+          intermediateToken: intermediateToken.slice(0, 10) + '...'
         });
       }
 
@@ -381,20 +244,15 @@ export function useEthersSwap() {
         const providerAddr = hop.providerAddr;
         const exchangeId = hop.id;
 
-        console.log('Using single-hop swap:', { providerAddr, exchangeId });
-
         if (isMiniApp) {
-          console.log('[FARCASTER] Using Farcaster wallet_sendCalls for batch transaction');
-
           const tokenInterface = [
-            'function allowance(address owner, address spender) view returns (uint256)'
+            'function allowance(address owner, address spender) view returns (uint256)',
           ];
           const readTokenContract = new Contract(
             fromTokenAddress,
             tokenInterface,
             provider
           );
-
           const currentAllowance = await readTokenContract.allowance(
             signerAddress,
             fxRemitAddress
@@ -403,15 +261,18 @@ export function useEthersSwap() {
           const calls: { to: `0x${string}`; data: `0x${string}` }[] = [];
 
           if (currentAllowance.lt(amountInWei)) {
-            console.log('[FARCASTER] Approval needed, adding to batch');
             const approveData = encodeFunctionData({
               abi: ERC20_ABI,
               functionName: 'approve',
-              args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())],
+              args: [
+                fxRemitAddress as `0x${string}`,
+                BigInt(amountInWei.toString()),
+              ],
             });
-            calls.push({ to: fromTokenAddress as `0x${string}`, data: approveData as `0x${string}` });
-          } else {
-            console.log('[FARCASTER] Approval not needed (sufficient allowance)');
+            calls.push({
+              to: fromTokenAddress as `0x${string}`,
+              data: approveData as `0x${string}`,
+            });
           }
 
           const amountInBig = BigInt(amountInWei.toString());
@@ -434,70 +295,36 @@ export function useEthersSwap() {
             ],
           });
           const dataWithReferral = addReferralTagToTransaction(rawSwapData);
-          calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
-
-          console.log('[FARCASTER] Submitting', calls.length, 'transaction(s) via wallet_sendCalls');
-          console.log('[FARCASTER] Transactions:', calls.map((c, i) => ({
-            index: i,
-            to: c.to,
-            dataPreview: c.data.slice(0, 10) + '...'
-          })));
-
-          console.log('[FARCASTER] Checking sendCallsAsync availability:', typeof sendCallsAsync);
+          calls.push({
+            to: fxRemitAddress as `0x${string}`,
+            data: dataWithReferral as `0x${string}`,
+          });
 
           if (!sendCallsAsync) {
-            throw new Error('sendCallsAsync is not available. This might be a Farcaster wallet configuration issue.');
+            throw new Error('sendCallsAsync not available');
           }
 
-          try {
-            // Use sendCallsAsync as per Farcaster documentation
-            // This returns a promise that resolves with the callsId after user confirms
-            console.log('[FARCASTER] Calling sendCallsAsync...');
+          const callsResult = await sendCallsAsync({ calls });
+          const callsId =
+            typeof callsResult === 'string' ? callsResult : callsResult?.id;
 
-            const callsResult = await sendCallsAsync({
-              calls: calls
-            });
+          console.log('Farcaster batch submitted:', { callsId, txCount: calls.length });
 
-            console.log('[FARCASTER] sendCallsAsync completed!');
-            console.log('[FARCASTER] Calls Result:', callsResult);
-            console.log('[FARCASTER] Calls ID:', callsResult?.id);
-            console.log('[FARCASTER] Calls Result Type:', typeof callsResult);
-            console.log('[FARCASTER] Calls Result Keys:', callsResult ? Object.keys(callsResult) : 'null');
-            console.log('[FARCASTER] User confirmed batch transaction');
-
-            // Extract the ID string from the result object
-            const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
-            console.log('[FARCASTER] Extracted ID string:', callsId);
-
-            // WARNING: Getting a callsId does NOT guarantee blockchain broadcast!
-            console.warn('[FARCASTER]  WARNING: Farcaster may return ID without broadcasting!');
-            console.warn('[FARCASTER]  Users should verify transaction on Celoscan');
-
-            if (!callsId) {
-              throw new Error('No callsId returned from sendCallsAsync - transaction may have failed');
-            }
-
-            // Return with the actual callsId string
-            return {
-              success: true,
-              pending: true,
-              callsId: callsId,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
-              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (batch processing)`,
-            };
-          } catch (error) {
-            console.error('[FARCASTER] Error calling sendCallsAsync:', error);
-            console.error('[FARCASTER] Error details:', {
-              name: error instanceof Error ? error.name : 'Unknown',
-              message: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : 'No stack'
-            });
-            throw new Error(`Failed to submit batch transaction: ${error instanceof Error ? error.message : String(error)}`);
+          if (!callsId) {
+            throw new Error(
+              'No callsId returned transaction may have failed'
+            );
           }
+
+          return {
+            success: true,
+            pending: true,
+            callsId,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+          };
         } else {
-          console.log('Using traditional individual transactions');
-
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)',
             'function approve(address spender, uint256 amount) returns (bool)',
@@ -507,24 +334,17 @@ export function useEthersSwap() {
             tokenInterface,
             signer
           );
-
-          console.log('Checking current allowance...');
           const currentAllowance = await tokenContract.allowance(
             signerAddress,
             fxRemitAddress
           );
 
           if (currentAllowance.lt(amountInWei)) {
-            console.log('Approving token spend...');
             const approvalTx = await tokenContract.approve(
               fxRemitAddress,
               amountInWei
             );
-            console.log('Waiting for approval transaction...');
-            await approvalTx.wait(1); // Wait for 1 confirmation
-            console.log('Approval confirmed!');
-          } else {
-            console.log('Sufficient allowance already exists');
+            await approvalTx.wait(1);
           }
 
           const fxRemitContract = new Contract(
@@ -532,8 +352,6 @@ export function useEthersSwap() {
             FXRemitABI,
             signer
           );
-
-          // Add referral tag to transaction data
           const swapTx = await fxRemitContract.populateTransaction.swapAndSend(
             recipientAddress ?? signerAddress,
             fromTokenAddress,
@@ -551,20 +369,19 @@ export function useEthersSwap() {
           const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
           swapTx.data = dataWithReferral;
 
-          console.log('Sending swap transaction...');
-
           const gasEstimate = await signer.estimateGas(swapTx);
-          swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
+          swapTx.gasLimit = gasEstimate.mul(120).div(100);
 
           const swapResponse = await signer.sendTransaction(swapTx);
-          console.log('Waiting for swap confirmation...');
+          console.log('Transaction submitted:', swapResponse.hash);
+          
           const receipt = await swapResponse.wait(1);
 
           if (receipt.status !== 1) {
-            throw new Error('Swap transaction failed on-chain');
+            throw new Error('Swap transaction failed');
           }
 
-          console.log('Swap completed successfully!');
+          console.log('Transaction confirmed:', swapResponse.hash);
           await submitReferralTransaction(swapResponse.hash);
 
           return {
@@ -578,83 +395,56 @@ export function useEthersSwap() {
       }
 
       if (tradablePair.path.length === 2) {
-        // Determine correct hop order based on which contains fromToken
-        let hop1, hop2;
-        
-        if (tradablePair.path[0].assets.includes(fromTokenAddress)) {
-          hop1 = tradablePair.path[0];
-          hop2 = tradablePair.path[1];
-          console.log('Execution path order: hop[0] → hop[1]');
-        } else if (tradablePair.path[1].assets.includes(fromTokenAddress)) {
-          hop1 = tradablePair.path[1];
-          hop2 = tradablePair.path[0];
-          console.log('Execution path order: hop[1] → hop[0] (reversed)');
-        } else {
+        const hop1 = tradablePair.path[0].assets.includes(fromTokenAddress)
+          ? tradablePair.path[0]
+          : tradablePair.path[1];
+
+        const hop2 =
+          hop1 === tradablePair.path[0]
+            ? tradablePair.path[1]
+            : tradablePair.path[0];
+
+        if (!hop1 || !hop2) {
           throw new Error(
             `Multi-hop swap setup failed: Neither exchange supports ${fromCurrency}`
           );
         }
 
-        console.log('Analyzing multi-hop path:', {
-          hop1: {
-            providerAddr: hop1.providerAddr,
-            exchangeId: hop1.id,
-            assets: hop1.assets,
-          },
-          hop2: {
-            providerAddr: hop2.providerAddr,
-            exchangeId: hop2.id,
-            assets: hop2.assets,
-          },
-          fromTokenAddress,
-          toTokenAddress,
-        });
-
-        // Validate that the hops form a valid path
         const assets1: string[] = hop1.assets;
         const assets2: string[] = hop2.assets;
 
-        let intermediateTokenAddress: string | undefined;
-        for (const a1 of assets1) {
-          if (
+        const intermediateTokenAddress = assets1.find(
+          (a1) =>
             assets2.includes(a1) &&
             a1 !== fromTokenAddress &&
             a1 !== toTokenAddress
-          ) {
-            intermediateTokenAddress = a1;
-            break;
-          }
-        }
+        );
 
         if (!intermediateTokenAddress) {
-          throw new Error('Could not determine intermediate token for multi-hop swap');
+          throw new Error('Could not determine intermediate token');
         }
 
-        if (!assets1.includes(fromTokenAddress) || !assets1.includes(intermediateTokenAddress)) {
-          throw new Error(`Hop 1 does not support ${fromCurrency} → intermediate token swap`);
+        if (
+          !assets1.includes(fromTokenAddress) ||
+          !assets1.includes(intermediateTokenAddress)
+        ) {
+          throw new Error(
+            `Hop 1 does not support ${fromCurrency} → intermediate token swap`
+          );
         }
 
-        if (!assets2.includes(intermediateTokenAddress) || !assets2.includes(toTokenAddress)) {
-          throw new Error(`Hop 2 does not support intermediate token → ${toCurrency} swap`);
+        if (
+          !assets2.includes(intermediateTokenAddress) ||
+          !assets2.includes(toTokenAddress)
+        ) {
+          throw new Error(
+            `Hop 2 does not support intermediate token → ${toCurrency} swap`
+          );
         }
-
-        console.log('Multi-hop path validation passed:', {
-          hop1: `${fromCurrency} → intermediate`,
-          hop2: `intermediate → ${toCurrency}`,
-          intermediateTokenAddress,
-          providerAddr1: hop1.providerAddr,
-          exchangeId1: hop1.id,
-          providerAddr2: hop2.providerAddr,
-          exchangeId2: hop2.id,
-        });
 
         if (isMiniApp) {
-          // Farcaster: batch approve + multi-hop swap in one prompt
-          console.log('Using Farcaster batch transaction for multi-hop approval + swap');
-
-          // Read current allowance
           const tokenInterface = [
-            'function allowance(address owner, address spender) view returns (uint256)'
+            'function allowance(address owner, address spender) view returns (uint256)',
           ];
           const readTokenContract = new Contract(
             fromTokenAddress,
@@ -667,13 +457,20 @@ export function useEthersSwap() {
           );
 
           const calls: { to: `0x${string}`; data: `0x${string}` }[] = [];
+
           if (currentAllowance.lt(amountInWei)) {
             const approveData = encodeFunctionData({
               abi: ERC20_ABI,
               functionName: 'approve',
-              args: [fxRemitAddress as `0x${string}`, BigInt(amountInWei.toString())],
+              args: [
+                fxRemitAddress as `0x${string}`,
+                BigInt(amountInWei.toString()),
+              ],
             });
-            calls.push({ to: fromTokenAddress as `0x${string}`, data: approveData as `0x${string}` });
+            calls.push({
+              to: fromTokenAddress as `0x${string}`,
+              data: approveData as `0x${string}`,
+            });
           }
 
           const amountInBig = BigInt(amountInWei.toString());
@@ -699,70 +496,36 @@ export function useEthersSwap() {
             ],
           });
           const dataWithReferral = addReferralTagToTransaction(rawSwapData);
-          calls.push({ to: fxRemitAddress as `0x${string}`, data: dataWithReferral as `0x${string}` });
-
-          console.log('[FARCASTER-MULTIHOP] Submitting', calls.length, 'transaction(s) via wallet_sendCalls');
-          console.log('[FARCASTER-MULTIHOP] Transactions:', calls.map((c, i) => ({
-            index: i,
-            to: c.to,
-            dataPreview: c.data.slice(0, 10) + '...'
-          })));
-
-          console.log('[FARCASTER-MULTIHOP] Checking sendCallsAsync availability:', typeof sendCallsAsync);
+          calls.push({
+            to: fxRemitAddress as `0x${string}`,
+            data: dataWithReferral as `0x${string}`,
+          });
 
           if (!sendCallsAsync) {
-            throw new Error('sendCallsAsync is not available. This might be a Farcaster wallet configuration issue.');
+            throw new Error('sendCallsAsync not available');
           }
 
-          try {
-            // Use sendCallsAsync as per Farcaster documentation
-            // This returns a promise that resolves with the callsId after user confirms
-            console.log('[FARCASTER-MULTIHOP] Calling sendCallsAsync...');
+          const callsResult = await sendCallsAsync({ calls });
+          const callsId =
+            typeof callsResult === 'string' ? callsResult : callsResult?.id;
 
-            const callsResult = await sendCallsAsync({
-              calls: calls
-            });
+          console.log('Farcaster multi-hop batch submitted:', { callsId, txCount: calls.length });
 
-            console.log('[FARCASTER-MULTIHOP] sendCallsAsync completed!');
-            console.log('[FARCASTER-MULTIHOP] Calls Result:', callsResult);
-            console.log('[FARCASTER-MULTIHOP] Calls ID:', callsResult?.id);
-            console.log('[FARCASTER-MULTIHOP] Calls Result Type:', typeof callsResult);
-            console.log('[FARCASTER-MULTIHOP] Calls Result Keys:', callsResult ? Object.keys(callsResult) : 'null');
-            console.log('[FARCASTER-MULTIHOP] User confirmed multi-hop batch transaction');
-
-            // Extract the ID string from the result object
-            const callsId = typeof callsResult === 'string' ? callsResult : callsResult?.id;
-            console.log('[FARCASTER-MULTIHOP] Extracted ID string:', callsId);
-
-            // WARNING: Getting a callsId does NOT guarantee blockchain broadcast!
-            console.warn('[FARCASTER-MULTIHOP] ⚠️ WARNING: Farcaster may return ID without broadcasting!');
-            console.warn('[FARCASTER-MULTIHOP] ⚠️ Users should verify transaction on Celoscan');
-
-            if (!callsId) {
-              throw new Error('No callsId returned from sendCallsAsync - transaction may have failed');
-            }
-
-            // Return with the actual callsId string
-            return {
-              success: true,
-              pending: true,
-              callsId: callsId,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
-              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop batch processing)`,
-            };
-          } catch (error) {
-            console.error('[FARCASTER-MULTIHOP] Error calling sendCallsAsync:', error);
-            console.error('[FARCASTER-MULTIHOP] Error details:', {
-              name: error instanceof Error ? error.name : 'Unknown',
-              message: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : 'No stack'
-            });
-            throw new Error(`Failed to submit multi-hop batch transaction: ${error instanceof Error ? error.message : String(error)}`);
+          if (!callsId) {
+            throw new Error(
+              'No callsId returned transaction may have failed'
+            );
           }
+
+          return {
+            success: true,
+            pending: true,
+            callsId,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+          };
         } else {
-          console.log('Using traditional individual transactions for multi-hop');
-
           const tokenInterface = [
             'function allowance(address owner, address spender) view returns (uint256)',
             'function approve(address spender, uint256 amount) returns (bool)',
@@ -772,24 +535,17 @@ export function useEthersSwap() {
             tokenInterface,
             signer
           );
-
-          console.log('Checking current allowance...');
           const currentAllowance = await tokenContract.allowance(
             signerAddress,
             fxRemitAddress
           );
 
           if (currentAllowance.lt(amountInWei)) {
-            console.log('Approving token spend...');
             const approvalTx = await tokenContract.approve(
               fxRemitAddress,
               amountInWei
             );
-            console.log('Waiting for approval transaction...');
-            await approvalTx.wait(1); // Wait for 1 confirmation
-            console.log('Approval confirmed!');
-          } else {
-            console.log('Sufficient allowance already exists');
+            await approvalTx.wait(1);
           }
 
           const fxRemitContract = new Contract(
@@ -797,82 +553,53 @@ export function useEthersSwap() {
             FXRemitABI,
             signer
           );
-
           const swapTx =
             await fxRemitContract.populateTransaction.swapAndSendPath(
-              recipientAddress ?? signerAddress, // recipient
-              fromTokenAddress, // tokenIn
-              intermediateTokenAddress, // intermediateToken
-              toTokenAddress, // tokenOut
-              amountInWei, // amountIn
-              expectedAmountOut, // minAmountOut
-              fromCurrency, // fromCurrency
-              toCurrency, // toCurrency
-              corridor, // corridor
-              hop1.providerAddr, // providerAddr1
-              hop1.id, // exchangeId1
-              hop2.providerAddr, // providerAddr2
-              hop2.id, // exchangeId2
-              deadline // deadline
+              recipientAddress ?? signerAddress,
+              fromTokenAddress,
+              intermediateTokenAddress,
+              toTokenAddress,
+              amountInWei,
+              expectedAmountOut,
+              fromCurrency,
+              toCurrency,
+              corridor,
+              hop1.providerAddr,
+              hop1.id,
+              hop2.providerAddr,
+              hop2.id,
+              deadline
             );
 
           const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
           swapTx.data = dataWithReferral;
 
-          console.log('Sending multi-hop swap transaction...');
-          console.log('Transaction details:', {
-            to: fxRemitAddress,
-            from: signerAddress,
-            value: '0',
-            data: swapTx.data?.slice(0, 10) + '...', // Show function selector
-          });
+          const gasEstimate = await signer.estimateGas(swapTx);
+          swapTx.gasLimit = gasEstimate.mul(120).div(100);
 
-          try {
-            // Add gas configuration for better reliability
-            const gasEstimate = await signer.estimateGas(swapTx);
-            swapTx.gasLimit = gasEstimate.mul(120).div(100); // 20% buffer
+          const swapResponse = await signer.sendTransaction(swapTx);
+          console.log('Multi-hop transaction submitted:', swapResponse.hash);
+          
+          const receipt = await swapResponse.wait(1);
 
-            const swapResponse = await signer.sendTransaction(swapTx);
-            console.log('Waiting for swap confirmation...');
-            const receipt = await swapResponse.wait(1);
-
-            if (receipt.status !== 1) {
-              throw new Error('Multi-hop swap transaction failed on-chain');
-            }
-
-            console.log('Multi-hop swap completed successfully!');
-            await submitReferralTransaction(swapResponse.hash);
-
-            return {
-              success: true,
-              hash: swapResponse.hash,
-              amountOut: ethers.utils.formatEther(expectedAmountOut),
-              recipient: recipientAddress ?? signerAddress,
-              message: `Sent ${amount} ${fromCurrency} → ${toCurrency} (multi-hop)`,
-            };
-          } catch (multiHopError) {
-            console.error('Multi-hop swap failed:', multiHopError);
-
-            if (
-              multiHopError instanceof Error &&
-              multiHopError.message.includes('tokenIn and tokenOut must match exchange')
-            ) {
-              throw new Error(
-                `Multi-hop swap failed: The exchange parameters don't match the token pair. This might be due to exchange configuration issues. Please try a different token pair or contact support.`
-              );
-            }
-
-            throw multiHopError;
+          if (receipt.status !== 1) {
+            throw new Error('Multi-hop swap transaction failed');
           }
+
+          console.log('Multi-hop transaction confirmed:', swapResponse.hash);
+          await submitReferralTransaction(swapResponse.hash);
+
+          return {
+            success: true,
+            hash: swapResponse.hash,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+          };
         }
       }
     } catch (error) {
-      console.error('Swap failed:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        name: error instanceof Error ? error.name : 'Unknown',
-      });
+      console.error('Swap error:', error instanceof Error ? error.message : error);
       throw error;
     }
   };
@@ -882,4 +609,4 @@ export function useEthersSwap() {
     isWalletReady: walletReadiness.isFullyReady,
     walletStatus: walletReadiness,
   };
-} 
+}

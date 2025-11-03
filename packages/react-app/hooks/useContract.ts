@@ -1,15 +1,12 @@
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { useChainId } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
-import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO, isContractConfigured, SupportedChainId } from '../lib/contracts';
+import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
 import { useEffect } from 'react';
 import { useDivvi } from './useDivvi';
 
 export function useFXRemitContract() {
   const chainId = useChainId();
   const address = getContractAddress(chainId);
-  
-  // Contract configuration
   
   return {
     address,
@@ -39,22 +36,16 @@ export function useLogRemittance() {
     mentoTxHash: string;
     corridor: string;
   }) => {
-    
     if (!contract.isConfigured) {
-      console.error('Contract not configured for chain:', contract.chainId);
       throw new Error('Contract not configured for this chain');
     }
     
     const fromTokenAddress = getTokenAddress(contract.chainId as SupportedChainId, params.fromCurrency);
     const toTokenAddress = getTokenAddress(contract.chainId as SupportedChainId, params.toCurrency);
 
-    // Safe parseEther with fallbacks
     const safeParseEther = (value: string | undefined, fallback = '0') => {
-      const safeValue = value || fallback;
-      return parseEther(safeValue);
+      return parseEther(value || fallback);
     };
-    
-    // Call writeContract
     
     writeContract({
       address: contract.address as `0x${string}`,
@@ -77,22 +68,7 @@ export function useLogRemittance() {
   };
 
   useEffect(() => {
-    if (error) {
-      console.error(' writeContract error:', error);
-    }
-  }, [error]);
-
-  useEffect(() => {
-    if (hash) {
-      // Transaction hash received
-    }
-  }, [hash]);
-
-  useEffect(() => {
     if (isConfirmed && hash) {
-      console.log(' writeContract confirmed!');
-      // Submit referral to Divvi after transaction confirmation
-      console.log(' Submitting referral to Divvi for logRemittance...');
       submitReferralTransaction(hash);
     }
   }, [isConfirmed, hash, submitReferralTransaction]);
@@ -140,20 +116,13 @@ export function useRemittanceDetails(remittanceId: bigint) {
     },
   });
 
-  if (remittanceData && !isLoading) {
-    console.log(' Successfully loaded remittance data for ID:', (remittanceData as any).id);
-    console.log(' Platform fee raw value:', (remittanceData as any).platformFee, typeof (remittanceData as any).platformFee);
-  }
-
   const safeFormatEther = (value: any) => {
     if (value === undefined || value === null) {
-      console.warn(' Undefined value passed to formatEther, using 0');
       return '0';
     }
     try {
       return formatEther(value);
     } catch (err) {
-      console.error(' Error formatting ether:', err, 'value:', value);
       return '0';
     }
   };
@@ -190,7 +159,7 @@ export function usePlatformStats() {
     abi: contract.abi,
     functionName: 'getPlatformStats',
     query: {
-      enabled: contract.isConfigured, // Only run query if contract is configured
+      enabled: contract.isConfigured,
     },
   });
 
@@ -276,7 +245,6 @@ export function useIsSupportedToken(tokenAddress: string) {
   };
 }
 
-// Helper function to get currency information
 export function getCurrencyInfo(currency: Currency) {
   return CURRENCY_INFO[currency];
 } 
