@@ -169,7 +169,6 @@ const handleShareOnFarcaster = async (state: TxState) => {
     const { fromCurrency, toCurrency, amount } = txData;
     const fromSymbol = getCurrencySymbol(fromCurrency);
 
-    // Create engaging share message
     const shareText = `Just sent money across borders with @fxremit! 
 
  ${fromSymbol}${amount} ${fromCurrency} → ${toCurrency}
@@ -177,15 +176,13 @@ const handleShareOnFarcaster = async (state: TxState) => {
  Only 1.5% fees
  15+ countries supported
 
-Try it: https://fx-remit.xyz`;
+Try it: https://farcaster.xyz/miniapps/4dRh4D2PiPCK/fx-remit`;
 
-    // Dynamically import Farcaster SDK
     const { sdk } = await import('@farcaster/miniapp-sdk');
     
-    // Use Farcaster SDK to compose cast
     await sdk.actions.composeCast({
       text: shareText,
-      embeds: ["https://fx-remit.xyz"]
+      embeds: ["https://farcaster.xyz/miniapps/4dRh4D2PiPCK/fx-remit"]
     });
   } catch (error) {
     console.error("Failed to compose cast:", error);

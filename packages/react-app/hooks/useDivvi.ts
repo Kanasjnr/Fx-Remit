@@ -1,7 +1,6 @@
 import { useAccount, useWalletClient, usePublicClient } from 'wagmi';
 import { getReferralTag, submitReferral } from '@divvi/referral-sdk';
 
-// Divvi consumer address for FX-Remit
 const DIVVI_CONSUMER_ADDRESS = '0x817c19bD1Ba4eD47e180a3219d12d1462C8fABDC';
 
 export function useDivvi() {
@@ -36,7 +35,6 @@ export function useDivvi() {
       console.log(' Divvi referral submitted successfully:', { txHash, chainId });
     } catch (error) {
       console.error(' Failed to submit Divvi referral:', error);
-      // Don't throw error to avoid breaking main transaction flow
     }
   };
 
@@ -45,8 +43,7 @@ export function useDivvi() {
       const referralTag = generateReferralTag();
       return transactionData + referralTag;
     } catch (error) {
-      console.error('❌ Failed to generate referral tag:', error);
-      // Return original data if referral tag generation fails
+      console.error(' Failed to generate referral tag:', error);
       return transactionData;
     }
   };

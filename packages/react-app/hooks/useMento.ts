@@ -6,10 +6,8 @@ import { providers } from 'ethers';
 import { Currency, getTokenAddress } from '../lib/contracts';
 import { useEthersSwap } from './useEthersSwap';
 
-// Simplified implementation - the complex swap logic is now in useEthersSwap
 export function useMento() {
-  const ethersSwap = useEthersSwap();
-  return ethersSwap;
+  return useEthersSwap();
 }
 
 export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
@@ -36,20 +34,15 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
       try {
         const provider = new providers.JsonRpcProvider('https://forno.celo.org');
         const mento = await Mento.create(provider);
-        
-        const chainId = 42220; // Celo Mainnet
+        const chainId = 42220;
         const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
         const toTokenAddress = getTokenAddress(chainId, toCurrency);
-        
-        // Get exchange rate for 1 unit of fromCurrency
         const amountIn = parseEther('1');
         const quote = await mento.getAmountOut(fromTokenAddress, toTokenAddress, amountIn);
-        
-        // Convert BigNumber to string for viem formatting
         const exchangeRate = formatEther(BigInt(quote.toString()));
+        
         setRate(exchangeRate);
       } catch (err) {
-        console.error('Failed to fetch exchange rate:', err);
         setError('Failed to fetch exchange rate');
         setRate('0');
       } finally {
@@ -85,9 +78,8 @@ export function useTokenBalance(currency: Currency) {
       setError(null);
 
       try {
-        const chainId = 42220; // Celo Mainnet
+        const chainId = 42220;
         const tokenAddress = getTokenAddress(chainId, currency);
-        
         const balance = await publicClient.readContract({
           address: tokenAddress as `0x${string}`,
           abi: [
@@ -105,7 +97,6 @@ export function useTokenBalance(currency: Currency) {
 
         setBalance(formatEther(balance));
       } catch (err) {
-        console.error('Failed to fetch balance:', err);
         setError('Failed to fetch balance');
         setBalance('0');
       } finally {
@@ -152,25 +143,16 @@ export function useQuote(
       try {
         const provider = new providers.JsonRpcProvider('https://forno.celo.org');
         const mento = await Mento.create(provider);
-        
-        const chainId = 42220; // Celo Mainnet
+        const chainId = 42220;
         const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
         const toTokenAddress = getTokenAddress(chainId, toCurrency);
-        
         const amountInWei = parseEther(amountIn);
         const amountOutWei = await mento.getAmountOut(fromTokenAddress, toTokenAddress, amountInWei);
-        
-        // Convert BigNumber to bigint for viem formatting
         const amountOutBigInt = BigInt(amountOutWei.toString());
         const amountOut = formatEther(amountOutBigInt);
         const exchangeRate = formatEther(amountOutBigInt * BigInt(1e18) / amountInWei);
-        
-        // Calculate platform fee (1.5% of amount received - matches contract calculation)
-        const platformFeeRate = 0.015;
-        const platformFee = (parseFloat(amountOut) * platformFeeRate).toString();
-        
-        // Simple price impact calculation (could be more sophisticated)
-        const priceImpact = '0.1'; // 0.1% as example
+        const platformFee = (parseFloat(amountOut) * 0.015).toString();
+        const priceImpact = '0.1';
         
         setQuote({
           amountOut,
@@ -179,7 +161,6 @@ export function useQuote(
           priceImpact,
         });
       } catch (err) {
-        console.error('Failed to fetch quote:', err);
         setError('Failed to fetch quote');
         setQuote(null);
       } finally {
