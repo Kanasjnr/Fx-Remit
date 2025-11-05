@@ -1,4 +1,4 @@
-import { useAccount, useWalletClient, useSendCalls } from 'wagmi';
+import { useAccount, useWalletClient, useSendCalls, useChainId } from 'wagmi';
 import { useMemo } from 'react';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { providers, Contract, ethers } from 'ethers';
@@ -35,8 +35,17 @@ export function useEthersSwap() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { sendCallsAsync } = useSendCalls();
+  const chainId = useChainId();
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
+
+  console.log('useEthersSwap initialized:', {
+    isMiniApp,
+    isConnected,
+    hasAddress: !!address,
+    hasWalletClient: !!walletClient,
+    hasSendCallsAsync: !!sendCallsAsync,
+  });
 
   const walletReadiness = useMemo(
     () => ({
@@ -56,12 +65,25 @@ export function useEthersSwap() {
     minAmountOut?: string,
     recipientAddress?: string
   ) => {
+    console.log('🚀 Swap initiated:', {
+      fromCurrency,
+      toCurrency,
+      amount,
+      recipientAddress,
+      isMiniApp,
+      walletReadiness,
+    });
+
     if (!walletReadiness.isConnected) {
       throw new Error('Wallet not connected');
     }
 
     if (!walletClient) {
       throw new Error('Wallet client not available');
+    }
+
+    if (isMiniApp && !sendCallsAsync) {
+      throw new Error('Farcaster Mini App requires sendCallsAsync capability');
     }
 
     try {
@@ -75,9 +97,14 @@ export function useEthersSwap() {
       throw new Error('Please switch your wallet to Celo network');
     }
 
-    const chainId = 42220 as const;
-    const fromTokenAddress = getTokenAddress(chainId, fromCurrency);
-    const toTokenAddress = getTokenAddress(chainId, toCurrency);
+    // Ensure we're on Celo (chainId 42220)
+    if (chainId !== 42220) {
+      throw new Error(`Invalid chain. Expected Celo (42220), got ${chainId}`);
+    }
+
+    const celoChainId = 42220 as const;
+    const fromTokenAddress = getTokenAddress(celoChainId, fromCurrency);
+    const toTokenAddress = getTokenAddress(celoChainId, toCurrency);
 
     let provider: providers.JsonRpcProvider;
     try {
@@ -227,7 +254,7 @@ export function useEthersSwap() {
         });
       }
 
-      const fxRemitAddress = getContractAddress(chainId);
+      const fxRemitAddress = getContractAddress(celoChainId);
       if (!fxRemitAddress) {
         throw new Error('FXRemit address not configured');
       }
@@ -304,11 +331,20 @@ export function useEthersSwap() {
             throw new Error('sendCallsAsync not available');
           }
 
-          const callsResult = await sendCallsAsync({ calls });
+          console.log('Submitting Farcaster batch transaction:', {
+            chainId: celoChainId,
+            callsCount: calls.length,
+            calls: calls.map(c => ({ to: c.to, dataLength: c.data.length }))
+          });
+
+          const callsResult = await sendCallsAsync({ 
+            calls,
+            chainId: celoChainId,
+          });
           const callsId =
             typeof callsResult === 'string' ? callsResult : callsResult?.id;
 
-          console.log('Farcaster batch submitted:', { callsId, txCount: calls.length });
+          console.log('Farcaster batch submitted successfully:', { callsId, txCount: calls.length });
 
           if (!callsId) {
             throw new Error(
@@ -505,11 +541,20 @@ export function useEthersSwap() {
             throw new Error('sendCallsAsync not available');
           }
 
-          const callsResult = await sendCallsAsync({ calls });
+          console.log('Submitting Farcaster multi-hop batch transaction:', {
+            chainId: celoChainId,
+            callsCount: calls.length,
+            calls: calls.map(c => ({ to: c.to, dataLength: c.data.length }))
+          });
+
+          const callsResult = await sendCallsAsync({ 
+            calls,
+            chainId: celoChainId,
+          });
           const callsId =
             typeof callsResult === 'string' ? callsResult : callsResult?.id;
 
-          console.log('Farcaster multi-hop batch submitted:', { callsId, txCount: calls.length });
+          console.log('Farcaster multi-hop batch submitted successfully:', { callsId, txCount: calls.length });
 
           if (!callsId) {
             throw new Error(
