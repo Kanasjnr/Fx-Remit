@@ -1,54 +1,58 @@
-"use client"
+'use client';
 
-import { useState } from "react"
+import { useState } from 'react';
 
 export default function ContactUs() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    message: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+    message: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<
+    'idle' | 'success' | 'error'
+  >('idle');
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }))
-  }
+      [name]: value,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitStatus('idle')
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
 
     try {
-      const form = e.target as HTMLFormElement
-      const formDataToSend = new FormData(form)
-      
+      const form = e.target as HTMLFormElement;
+      const formDataToSend = new FormData(form);
+
       const response = await fetch('/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(formDataToSend as any).toString(),
-      })
+      });
 
       if (response.ok) {
-        setSubmitStatus('success')
-        setFormData({ firstName: '', lastName: '', email: '', message: '' })
-        setTimeout(() => setSubmitStatus('idle'), 5000)
+        setSubmitStatus('success');
+        setFormData({ firstName: '', lastName: '', email: '', message: '' });
+        setTimeout(() => setSubmitStatus('idle'), 5000);
       } else {
-        setSubmitStatus('error')
+        setSubmitStatus('error');
       }
     } catch (error) {
-      console.error('Form submission error:', error)
-      setSubmitStatus('error')
+      console.error('Form submission error:', error);
+      setSubmitStatus('error');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <>
@@ -77,7 +81,7 @@ export default function ContactUs() {
             max-width: 100% !important;
             padding: 0 20px !important;
           }
-          .contact-us-container[style*="width: 1320px"] {
+          .contact-us-container[style*='width: 1320px'] {
             width: 100% !important;
             max-width: 400px !important;
             margin: 0 auto !important;
@@ -149,12 +153,12 @@ export default function ContactUs() {
             width: 100% !important;
             max-width: 400px !important;
             height: 81px !important;
-            font-family: SF Pro Rounded !important;
+            font-family: Inter !important;
             font-weight: 400 !important;
             font-size: 18px !important;
             line-height: 150% !important;
             letter-spacing: 0% !important;
-            color: #050505BF !important;
+            color: #050505bf !important;
             opacity: 1 !important;
             margin: 0 auto !important;
           }
@@ -162,125 +166,135 @@ export default function ContactUs() {
       `}</style>
       <section id="contact" className="py-16 px-4 bg-white">
         <div className="w-full flex justify-center px-4">
-          <div 
+          <div
             className="contact-us-container flex gap-[100px] items-start"
             style={{
               width: '1320px',
               height: '679px',
-              opacity: 1
+              opacity: 1,
             }}
           >
             {/* Left Section - Contact Information */}
-            <div 
+            <div
               className="contact-us-left flex flex-col items-start text-left"
               style={{
-                width: '476px',
+                
                 height: '322px',
                 gap: '20px',
                 opacity: 1,
                 marginTop: '80px',
-                paddingLeft: '0'
+                paddingLeft: '0',
               }}
             >
               {/* WANT TO REACH US */}
-              <p 
+              <p
                 style={{
-                fontFamily: 'SF Pro Rounded',
-                fontWeight: 400,
-                fontSize: '18px',
-                lineHeight: '150%',
-                letterSpacing: '0%',
-                color: '#F18F01',
-                  margin: 0
-              }}
-            >
-              WANT TO REACH US
+                  fontFamily: 'Inter',
+                  fontWeight: 400,
+                  fontSize: '18px',
+                  lineHeight: '150%',
+                  letterSpacing: '0%',
+                  color: '#F18F01',
+                  margin: 0,
+                }}
+              >
+                WANT TO REACH US
               </p>
 
               {/* Contact us */}
-            <h2
-              style={{
-                fontFamily: 'SF Pro Rounded',
-                fontWeight: 500,
-                fontSize: '48px',
-                lineHeight: '150%',
-                letterSpacing: '0%',
-                color: '#050505',
+              <h2
+                style={{
+                  fontFamily: 'Inter',
+                  fontWeight: 500,
+                  fontSize: '48px',
+                  lineHeight: '150%',
+                  letterSpacing: '0%',
+                  color: '#050505',
                   margin: 0,
-                  width: '225px',
-                  height: '72px'
-              }}
-            >
-              Contact us
-            </h2>
 
-              {/* Description */}
-            <p
-              className="contact-us-description"
-              style={{
-                width: '476px',
-                height: '81px',
-                fontFamily: 'SF Pro Rounded',
-                fontWeight: 400,
-                fontSize: '18px',
-                lineHeight: '150%',
-                letterSpacing: '0%',
-                color: '#050505BF',
-                  opacity: 1,
-                  margin: 0
+                  height: '72px',
                 }}
               >
-                We&apos;re here to help! Whether you have a question about our product, or need assistance or want to provide feedback, our team is ready to assist you.
+                Contact us
+              </h2>
+
+              {/* Description */}
+              <p
+                className="contact-us-description"
+                style={{
+                  width: '476px',
+                  height: '81px',
+                  fontFamily: 'Inter',
+                  fontWeight: 400,
+                  fontSize: '18px',
+                  lineHeight: '150%',
+                  letterSpacing: '0%',
+                  color: '#050505BF',
+                  opacity: 1,
+                  margin: 0,
+                }}
+              >
+                We&apos;re here to help! Whether you have a question about our
+                product, or need assistance or want to provide feedback, our
+                team is ready to assist you.
               </p>
 
               {/* Email Section */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'flex-start', marginTop: '20px' }}>
-                <span 
+              <div
                 style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '15px',
+                  alignItems: 'flex-start',
+                  marginTop: '20px',
+                }}
+              >
+                <span
+                  style={{
                     width: '400px',
                     height: '19px',
                     fontFamily: 'Inter',
-                  fontWeight: 500,
-                  fontSize: '16px',
-                  lineHeight: '100%',
-                  letterSpacing: '0%',
-                  color: '#050505',
-                    opacity: 1
-                }}
-              >
-                Email:
+                    fontWeight: 500,
+                    fontSize: '16px',
+                    lineHeight: '100%',
+                    letterSpacing: '0%',
+                    color: '#050505',
+                    opacity: 1,
+                  }}
+                >
+                  Email:
                 </span>
-                <a 
+                <a
                   href="mailto:team@fxremit.xyz"
-                style={{
-                  width: '130px',
-                  height: '19px',
+                  style={{
+                    width: '130px',
+                    height: '19px',
                     fontFamily: 'Inter',
-                  fontWeight: 400,
-                  fontSize: '16px',
-                  lineHeight: '100%',
-                  letterSpacing: '0%',
-                  textDecoration: 'underline',
-                  color: '#05050580',
-                    opacity: 1
-                }}
-              >
-                team@fxremit.xyz
+                    fontWeight: 400,
+                    fontSize: '16px',
+                    lineHeight: '100%',
+                    letterSpacing: '0%',
+                    textDecoration: 'underline',
+                    color: '#05050580',
+                    opacity: 1,
+                  }}
+                >
+                  team@fxremit.xyz
                 </a>
+              </div>
             </div>
-          </div>
 
             {/* Right Section - Contact Form */}
-          <div 
+            <div
               className="contact-us-right"
-            style={{
-              width: '784px',
-              height: '719px',
+              style={{
+                width: '784px',
+                height: '719px',
                 opacity: 1,
-                paddingTop: '70px'
+                paddingTop: '70px',
               }}
             >
-              <form 
+              <form
                 name="contact"
                 method="POST"
                 data-netlify="true"
@@ -291,277 +305,285 @@ export default function ContactUs() {
                   // width: '784px',
                   height: '679px',
                   backgroundColor: '#EAF2FF',
-              borderRadius: '50px',
-                  padding: '32px'
+                  borderRadius: '50px',
+                  padding: '32px',
                 }}
               >
                 {/* Hidden fields for Netlify */}
                 <input type="hidden" name="form-name" value="contact" />
                 <div style={{ display: 'none' }}>
                   <label>
-                    Don&apos;t fill this out if you&apos;re human: <input name="bot-field" />
+                    Don&apos;t fill this out if you&apos;re human:{' '}
+                    <input name="bot-field" />
                   </label>
                 </div>
 
                 {/* Name Fields */}
                 {/* Name Fields */}
-                <div 
+                <div
                   className="contact-us-input-group flex gap-4 mb-6 justify-center"
-                  style={{ gap: '20px', marginBottom: '24px', marginTop: '40px' }}
-                >
-                  <div 
-                    className="contact-us-input"
-                style={{
-                  width: '331px',
-                  height: '87px',
-                  opacity: 1,
-                      gap: '9px'
-                }}
-              >
-                <label 
-                  htmlFor="firstName"
                   style={{
-                    width: '331px',
-                    height: '19px',
+                    gap: '20px',
+                    marginBottom: '24px',
+                    marginTop: '40px',
+                  }}
+                >
+                  <div
+                    className="contact-us-input"
+                    style={{
+                      width: '331px',
+                      height: '87px',
+                      opacity: 1,
+                      gap: '9px',
+                    }}
+                  >
+                    <label
+                      htmlFor="firstName"
+                      style={{
+                        width: '331px',
+                        height: '19px',
                         fontFamily: 'Inter',
-                    fontWeight: 500,
-                    fontSize: '16px',
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
+                        fontWeight: 500,
+                        fontSize: '16px',
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
                         color: '#050505',
                         opacity: 1,
                         marginBottom: '9px',
-                        display: 'block'
-                  }}
-                >
-                  First name
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  placeholder="enter your first name"
-                  required
-                  style={{
-                    width: '331px',
-                    height: '59px',
-                    paddingTop: '20px',
-                    paddingRight: '10px',
-                    paddingBottom: '20px',
-                    paddingLeft: '10px',
-                    border: '1px solid #05050533',
+                        display: 'block',
+                      }}
+                    >
+                      First name
+                    </label>
+                    <input
+                      type="text"
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      placeholder="enter your first name"
+                      required
+                      style={{
+                        width: '331px',
+                        height: '59px',
+                        paddingTop: '20px',
+                        paddingRight: '10px',
+                        paddingBottom: '20px',
+                        paddingLeft: '10px',
+                        border: '1px solid #05050533',
                         borderRadius: '5px',
                         fontSize: '16px',
                         fontFamily: 'Inter',
-                    fontWeight: 400,
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
-                    color: '#05050580',
+                        fontWeight: 400,
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        color: '#05050580',
                         opacity: 1,
-                        gap: '10px'
-                  }}
-                />
-              </div>
-              <div 
-                    className="contact-us-input"
-                style={{
-                  width: '331px',
-                  height: '87px',
-                  opacity: 1,
-                      gap: '9px'
-                }}
-              >
-                <label 
-                  htmlFor="lastName"
-                  style={{
-                    width: '331px',
-                    height: '19px',
-                        fontFamily: 'Inter',
-                    fontWeight: 500,
-                    fontSize: '16px',
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
-                        color: '#050505',
-                        opacity: 1,
-                        marginBottom: '9px',
-                        display: 'block'
-                  }}
-                >
-                  Last name
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  placeholder="enter your last name"
-                  required
-                  style={{
-                    width: '331px',
-                    height: '59px',
-                    paddingTop: '20px',
-                    paddingRight: '10px',
-                    paddingBottom: '20px',
-                    paddingLeft: '10px',
-                    border: '1px solid #05050533',
-                        borderRadius: '5px',
-                        fontSize: '16px',
-                        fontFamily: 'Inter',
-                    fontWeight: 400,
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
-                    color: '#05050580',
-                        opacity: 1,
-                        gap: '10px'
-                  }}
-                />
+                        gap: '10px',
+                      }}
+                    />
                   </div>
-              </div>
+                  <div
+                    className="contact-us-input"
+                    style={{
+                      width: '331px',
+                      height: '87px',
+                      opacity: 1,
+                      gap: '9px',
+                    }}
+                  >
+                    <label
+                      htmlFor="lastName"
+                      style={{
+                        width: '331px',
+                        height: '19px',
+                        fontFamily: 'Inter',
+                        fontWeight: 500,
+                        fontSize: '16px',
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        color: '#050505',
+                        opacity: 1,
+                        marginBottom: '9px',
+                        display: 'block',
+                      }}
+                    >
+                      Last name
+                    </label>
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      placeholder="enter your last name"
+                      required
+                      style={{
+                        width: '331px',
+                        height: '59px',
+                        paddingTop: '20px',
+                        paddingRight: '10px',
+                        paddingBottom: '20px',
+                        paddingLeft: '10px',
+                        border: '1px solid #05050533',
+                        borderRadius: '5px',
+                        fontSize: '16px',
+                        fontFamily: 'Inter',
+                        fontWeight: 400,
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        color: '#05050580',
+                        opacity: 1,
+                        gap: '10px',
+                      }}
+                    />
+                  </div>
+                </div>
 
-              {/* Email Field */}
-              <div 
+                {/* Email Field */}
+                <div
                   className="mb-6 flex justify-center"
                   style={{ marginBottom: '24px', marginTop: '20px' }}
                 >
-                  <div 
+                  <div
                     className="contact-us-input"
-                style={{
-                  width: '684px',
-                  height: '87px',
-                  opacity: 1,
-                      gap: '9px'
-                }}
-              >
-                <label 
-                  htmlFor="email"
-                  style={{
-                    width: '684px',
-                    height: '19px',
+                    style={{
+                      width: '684px',
+                      height: '87px',
+                      opacity: 1,
+                      gap: '9px',
+                    }}
+                  >
+                    <label
+                      htmlFor="email"
+                      style={{
+                        width: '684px',
+                        height: '19px',
                         fontFamily: 'Inter',
-                    fontWeight: 500,
-                    fontSize: '16px',
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
+                        fontWeight: 500,
+                        fontSize: '16px',
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
                         color: '#050505',
                         opacity: 1,
                         marginBottom: '9px',
-                        display: 'block'
-                  }}
-                >
-                  Your email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
+                        display: 'block',
+                      }}
+                    >
+                      Your email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
                       placeholder="enter your email"
-                  required
-                  style={{
-                    width: '684px',
-                    height: '59px',
-                    paddingTop: '20px',
-                    paddingRight: '10px',
-                    paddingBottom: '20px',
-                    paddingLeft: '10px',
-                    border: '1px solid #05050533',
+                      required
+                      style={{
+                        width: '684px',
+                        height: '59px',
+                        paddingTop: '20px',
+                        paddingRight: '10px',
+                        paddingBottom: '20px',
+                        paddingLeft: '10px',
+                        border: '1px solid #05050533',
                         borderRadius: '5px',
                         fontSize: '16px',
                         fontFamily: 'Inter',
-                    fontWeight: 400,
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
-                    color: '#05050580',
+                        fontWeight: 400,
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        color: '#05050580',
                         opacity: 1,
-                        gap: '10px'
-                  }}
-                />
+                        gap: '10px',
+                      }}
+                    />
                   </div>
-              </div>
+                </div>
 
-              {/* Message Field */}
-              <div 
+                {/* Message Field */}
+                <div
                   className="mb-8 flex justify-center"
                   style={{ marginBottom: '32px', marginTop: '20px' }}
                 >
-                  <div 
+                  <div
                     className="contact-us-input"
-                style={{
-                  width: '684px',
-                  height: '198px',
-                  opacity: 1,
-                      gap: '9px'
-                }}
-              >
-                <label 
-                  htmlFor="message"
-                  style={{
-                    width: '684px',
-                    height: '19px',
+                    style={{
+                      width: '684px',
+                      height: '198px',
+                      opacity: 1,
+                      gap: '9px',
+                    }}
+                  >
+                    <label
+                      htmlFor="message"
+                      style={{
+                        width: '684px',
+                        height: '19px',
                         fontFamily: 'Inter',
-                    fontWeight: 500,
-                    fontSize: '16px',
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
+                        fontWeight: 500,
+                        fontSize: '16px',
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
                         color: '#050505',
                         opacity: 1,
                         marginBottom: '9px',
-                        display: 'block'
-                  }}
-                >
-                  Your message
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  placeholder="type your message here..."
+                        display: 'block',
+                      }}
+                    >
+                      Your message
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      placeholder="type your message here..."
                       rows={6}
-                  required
-                  style={{
-                    width: '684px',
-                    height: '170px',
-                    paddingTop: '20px',
-                    paddingRight: '10px',
-                    paddingBottom: '20px',
-                    paddingLeft: '10px',
-                    border: '1px solid #05050533',
+                      required
+                      style={{
+                        width: '684px',
+                        height: '170px',
+                        paddingTop: '20px',
+                        paddingRight: '10px',
+                        paddingBottom: '20px',
+                        paddingLeft: '10px',
+                        border: '1px solid #05050533',
                         borderRadius: '5px',
                         fontSize: '16px',
                         fontFamily: 'Inter',
-                    fontWeight: 400,
-                    lineHeight: '100%',
-                    letterSpacing: '0%',
-                    color: '#05050580',
+                        fontWeight: 400,
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        color: '#05050580',
                         opacity: 1,
                         gap: '10px',
-                    resize: 'none'
-                  }}
-                />
+                        resize: 'none',
+                      }}
+                    />
                   </div>
-              </div>
+                </div>
 
-              {/* Submit Button */}
-                <div className="flex justify-center" style={{ marginTop: '30px' }}>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="contact-us-button"
-                style={{
-                  width: '210px',
-                  height: '59px',
-                  backgroundColor: isSubmitting ? '#7A9CC6' : '#2E5EAA',
+                {/* Submit Button */}
+                <div
+                  className="flex justify-center"
+                  style={{ marginTop: '30px' }}
+                >
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="contact-us-button"
+                    style={{
+                      width: '210px',
+                      height: '59px',
+                      backgroundColor: isSubmitting ? '#7A9CC6' : '#2E5EAA',
                       color: '#F8F8FF',
-                  fontFamily: 'Inter',
-                  fontWeight: 500,
-                  fontSize: '16px',
-                  lineHeight: '100%',
-                  letterSpacing: '0%',
+                      fontFamily: 'Inter',
+                      fontWeight: 500,
+                      fontSize: '16px',
+                      lineHeight: '100%',
+                      letterSpacing: '0%',
                       border: 'none',
                       borderRadius: '15px',
                       paddingTop: '20px',
@@ -571,22 +593,24 @@ export default function ContactUs() {
                       opacity: 1,
                       gap: '10px',
                       cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                      transition: 'background-color 0.3s ease'
+                      transition: 'background-color 0.3s ease',
                     }}
                     onMouseEnter={(e) => {
-                      if (!isSubmitting) e.currentTarget.style.backgroundColor = '#1e4a8c'
+                      if (!isSubmitting)
+                        e.currentTarget.style.backgroundColor = '#1e4a8c';
                     }}
                     onMouseLeave={(e) => {
-                      if (!isSubmitting) e.currentTarget.style.backgroundColor = '#2E5EAA'
-                }}
-              >
-                {isSubmitting ? 'Sending...' : 'Send message'}
-              </button>
+                      if (!isSubmitting)
+                        e.currentTarget.style.backgroundColor = '#2E5EAA';
+                    }}
+                  >
+                    {isSubmitting ? 'Sending...' : 'Send message'}
+                  </button>
                 </div>
 
                 {/* Status Messages */}
                 {submitStatus === 'success' && (
-                  <div 
+                  <div
                     style={{
                       marginTop: '20px',
                       padding: '15px',
@@ -595,7 +619,7 @@ export default function ContactUs() {
                       borderRadius: '10px',
                       textAlign: 'center',
                       fontFamily: 'Inter',
-                      fontSize: '16px'
+                      fontSize: '16px',
                     }}
                   >
                     ✓ Thank you! Your message has been sent successfully.
@@ -603,7 +627,7 @@ export default function ContactUs() {
                 )}
 
                 {submitStatus === 'error' && (
-                  <div 
+                  <div
                     style={{
                       marginTop: '20px',
                       padding: '15px',
@@ -612,17 +636,17 @@ export default function ContactUs() {
                       borderRadius: '10px',
                       textAlign: 'center',
                       fontFamily: 'Inter',
-                      fontSize: '16px'
+                      fontSize: '16px',
                     }}
                   >
                     ✗ Oops! Something went wrong. Please try again.
                   </div>
                 )}
-            </form>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
     </>
-  )
+  );
 }
