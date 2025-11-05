@@ -6,15 +6,16 @@ RUN corepack enable && corepack prepare pnpm@8 --activate
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/react-app/package.json ./packages/react-app/
 COPY packages/hardhat/package.json ./packages/hardhat/
 
-RUN pnpm install --frozen-lockfile
+# Copy sync-abis.js (needed for postinstall script)
+COPY packages/hardhat/sync-abis.js ./packages/hardhat/sync-abis.js
 
-# Copy source code
-COPY . .
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
 # Expose ports
 # 3000 - Next.js dev server
