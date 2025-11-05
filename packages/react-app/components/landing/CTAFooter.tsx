@@ -120,7 +120,7 @@ export default function CTAFooter() {
               className="cta-footer-try-it"
               style={{
                 height: '27px',
-                fontFamily: 'SF Pro Rounded',
+                fontFamily: 'Inter',
                 fontWeight: 400,
                 fontSize: '18px',
                 lineHeight: '150%',
@@ -135,7 +135,7 @@ export default function CTAFooter() {
               className="cta-footer-heading"
               style={{
                 height: '144px',
-                fontFamily: 'SF Pro Rounded',
+                fontFamily: 'Inter',
                 fontWeight: 500,
                 fontSize: '48px',
                 lineHeight: '150%',
@@ -151,7 +151,7 @@ export default function CTAFooter() {
               style={{
                 width: '688px',
                 height: '54px',
-                fontFamily: 'SF Pro Rounded',
+                fontFamily: 'Inter',
                 fontWeight: 400,
                 fontSize: '18px',
                 lineHeight: '150%',

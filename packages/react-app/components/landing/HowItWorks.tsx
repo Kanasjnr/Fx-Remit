@@ -51,7 +51,7 @@ export default function HowItWorks() {
               <div 
                 className="text-[#E8A040] uppercase mb-4"
                 style={{
-                  fontFamily: 'SF Pro Rounded',
+                  fontFamily: 'Inter',
                   fontWeight: 400,
                   fontSize: '18px',
                   lineHeight: '150%',
@@ -63,7 +63,7 @@ export default function HowItWorks() {
               <h2 
                 className="text-white main-heading"
                 style={{
-                  fontFamily: 'SF Pro Rounded',
+                  fontFamily: 'Inter',
                   fontWeight: 500,
                   fontSize: '48px',
                   lineHeight: '150%',
@@ -91,7 +91,7 @@ export default function HowItWorks() {
               <div 
                 className="text-white text-center step-item"
                 style={{
-                  width: '224px',
+                  width: '260px',
                   height: '223px'
                 }}
               >
@@ -99,7 +99,7 @@ export default function HowItWorks() {
                 <div
                   className="mb-2"
                   style={{
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '32px',
                     lineHeight: '150%',
@@ -111,7 +111,7 @@ export default function HowItWorks() {
                 <p
                   className="text-white/80"
                   style={{
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 400,
                     fontSize: '18px',
                     lineHeight: '150%',
@@ -126,7 +126,7 @@ export default function HowItWorks() {
               <div 
                 className="text-white text-center step-item"
                 style={{
-                  width: '255px',
+                  width: '300px',
                   height: '223px',
                   opacity: 1,
                   gap: '10px'
@@ -136,7 +136,7 @@ export default function HowItWorks() {
                 <div
                   className="mb-2"
                   style={{
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '32px',
                     lineHeight: '150%',
@@ -148,7 +148,7 @@ export default function HowItWorks() {
                 <p
                   className="text-white/80"
                   style={{
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 400,
                     fontSize: '18px',
                     lineHeight: '150%',
@@ -163,7 +163,7 @@ export default function HowItWorks() {
               <div 
                 className="text-white text-center step-item"
                 style={{
-                  width: '255px',
+                  width: '290px',
                   height: '223px'
                 }}
               >
@@ -171,7 +171,7 @@ export default function HowItWorks() {
                 <div
                   className="mb-2"
                   style={{
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '32px',
                     lineHeight: '150%',
@@ -183,7 +183,7 @@ export default function HowItWorks() {
                 <p
                   className="text-white/80"
                   style={{
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 400,
                     fontSize: '18px',
                     lineHeight: '150%',
@@ -228,7 +228,7 @@ export default function HowItWorks() {
           }
           
           .step-item {
-            width: 224px !important;
+            width: 270px !important;
             height: 223px !important;
             opacity: 1 !important;
             gap: 10px !important;
@@ -256,7 +256,7 @@ export default function HowItWorks() {
           }
           
           .main-heading {
-            font-family: SF Pro Rounded !important;
+            font-family: Inter !important;
             font-weight: 500 !important;
             font-size: 32px !important;
             line-height: 150% !important;
