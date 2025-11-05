@@ -1,0 +1,23 @@
+services:
+  # Production Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: fx-remit-frontend-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_WC_PROJECT_ID=${NEXT_PUBLIC_WC_PROJECT_ID}
+      - NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET=${NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET}
+      # Add other required env vars
+    restart: unless-stopped
+    networks:
+      - fx-remit-network
+
+networks:
+  fx-remit-network:
+    driver: bridge
+
