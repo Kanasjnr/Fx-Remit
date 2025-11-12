@@ -143,20 +143,22 @@ export default function SendPage() {
         setIsProcessing(false);
       } else if (hasReceipts && callsStatus.receipts?.some((r) => r.status === 'reverted')) {
         markFailure({
-          reason: 'Transaction reverted on blockchain',
-          title: 'Transaction Failed',
+          reason: isMiniApp ? 'Transfer reverted on blockchain' : 'Transaction reverted on blockchain',
+          title: isMiniApp ? 'Transfer Failed' : 'Transaction Failed',
         });
         setPendingCallsId(undefined);
         setIsProcessing(false);
       }
     }
-  }, [callsStatus, pendingCallsId, markSuccess, markFailure]);
+  }, [callsStatus, pendingCallsId, markSuccess, markFailure, isMiniApp]);
 
   useEffect(() => {
     if (pendingCallsId) {
       const fallbackTimer = setTimeout(() => {
         markFailure({
-          reason: `Transaction status unclear. Please check Celoscan to verify if your transaction was successful.`,
+          reason: isMiniApp 
+            ? `Transfer status unclear. Please check Celoscan to verify if your transfer was successful.`
+            : `Transaction status unclear. Please check Celoscan to verify if your transaction was successful.`,
           title: 'Please Verify on Celoscan',
         });
         setPendingCallsId(undefined);
@@ -165,7 +167,7 @@ export default function SendPage() {
 
       return () => clearTimeout(fallbackTimer);
     }
-  }, [pendingCallsId, markFailure]);
+  }, [pendingCallsId, markFailure, isMiniApp]);
 
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
@@ -216,7 +218,7 @@ export default function SendPage() {
       setIsProcessing(false);
     } catch (error) {
       markFailure({
-        reason: error instanceof Error ? error.message : 'Transaction failed',
+        reason: error instanceof Error ? error.message : (isMiniApp ? 'Transfer failed' : 'Transaction failed'),
       });
       setIsProcessing(false);
     }
