@@ -24,7 +24,7 @@ export function useEthersSwap() {
   const chainId = useChainId();
   const { isMiniApp } = useFarcasterMiniApp();
   const { addReferralTagToTransaction, submitReferralTransaction } = useDivvi();
-  
+
   // Use Farcaster-specific swap hook when in Farcaster mode
   const farcasterSwap = useFarcasterSwap();
 
@@ -46,16 +46,6 @@ export function useEthersSwap() {
     minAmountOut?: string,
     recipientAddress?: string
   ) => {
-    console.log('🚀 Swap initiated:', {
-      fromCurrency,
-      toCurrency,
-      amount,
-      recipientAddress,
-      isMiniApp,
-      walletReadiness,
-    });
-
-    // Delegate to Farcaster swap if in Farcaster mode
     if (isMiniApp) {
       return farcasterSwap.swap(
         fromCurrency,
@@ -78,7 +68,6 @@ export function useEthersSwap() {
     try {
       const currentChainId = await walletClient.getChainId();
       if (currentChainId !== 42220) {
-        console.log('Switching to Celo network...');
         await walletClient.switchChain({ id: 42220 });
       }
     } catch (e) {
@@ -102,21 +91,21 @@ export function useEthersSwap() {
       throw new Error('Failed to connect to RPC endpoint');
     }
 
-    if (!window.ethereum) {
+      if (!window.ethereum) {
       throw new Error('No wallet found. Please install a Web3 wallet.');
-    }
+      }
 
-    try {
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-    } catch (error) {
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+      } catch (error) {
       throw new Error('Please connect your wallet and try again');
-    }
-
-    const ethersProvider = new providers.Web3Provider(window.ethereum);
+      }
+      
+      const ethersProvider = new providers.Web3Provider(window.ethereum);
     const signer = ethersProvider.getSigner();
     const signerAddress = await signer.getAddress();
 
-    if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
+      if (signerAddress.toLowerCase() !== address?.toLowerCase()) {
       throw new Error('Wallet address mismatch');
     }
 
@@ -138,13 +127,6 @@ export function useEthersSwap() {
     const expectedAmountOut = minAmountOut
       ? ethers.utils.parseEther(minAmountOut).toString()
       : ((quoteBigInt * BigInt(98)) / BigInt(100)).toString();
-
-    console.log('Swap quote:', {
-      from: fromCurrency,
-      to: toCurrency,
-      amountIn: amount,
-      amountOut: ethers.utils.formatEther(expectedAmountOut)
-    });
 
     try {
       const tradablePair = await mento.findPairForTokens(
@@ -211,72 +193,70 @@ export function useEthersSwap() {
         const providerAddr = hop.providerAddr;
         const exchangeId = hop.id;
 
-        const tokenInterface = [
-          'function allowance(address owner, address spender) view returns (uint256)',
-          'function approve(address spender, uint256 amount) returns (bool)',
-        ];
-        const tokenContract = new Contract(
-          fromTokenAddress,
-          tokenInterface,
-          signer
-        );
-        const currentAllowance = await tokenContract.allowance(
-          signerAddress,
-          fxRemitAddress
-        );
-
-        if (currentAllowance.lt(amountInWei)) {
-          const approvalTx = await tokenContract.approve(
-            fxRemitAddress,
-            amountInWei
+          const tokenInterface = [
+            'function allowance(address owner, address spender) view returns (uint256)',
+            'function approve(address spender, uint256 amount) returns (bool)',
+          ];
+          const tokenContract = new Contract(
+            fromTokenAddress,
+            tokenInterface,
+            signer
           );
+          const currentAllowance = await tokenContract.allowance(
+            signerAddress,
+            fxRemitAddress
+          );
+
+          if (currentAllowance.lt(amountInWei)) {
+            const approvalTx = await tokenContract.approve(
+              fxRemitAddress,
+              amountInWei
+            );
           await approvalTx.wait(1);
-        }
+          }
 
-        const fxRemitContract = new Contract(
-          fxRemitAddress,
-          FXRemitABI,
-          signer
-        );
-        const swapTx = await fxRemitContract.populateTransaction.swapAndSend(
-          recipientAddress ?? signerAddress,
-          fromTokenAddress,
-          toTokenAddress,
-          amountInWei,
-          expectedAmountOut,
-          fromCurrency,
-          toCurrency,
-          corridor,
-          providerAddr,
-          exchangeId,
-          deadline
-        );
+          const fxRemitContract = new Contract(
+            fxRemitAddress,
+            FXRemitABI,
+            signer
+          );
+          const swapTx = await fxRemitContract.populateTransaction.swapAndSend(
+            recipientAddress ?? signerAddress,
+            fromTokenAddress,
+            toTokenAddress,
+            amountInWei,
+            expectedAmountOut,
+            fromCurrency,
+            toCurrency,
+            corridor,
+            providerAddr,
+            exchangeId,
+            deadline
+          );
 
-        const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
-        swapTx.data = dataWithReferral;
+          const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
+          swapTx.data = dataWithReferral;
 
-        const gasEstimate = await signer.estimateGas(swapTx);
+          const gasEstimate = await signer.estimateGas(swapTx);
         swapTx.gasLimit = gasEstimate.mul(120).div(100);
 
-        const swapResponse = await signer.sendTransaction(swapTx);
-        console.log('Transaction submitted:', swapResponse.hash);
+          const swapResponse = await signer.sendTransaction(swapTx);
         
-        const receipt = await swapResponse.wait(1);
+          const receipt = await swapResponse.wait(1);
 
-        if (receipt.status !== 1) {
+          if (receipt.status !== 1) {
           throw new Error('Swap transaction failed');
-        }
+          }
 
-        console.log('Transaction confirmed:', swapResponse.hash);
-        await submitReferralTransaction(swapResponse.hash);
+          await submitReferralTransaction(swapResponse.hash);
 
-        return {
-          success: true,
-          hash: swapResponse.hash,
-          amountOut: ethers.utils.formatEther(expectedAmountOut),
-          recipient: recipientAddress ?? signerAddress,
-          message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
-        };
+          return {
+            success: true,
+            hash: swapResponse.hash,
+            amountOut: ethers.utils.formatEther(expectedAmountOut),
+            recipient: recipientAddress ?? signerAddress,
+            message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
+          };
       }
 
       if (tradablePair.path.length === 2) {
@@ -327,35 +307,35 @@ export function useEthersSwap() {
           );
         }
 
-        const tokenInterface = [
-          'function allowance(address owner, address spender) view returns (uint256)',
-          'function approve(address spender, uint256 amount) returns (bool)',
-        ];
-        const tokenContract = new Contract(
-          fromTokenAddress,
-          tokenInterface,
-          signer
-        );
-        const currentAllowance = await tokenContract.allowance(
-          signerAddress,
-          fxRemitAddress
-        );
-
-        if (currentAllowance.lt(amountInWei)) {
-          const approvalTx = await tokenContract.approve(
-            fxRemitAddress,
-            amountInWei
+          const tokenInterface = [
+            'function allowance(address owner, address spender) view returns (uint256)',
+            'function approve(address spender, uint256 amount) returns (bool)',
+          ];
+          const tokenContract = new Contract(
+            fromTokenAddress,
+            tokenInterface,
+            signer
           );
-          await approvalTx.wait(1);
-        }
+          const currentAllowance = await tokenContract.allowance(
+            signerAddress,
+            fxRemitAddress
+          );
 
-        const fxRemitContract = new Contract(
-          fxRemitAddress,
-          FXRemitABI,
-          signer
-        );
-        const swapTx =
-          await fxRemitContract.populateTransaction.swapAndSendPath(
+          if (currentAllowance.lt(amountInWei)) {
+            const approvalTx = await tokenContract.approve(
+              fxRemitAddress,
+              amountInWei
+            );
+          await approvalTx.wait(1);
+          }
+
+          const fxRemitContract = new Contract(
+            fxRemitAddress,
+            FXRemitABI,
+            signer
+          );
+          const swapTx =
+            await fxRemitContract.populateTransaction.swapAndSendPath(
             recipientAddress ?? signerAddress,
             fromTokenAddress,
             intermediateTokenAddress,
@@ -370,31 +350,31 @@ export function useEthersSwap() {
             hop2.providerAddr,
             hop2.id,
             deadline
-          );
+            );
 
-        const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
-        swapTx.data = dataWithReferral;
+          const dataWithReferral = addReferralTagToTransaction(swapTx.data!);
+          swapTx.data = dataWithReferral;
 
-        const gasEstimate = await signer.estimateGas(swapTx);
+            const gasEstimate = await signer.estimateGas(swapTx);
         swapTx.gasLimit = gasEstimate.mul(120).div(100);
 
-        const swapResponse = await signer.sendTransaction(swapTx);
+            const swapResponse = await signer.sendTransaction(swapTx);
         console.log('Multi-hop transaction submitted:', swapResponse.hash);
         
-        const receipt = await swapResponse.wait(1);
+            const receipt = await swapResponse.wait(1);
 
-        if (receipt.status !== 1) {
+            if (receipt.status !== 1) {
           throw new Error('Multi-hop swap transaction failed');
-        }
+            }
 
         console.log('Multi-hop transaction confirmed:', swapResponse.hash);
-        await submitReferralTransaction(swapResponse.hash);
+            await submitReferralTransaction(swapResponse.hash);
 
-        return {
-          success: true,
-          hash: swapResponse.hash,
-          amountOut: ethers.utils.formatEther(expectedAmountOut),
-          recipient: recipientAddress ?? signerAddress,
+            return {
+              success: true,
+              hash: swapResponse.hash,
+              amountOut: ethers.utils.formatEther(expectedAmountOut),
+              recipient: recipientAddress ?? signerAddress,
           message: `Sent ${amount} ${fromCurrency} → ${toCurrency}`,
         };
       }
@@ -409,4 +389,4 @@ export function useEthersSwap() {
     isWalletReady: walletReadiness.isFullyReady,
     walletStatus: walletReadiness,
   };
-}
+} 

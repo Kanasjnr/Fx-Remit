@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount, usePublicClient } from 'wagmi';
 import { Mento } from '@mento-protocol/mento-sdk';
 import { parseEther, formatEther } from 'viem';
 import { providers } from 'ethers';
 import { Currency, getTokenAddress } from '../lib/contracts';
 import { useEthersSwap } from './useEthersSwap';
+import { usePageVisibility } from './usePageVisibility';
+import { useRefreshTrigger } from './useRefreshTrigger';
+
+const balanceCache = new Map<string, { balance: string; timestamp: number }>();
+const hasLoadedCache = new Set<string>();
 
 export function useMento() {
   return useEthersSwap();
@@ -63,16 +68,53 @@ export function useExchangeRate(fromCurrency: Currency, toCurrency: Currency) {
 export function useTokenBalance(currency: Currency) {
   const { address } = useAccount();
   const publicClient = usePublicClient();
+  const { shouldPoll } = usePageVisibility();
   const [balance, setBalance] = useState<string>('0');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    if (address && currency) {
+      const cacheKey = `${address}-${currency}`;
+      if (balanceCache.has(cacheKey)) {
+        const cached = balanceCache.get(cacheKey)!;
+        if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+          setBalance(cached.balance);
+          hasLoadedCache.add(cacheKey);
+          return;
+        } else {
+          balanceCache.delete(cacheKey);
+          hasLoadedCache.delete(cacheKey);
+        }
+      }
+    }
+  }, [address, currency]);
+
+  useEffect(() => {
+    if (!address || !currency) return;
+
+    const cacheKey = `${address}-${currency}`;
+    
+    if (hasLoadedCache.has(cacheKey)) {
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     async function fetchBalance() {
-      if (!address || !publicClient) {
+      if (!address || !publicClient || !shouldPoll) {
+        if (!shouldPoll) {
+          return;
+        }
         setBalance('0');
         return;
       }
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
 
       setIsLoading(true);
       setError(null);
@@ -95,17 +137,74 @@ export function useTokenBalance(currency: Currency) {
           args: [address],
         });
 
-        setBalance(formatEther(balance));
+        if (abortController.signal.aborted) return;
+
+        const formattedBalance = formatEther(balance);
+        setBalance(formattedBalance);
+        balanceCache.set(cacheKey, { balance: formattedBalance, timestamp: Date.now() });
+        hasLoadedCache.add(cacheKey);
       } catch (err) {
+        if (abortController.signal.aborted) return;
+        
         setError('Failed to fetch balance');
         setBalance('0');
+        hasLoadedCache.add(cacheKey);
       } finally {
+        if (!abortController.signal.aborted) {
         setIsLoading(false);
+        }
       }
     }
 
     fetchBalance();
-  }, [address, publicClient, currency]);
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [address, publicClient, currency, shouldPoll]);
+
+  useRefreshTrigger(() => {
+    if (address && publicClient && shouldPoll && currency) {
+      const cacheKey = `${address}-${currency}`;
+      hasLoadedCache.delete(cacheKey);
+      balanceCache.delete(cacheKey);
+      
+      const fetchBalance = async () => {
+        try {
+          const chainId = 42220;
+          const tokenAddress = getTokenAddress(chainId, currency);
+          const balance = await publicClient.readContract({
+            address: tokenAddress as `0x${string}`,
+            abi: [
+              {
+                inputs: [{ name: 'account', type: 'address' }],
+                name: 'balanceOf',
+                outputs: [{ name: '', type: 'uint256' }],
+                stateMutability: 'view',
+                type: 'function',
+              },
+            ],
+            functionName: 'balanceOf',
+            args: [address],
+          });
+          const formattedBalance = formatEther(balance);
+          setBalance(formattedBalance);
+          if (address && currency) {
+            const cacheKey = `${address}-${currency}`;
+            balanceCache.set(cacheKey, { balance: formattedBalance, timestamp: Date.now() });
+            hasLoadedCache.add(cacheKey);
+          }
+        } catch (err) {
+          if (address && currency) {
+            hasLoadedCache.add(`${address}-${currency}`);
+          }
+        }
+      };
+      fetchBalance();
+    }
+  });
 
   return {
     balance: parseFloat(balance),
@@ -151,7 +250,7 @@ export function useQuote(
         const amountOutBigInt = BigInt(amountOutWei.toString());
         const amountOut = formatEther(amountOutBigInt);
         const exchangeRate = formatEther(amountOutBigInt * BigInt(1e18) / amountInWei);
-        const platformFee = (parseFloat(amountOut) * 0.015).toString();
+        const platformFee = (parseFloat(amountIn) * 0.015).toString();
         const priceImpact = '0.1';
         
         setQuote({

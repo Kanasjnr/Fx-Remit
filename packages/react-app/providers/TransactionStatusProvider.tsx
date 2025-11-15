@@ -100,13 +100,13 @@ export function TransactionStatusProvider({ children }: { children: React.ReactN
         : "You have successfully completed your transaction";
       
       return {
-        status: "success",
-        title: opts?.title ?? "Success",
+      status: "success",
+      title: opts?.title ?? "Success",
         message: opts?.message ?? defaultMessage,
-        txHash: opts?.txHash ?? prev.txHash,
-        startedAt: prev.startedAt,
-        callbacks: prev.callbacks,
-        transactionData: prev.transactionData, // Keep transaction data for sharing
+      txHash: opts?.txHash ?? prev.txHash,
+      startedAt: prev.startedAt,
+      callbacks: prev.callbacks,
+      transactionData: prev.transactionData, // Keep transaction data for sharing
       };
     });
   }, []);
