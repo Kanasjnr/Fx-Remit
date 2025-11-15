@@ -50,7 +50,7 @@ function useWagmiConfig() {
     return createConfig({
       connectors,
       chains: [celo],
-      transports: { [celo.id]: http() },
+      transports: { [celo.id]: http('https://forno.celo.org') },
     });
   }, [connectors]);
 }
