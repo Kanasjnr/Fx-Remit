@@ -18,7 +18,6 @@ import {
   ArrowTopRightOnSquareIcon,
   DocumentTextIcon,
   WalletIcon,
-  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 
 interface Transaction {
@@ -31,9 +30,11 @@ interface Transaction {
   status: 'completed' | 'pending' | 'failed';
   date: string;
   time: string;
+  timestamp: number;
   hash: string;
   recipient: string;
-  errorReason?: string; // Optional field for failed transactions
+  sender?: string;
+  errorReason?: string;
 }
 
 function RemittanceItem({
@@ -55,14 +56,14 @@ function RemittanceItem({
     if (
       remittance &&
       remittance.fromCurrency &&
-      remittance.toCurrency &&
-      processedRef.current !== dataKey
+      remittance.toCurrency
     ) {
       const zeroHash = '0x' + '0'.repeat(64);
       const txHash =
         remittance.mentoTxHash && remittance.mentoTxHash !== zeroHash
           ? remittance.mentoTxHash
           : '';
+      
       const tx: Transaction = {
         id: remittance.id ? remittance.id.toString() : id,
         from: remittance.fromCurrency as Currency,
@@ -73,17 +74,22 @@ function RemittanceItem({
         status: 'completed',
         date: remittance.timestamp.toLocaleDateString(),
         time: remittance.timestamp.toLocaleTimeString(),
+        timestamp: remittance.timestamp.getTime(),
         hash: txHash,
         recipient: remittance.recipient,
+        sender: remittance.sender,
       };
 
-      processedRef.current = dataKey;
-      onTransactionReady(id, tx);
+      const updateKey = `${dataKey}-${txHash}`;
+      if (processedRef.current !== updateKey) {
+        processedRef.current = updateKey;
+        onTransactionReady(id, tx);
+      }
     } else if (!isLoading && !remittance && processedRef.current !== 'null') {
       processedRef.current = 'null';
       onTransactionReady(id, null);
     }
-  }, [remittanceId, isLoading, id, onTransactionReady, remittance]); // Updated dependency array
+  }, [remittanceId, isLoading, id, onTransactionReady, remittance]);
 
   return null;
 }
@@ -104,22 +110,25 @@ export default function HistoryPage() {
   useEffect(() => {
     if (address) {
       setIsWaitingForConnection(false);
-      // Load failed transactions from localStorage
       const failed = getFailedTransactions(address);
-      const failedAsTransactions: Transaction[] = failed.map(failedTx => ({
-        id: failedTx.id,
-        from: failedTx.fromCurrency as Currency,
-        to: failedTx.toCurrency as Currency,
-        amount: parseFloat(failedTx.amount),
-        received: 0, // Failed transactions don't have received amount
-        fee: 0, // Failed transactions don't have fees
-        status: 'failed' as const,
-        date: new Date(failedTx.timestamp).toLocaleDateString(),
-        time: new Date(failedTx.timestamp).toLocaleTimeString(),
-        hash: '', // Failed transactions don't have transaction hashes
-        recipient: failedTx.recipient,
-        errorReason: failedTx.errorReason, // Add error reason to Transaction type
-      }));
+      const failedAsTransactions: Transaction[] = failed.map(failedTx => {
+        const timestamp = new Date(failedTx.timestamp);
+        return {
+          id: failedTx.id,
+          from: failedTx.fromCurrency as Currency,
+          to: failedTx.toCurrency as Currency,
+          amount: parseFloat(failedTx.amount),
+          received: 0,
+          fee: 0,
+          status: 'failed' as const,
+          date: timestamp.toLocaleDateString(),
+          time: timestamp.toLocaleTimeString(),
+          timestamp: timestamp.getTime(),
+          hash: '',
+          recipient: failedTx.recipient,
+          errorReason: failedTx.errorReason,
+        };
+      });
       setFailedTransactions(failedAsTransactions);
     } else if (!isMiniApp) {
       setIsWaitingForConnection(false);
@@ -138,14 +147,9 @@ export default function HistoryPage() {
   );
 
   const filteredTransactions = useMemo(() => {
-    // Merge successful and failed transactions
     const allTransactions = [...transactions, ...failedTransactions];
-    
-    // Sort by timestamp (newest first)
     const sortedTransactions = allTransactions.sort((a, b) => {
-      const dateA = new Date(`${a.date} ${a.time}`).getTime();
-      const dateB = new Date(`${b.date} ${b.time}`).getTime();
-      return dateB - dateA;
+      return b.timestamp - a.timestamp;
     });
 
     if (filter === 'all') return sortedTransactions;
@@ -154,32 +158,6 @@ export default function HistoryPage() {
 
   const handleTransactionClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
-      case 'pending':
-        return <ClockIcon className="w-5 h-5 text-yellow-500" />;
-      case 'failed':
-        return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      default:
-        return <ClockIcon className="w-5 h-5 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'pending':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'failed':
-        return 'bg-red-50 text-red-700 border-red-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
   };
 
   const getCurrencyFlag = (currency: Currency) => {
@@ -209,7 +187,6 @@ export default function HistoryPage() {
 
   return (
     <>
-      {/* Render RemittanceItem components to handle data loading */}
       {remittanceIds
         .filter((id) => id && typeof id === 'bigint')
         .map((id) => (
@@ -230,11 +207,10 @@ export default function HistoryPage() {
             >
               <ArrowLeftIcon className="w-6 h-6 text-gray-600" />
               <h1 className="text-xl font-bold text-gray-900">History</h1>
-              </Link>
+            </Link>
           </div>
         </header>
 
-            {/* Filter Tabs */}
         <div className="px-4 py-3 bg-white border-b border-gray-200">
           <div className="max-w-md mx-auto flex space-x-6">
             {['All', 'Completed', 'Pending', 'Failed'].map((tab) => (
@@ -253,12 +229,9 @@ export default function HistoryPage() {
           </div>
             </div>
 
-        {/* Main Content */}
         <main className="px-4 py-4">
           <div className="max-w-md mx-auto">
-            {/* Transaction List */}
             <div className="space-y-0">
-              {/* Loading State - Show while waiting for connection OR loading data */}
               {(isWaitingForConnection || isLoadingIds) && (
                 <div className="text-center py-16">
                   <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
@@ -275,7 +248,6 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {/* No transactions - Only show if connected and no transactions */}
               {!isWaitingForConnection &&
                 !isLoadingIds &&
                 address &&
@@ -294,7 +266,6 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {/* Not connected - Only show in web mode (not Mini App) */}
               {!isWaitingForConnection &&
                 !isLoadingIds &&
                 !address &&
@@ -313,7 +284,6 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {/* Actual transactions - Only show when not loading */}
               {!isWaitingForConnection &&
                 !isLoadingIds &&
                 filteredTransactions.map((transaction) => (
@@ -323,7 +293,6 @@ export default function HistoryPage() {
                     onClick={() => handleTransactionClick(transaction)}
                   >
                       <div className="flex items-center justify-between">
-                      {/* Left side - Currency flags and details */}
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center space-x-2">
                           <div className="text-2xl">
@@ -341,7 +310,6 @@ export default function HistoryPage() {
                           <div className="text-xs text-gray-500">
                             {transaction.date} at {transaction.time}
                           </div>
-                          {/* Status indicator */}
                           <div className="flex items-center space-x-1 mt-1">
                             {transaction.status === 'completed' && (
                               <>
@@ -409,11 +377,9 @@ export default function HistoryPage() {
           </div>
         </main>
 
-        {/* More Details Modal */}
         {selectedTransaction && (
           <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-lg border border-gray-200">
-              {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">
                   More Details
@@ -426,20 +392,28 @@ export default function HistoryPage() {
                 </button>
               </div>
 
-              {/* Transaction Details */}
               <div className="grid grid-cols-2 gap-4">
-                {/* Left Column - Values */}
                 <div className="space-y-4">
                   <div className="text-sm font-medium text-gray-900">
                     {getCurrencySymbol(selectedTransaction.to)}
                     {selectedTransaction.fee.toFixed(2)} {selectedTransaction.to}
                   </div>
-                  <div className="text-sm font-mono text-gray-700">
-                    {selectedTransaction.recipient.slice(0, 6)}...
-                    {selectedTransaction.recipient.slice(-4)}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-mono text-gray-700">
+                      {selectedTransaction.recipient.slice(0, 6)}...{selectedTransaction.recipient.slice(-4)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedTransaction.recipient);
+                      }}
+                      className="text-gray-400 hover:text-gray-600"
+                      title="Copy recipient address"
+                    >
+                      <DocumentTextIcon className="w-4 h-4" />
+                    </button>
                   </div>
                   <div className="text-sm font-mono text-gray-700">
-                    {selectedTransaction.id.slice(0, 2)}...
+                    #{selectedTransaction.id}
                   </div>
                   <div className="text-sm font-medium text-blue-600">CELO</div>
                   {selectedTransaction.status === 'failed' && selectedTransaction.errorReason && (
@@ -449,7 +423,6 @@ export default function HistoryPage() {
                   )}
                 </div>
 
-                {/* Right Column - Labels */}
                 <div className="space-y-4">
                   <div className="text-sm text-gray-500">
                     Platform fee (1.5%)
@@ -463,16 +436,16 @@ export default function HistoryPage() {
                 </div>
               </div>
 
-              {/* Etherscan Link - Only show for successful transactions with hash */}
-              {selectedTransaction.status !== 'failed' && selectedTransaction.hash && (
+              {selectedTransaction.hash && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <a
                     href={`https://celoscan.io/tx/${selectedTransaction.hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
+                    className="inline-flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700"
                   >
-                    View on etherscan →
+                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                    <span>View on Celoscan</span>
                   </a>
                 </div>
               )}

@@ -69,13 +69,6 @@ export function useFarcasterSwap() {
     minAmountOut?: string,
     recipientAddress?: string
   ) => {
-    console.log('🚀 Farcaster swap initiated:', {
-      fromCurrency,
-      toCurrency,
-      amount,
-      recipientAddress,
-    });
-
     if (!walletReadiness.isConnected) {
       throw new Error('Wallet not connected');
     }
@@ -95,7 +88,6 @@ export function useFarcasterSwap() {
     try {
       const currentChainId = await walletClient.getChainId();
       if (currentChainId !== 42220) {
-        console.log('Switching to Celo network...');
         await walletClient.switchChain({ id: 42220 });
       }
     } catch (e) {
@@ -139,13 +131,6 @@ export function useFarcasterSwap() {
     const expectedAmountOut = minAmountOut
       ? ethers.utils.parseEther(minAmountOut).toString()
       : ((quoteBigInt * BigInt(98)) / BigInt(100)).toString();
-
-    console.log('Farcaster swap quote:', {
-      from: fromCurrency,
-      to: toCurrency,
-      amountIn: amount,
-      amountOut: ethers.utils.formatEther(expectedAmountOut),
-    });
 
     try {
       const tradablePair = await mento.findPairForTokens(
@@ -197,10 +182,8 @@ export function useFarcasterSwap() {
           to: fromTokenAddress as `0x${string}`,
           data: approveData as `0x${string}`,
         });
-        console.log('Added approve call to batch');
       }
 
-      // Single-hop swap
       if (tradablePair.path.length === 1) {
         const hop = tradablePair.path[0];
         const providerAddr = hop.providerAddr;
@@ -231,26 +214,12 @@ export function useFarcasterSwap() {
           data: dataWithReferral as `0x${string}`,
         });
 
-        console.log('Submitting Farcaster batch transaction (single-hop):', {
-          chainId: celoChainId,
-          callsCount: calls.length,
-          calls: calls.map((c) => ({
-            to: c.to,
-            dataLength: c.data.length,
-          })),
-        });
-
         const callsResult = await sendCallsAsync({
           calls,
           chainId: celoChainId,
         });
         const callsId =
           typeof callsResult === 'string' ? callsResult : callsResult?.id;
-
-        console.log('Farcaster batch submitted successfully:', {
-          callsId,
-          txCount: calls.length,
-        });
 
         if (!callsId) {
           throw new Error(
