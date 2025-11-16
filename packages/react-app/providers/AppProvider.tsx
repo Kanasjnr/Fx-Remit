@@ -32,34 +32,42 @@ const webConnectors = connectorsForWallets(
     },
   ],
   {
-    appName: 'FX Remit - Global Money Transfers (Supports Valora via WalletConnect)',
+    appName: 'FX Remit - Global Money Transfers ',
     projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? '044601f65212332475a09bc14ceb3c34',
   }
 );
 
+const desktopConfig = createConfig({
+  connectors: webConnectors,
+  chains: [celo],
+  transports: { [celo.id]: http('https://forno.celo.org') },
+});
+
+let miniAppConfigInstance: ReturnType<typeof createConfig> | null = null;
+
 function useWagmiConfig() {
   const { isMiniApp } = useFarcasterMiniApp();
 
-  const connectors = useMemo(() => {
-    return isMiniApp 
-      ? [miniAppConnector()] // Only use Farcaster connector, no injected() 
-      : webConnectors;
-  }, [isMiniApp]);
-
   return useMemo(() => {
-    return createConfig({
-      connectors,
-      chains: [celo],
-      transports: { [celo.id]: http('https://forno.celo.org') },
-    });
-  }, [connectors]);
+    if (isMiniApp) {
+      if (!miniAppConfigInstance) {
+        miniAppConfigInstance = createConfig({
+          connectors: [miniAppConnector()],
+          chains: [celo],
+          transports: { [celo.id]: http('https://forno.celo.org') },
+        });
+      }
+      return miniAppConfigInstance;
+    }
+    return desktopConfig;
+  }, [isMiniApp]);
 }
 
 const queryClient = new QueryClient();
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const config = useWagmiConfig();
   const { isMiniApp } = useFarcasterMiniApp();
+  const config = useWagmiConfig();
   
   return (
     <WagmiProvider config={config}>
