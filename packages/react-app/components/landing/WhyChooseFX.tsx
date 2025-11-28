@@ -2,13 +2,16 @@
 
 export default function WhyChooseFX() {
   return (
-    <section id="why-us" className="py-16 bg-white relative" style={{ zIndex: 1 }}>
+    <section
+      id="why-us"
+      className="py-16 bg-white relative"
+      style={{ zIndex: 1 }}
+    >
       <div className="w-full flex flex-col items-center">
         {/* Section Header */}
         <div
           className="mb-16 why-choose-header"
           style={{
-            width: '480px',
             height: '109px',
             gap: '10px',
             display: 'flex',
@@ -18,11 +21,10 @@ export default function WhyChooseFX() {
         >
           <div
             style={{
-              width: '70px',
               height: '27px',
               opacity: 1,
               color: '#F18F01',
-              fontFamily: 'SF Pro Rounded',
+              fontFamily: 'Inter',
               fontWeight: 400,
               fontSize: '18px',
               lineHeight: '150%',
@@ -33,10 +35,8 @@ export default function WhyChooseFX() {
           </div>
           <h2
             style={{
-              width: '480px',
-              height: '72px',
               opacity: 1,
-              fontFamily: 'SF Pro Rounded',
+              fontFamily: 'Inter',
               fontWeight: 500,
               fontSize: '48px',
               lineHeight: '150%',
@@ -82,7 +82,7 @@ export default function WhyChooseFX() {
                     width: '161px',
                     height: '27px',
                     opacity: 1,
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 400,
                     fontSize: '18px',
                     lineHeight: '150%',
@@ -98,7 +98,7 @@ export default function WhyChooseFX() {
                     width: '161px',
                     height: '144px',
                     opacity: 1,
-                    fontFamily: 'SF Pro Display',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '96px',
                     lineHeight: '150%',
@@ -114,7 +114,7 @@ export default function WhyChooseFX() {
                     width: '493px',
                     height: '54px',
                     opacity: 1,
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 400,
                     fontSize: '18px',
                     lineHeight: '150%',
@@ -148,7 +148,7 @@ export default function WhyChooseFX() {
                   top: '88px',
                   left: '50px',
                   opacity: 1,
-                  fontFamily: 'SF Pro Display',
+                  fontFamily: 'Inter',
                   fontWeight: 500,
                   fontSize: '32px',
                   lineHeight: '150%',
@@ -199,7 +199,7 @@ export default function WhyChooseFX() {
                     width: '352px',
                     height: '48px',
                     opacity: 1,
-                    fontFamily: 'SF Pro Display',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '32px',
                     lineHeight: '150%',
@@ -214,7 +214,7 @@ export default function WhyChooseFX() {
                     width: '352px',
                     height: '81px',
                     opacity: 1,
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 400,
                     fontSize: '18px',
                     lineHeight: '150%',
@@ -253,12 +253,12 @@ export default function WhyChooseFX() {
         /* Mobile styles */
         @media (max-width: 768px) {
           .why-choose-header {
-            width: 350px !important;
+            
             height: 109px !important;
           }
 
           .why-choose-header h2 {
-            width: 350px !important;
+            
             font-size: 36px !important;
           }
 
@@ -296,7 +296,7 @@ export default function WhyChooseFX() {
           .why-choose-card-1 .why-choose-description {
             width: 320px !important;
             height: 108px !important;
-            font-family: SF Pro Rounded !important;
+            font-family: Inter !important;
             font-weight: 400 !important;
             font-size: 18px !important;
             line-height: 150% !important;
@@ -306,7 +306,7 @@ export default function WhyChooseFX() {
           .why-choose-card-1 .why-choose-number {
             width: 161px !important;
             height: 144px !important;
-            font-family: SF Pro Display !important;
+            font-family: Inter !important;
             font-weight: 500 !important;
             font-size: 96px !important;
             line-height: 150% !important;
@@ -316,7 +316,7 @@ export default function WhyChooseFX() {
           .why-choose-card-1 .why-choose-label {
             width: 161px !important;
             height: 27px !important;
-            font-family: SF Pro Rounded !important;
+            font-family: Inter !important;
             font-weight: 400 !important;
             font-size: 18px !important;
             line-height: 150% !important;
@@ -338,7 +338,7 @@ export default function WhyChooseFX() {
             height: 96px !important;
             top: 64px !important;
             left: 36px !important;
-            font-family: SF Pro Display !important;
+            font-family: Inter !important;
             font-weight: 500 !important;
             font-size: 32px !important;
             line-height: 150% !important;
@@ -368,9 +368,9 @@ export default function WhyChooseFX() {
           }
 
           .why-choose-card-3 h3 {
-            width: 186px !important;
+            
             height: 48px !important;
-            font-family: SF Pro Display !important;
+            font-family: Inter !important;
             font-weight: 500 !important;
             font-size: 32px !important;
             line-height: 150% !important;
@@ -380,7 +380,7 @@ export default function WhyChooseFX() {
           .why-choose-card-3 p {
             width: 320px !important;
             height: 81px !important;
-            font-family: SF Pro Rounded !important;
+            font-family: Inter !important;
             font-weight: 400 !important;
             font-size: 18px !important;
             line-height: 150% !important;

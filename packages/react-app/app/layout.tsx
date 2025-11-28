@@ -30,6 +30,9 @@ export default function RootLayout({
         <meta property="fc:miniapp" content="https://fx-remit.xyz" />
         <link rel="preload" href="/fx-remit.svg" as="image" />
         <link rel="preload" href="/blur and glass.svg" as="image" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body>
         <FarcasterReady />

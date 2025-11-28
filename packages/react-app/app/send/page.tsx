@@ -11,6 +11,7 @@ import { useFarcasterResolver } from '@/hooks/useFarcasterResolver';
 import type { Currency } from '@/lib/contracts';
 import { CURRENCIES } from '@/lib/currencies';
 import { useTransactionStatus } from '@/providers/TransactionStatusProvider';
+import { triggerDataRefresh } from '@/hooks/useRefreshTrigger';
 import Link from 'next/link';
 import { AssetPicker, type AssetOption } from '@/components/AssetPicker';
 import {
@@ -89,41 +90,21 @@ export default function SendPage() {
     setToCurrency(fromCurrency);
   };
 
-  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [showResolveButton, setShowResolveButton] = useState(false);
 
-  const debouncedResolveUsername = useCallback(
-    (value: string) => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
+  const handleResolveUsername = useCallback(async () => {
+    if (recipient.startsWith('@') && recipient.length > 1) {
+      const resolvedAddress = await resolveUsername(recipient);
+      if (resolvedAddress) {
+        setRecipient(resolvedAddress);
+        setShowResolveButton(false);
       }
-
-      const newTimeout = setTimeout(async () => {
-        if (value.startsWith('@') && value.length > 1) {
-          const resolvedAddress = await resolveUsername(value);
-          if (resolvedAddress) {
-            setRecipient(resolvedAddress);
-          }
-        }
-      }, 1500);
-
-      setDebounceTimeout(newTimeout);
-    },
-    [resolveUsername, debounceTimeout]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-      }
-    };
-  }, [debounceTimeout]);
+    }
+  }, [recipient, resolveUsername]);
 
   const handleRecipientChange = (value: string) => {
     setRecipient(value);
-    debouncedResolveUsername(value);
+    setShowResolveButton(value.startsWith('@') && value.length > 1);
   };
 
   useEffect(() => {
@@ -141,22 +122,27 @@ export default function SendPage() {
         setAmount('');
         setRecipient('');
         setIsProcessing(false);
+        setTimeout(() => {
+          triggerDataRefresh();
+        }, 2000);
       } else if (hasReceipts && callsStatus.receipts?.some((r) => r.status === 'reverted')) {
         markFailure({
-          reason: 'Transaction reverted on blockchain',
-          title: 'Transaction Failed',
+          reason: isMiniApp ? 'Transfer reverted on blockchain' : 'Transaction reverted on blockchain',
+          title: isMiniApp ? 'Transfer Failed' : 'Transaction Failed',
         });
         setPendingCallsId(undefined);
         setIsProcessing(false);
       }
     }
-  }, [callsStatus, pendingCallsId, markSuccess, markFailure]);
+  }, [callsStatus, pendingCallsId, markSuccess, markFailure, isMiniApp]);
 
   useEffect(() => {
     if (pendingCallsId) {
       const fallbackTimer = setTimeout(() => {
         markFailure({
-          reason: `Transaction status unclear. Please check Celoscan to verify if your transaction was successful.`,
+          reason: isMiniApp 
+            ? `Transfer status unclear. Please check Celoscan to verify if your transfer was successful.`
+            : `Transaction status unclear. Please check Celoscan to verify if your transaction was successful.`,
           title: 'Please Verify on Celoscan',
         });
         setPendingCallsId(undefined);
@@ -165,7 +151,7 @@ export default function SendPage() {
 
       return () => clearTimeout(fallbackTimer);
     }
-  }, [pendingCallsId, markFailure]);
+  }, [pendingCallsId, markFailure, isMiniApp]);
 
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
@@ -214,9 +200,13 @@ export default function SendPage() {
       setAmount('');
       setRecipient('');
       setIsProcessing(false);
+      // Trigger refresh after a short delay to ensure transaction is indexed
+      setTimeout(() => {
+        triggerDataRefresh();
+      }, 2000);
     } catch (error) {
       markFailure({
-        reason: error instanceof Error ? error.message : 'Transaction failed',
+        reason: error instanceof Error ? error.message : (isMiniApp ? 'Transfer failed' : 'Transaction failed'),
       });
       setIsProcessing(false);
     }
@@ -375,8 +365,19 @@ export default function SendPage() {
                     value={recipient}
                     onChange={(e) => handleRecipientChange(e.target.value)}
                     placeholder="@username or 0x..."
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 pr-12"
+                    className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
+                      showResolveButton ? 'pr-24' : 'pr-4'
+                    }`}
                   />
+                  {showResolveButton && !isResolvingUsername && (
+                    <button
+                      type="button"
+                      onClick={handleResolveUsername}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                    >
+                      Resolve
+                    </button>
+                  )}
                   {isResolvingUsername && (
                     <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                       <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>

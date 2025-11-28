@@ -1,7 +1,6 @@
 import FXRemitABI from '../ABI/FXRemit.json';
 
 export const CONTRACT_ADDRESSES = {
-  // Celo Mainnet
   42220: process.env.NEXT_PUBLIC_FXREMIT_CONTRACT || '0x1245211aBAe5013e7f5523013b78F50AB44C2c57',
 } as const;
 
@@ -37,9 +36,8 @@ export function isContractConfigured(chainId: number): boolean {
   return address !== null;
 }
 
-// Mento token addresses for Celo Mainnet
 export const MENTO_TOKENS = {
-  42220: { // Celo Mainnet
+  42220: {
     cUSD: process.env.NEXT_PUBLIC_CUSD_MAINNET,
     cEUR: process.env.NEXT_PUBLIC_CEUR_MAINNET,
     cGBP: process.env.NEXT_PUBLIC_CGBP_MAINNET,
@@ -62,7 +60,6 @@ export type Currency = keyof typeof MENTO_TOKENS[SupportedChainId];
 
 export function getTokenAddress(chainId: SupportedChainId, currency: Currency): string {
   const address = MENTO_TOKENS[chainId][currency];
-  console.log(`Getting token address for ${currency} on chain ${chainId}:`, address);
   if (!address) {
     console.error(`Token address not configured for ${currency} on chain ${chainId}`);
     console.error('Available tokens:', Object.keys(MENTO_TOKENS[chainId]));

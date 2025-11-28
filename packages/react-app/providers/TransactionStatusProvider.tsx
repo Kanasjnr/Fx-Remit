@@ -92,15 +92,23 @@ export function TransactionStatusProvider({ children }: { children: React.ReactN
   }, []);
 
   const markSuccess: TxContextValue["markSuccess"] = useCallback((opts) => {
-    setState((prev) => ({
+    setState((prev) => {
+      // Check if we're in Farcaster mode by checking if transactionData exists (Farcaster always provides this)
+      const isFarcaster = prev.transactionData !== undefined;
+      const defaultMessage = isFarcaster 
+        ? "You have successfully completed your transfer"
+        : "You have successfully completed your transaction";
+      
+      return {
       status: "success",
       title: opts?.title ?? "Success",
-      message: opts?.message ?? "You have successfully completed your transaction",
+        message: opts?.message ?? defaultMessage,
       txHash: opts?.txHash ?? prev.txHash,
       startedAt: prev.startedAt,
       callbacks: prev.callbacks,
       transactionData: prev.transactionData, // Keep transaction data for sharing
-    }));
+      };
+    });
   }, []);
 
   const markFailure: TxContextValue["markFailure"] = useCallback((opts) => {
@@ -231,7 +239,7 @@ function TxStatusOverlay() {
           <p className="mt-4 text-center text-gray-600">{state.message}</p>
         )}
         {isFailure && (
-          <p className="mt-4 text-center text-gray-600">{state.errorReason ?? "The transaction failed."}</p>
+          <p className="mt-4 text-center text-gray-600">{state.errorReason ?? (isMiniApp ? "The transfer failed." : "The transaction failed.")}</p>
         )}
 
         {/* CTAs */}

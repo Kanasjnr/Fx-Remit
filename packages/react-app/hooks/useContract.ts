@@ -1,8 +1,10 @@
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, usePublicClient } from 'wagmi';
+import { parseEther, formatEther, parseAbiItem } from 'viem';
 import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDivvi } from './useDivvi';
+import { usePageVisibility } from './usePageVisibility';
+import { useRefreshTrigger } from './useRefreshTrigger';
 
 export function useFXRemitContract() {
   const chainId = useChainId();
@@ -85,26 +87,41 @@ export function useLogRemittance() {
 
 export function useUserRemittances(userAddress?: string) {
   const contract = useFXRemitContract();
+  const { shouldPoll } = usePageVisibility();
   
-  const { data: remittanceIds, isLoading, error } = useReadContract({
+  const { data: remittanceIds, isLoading, error, refetch } = useReadContract({
     address: contract.address as `0x${string}`,
     abi: contract.abi,
     functionName: 'getUserRemittances',
     args: [userAddress],
     query: {
-      enabled: !!userAddress && contract.isConfigured,
+      enabled: !!userAddress && contract.isConfigured && shouldPoll,
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: 120000,
+      gcTime: 300000,
     },
+  });
+
+  useRefreshTrigger(() => {
+    if (userAddress && contract.isConfigured && shouldPoll) {
+      refetch();
+    }
   });
 
   return {
     remittanceIds: (remittanceIds as bigint[] || []).filter(id => id !== undefined && id !== null),
     isLoading: contract.isConfigured ? isLoading : false,
     error: contract.isConfigured ? error : null,
+    refetch: refetch as () => Promise<any>,
   };
 }
 
 export function useRemittanceDetails(remittanceId: bigint) {
   const contract = useFXRemitContract();
+  const { shouldPoll } = usePageVisibility();
+  const publicClient = usePublicClient();
+  const [txHash, setTxHash] = useState<string>('');
   
   const { data: remittanceData, isLoading, error } = useReadContract({
     address: contract.address as `0x${string}`,
@@ -112,9 +129,48 @@ export function useRemittanceDetails(remittanceId: bigint) {
     functionName: 'getRemittance',
     args: [remittanceId],
     query: {
-      enabled: contract.isConfigured && remittanceId !== undefined && remittanceId !== null,
+      enabled: contract.isConfigured && remittanceId !== undefined && remittanceId !== null && shouldPoll,
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: 120000,
+      gcTime: 300000,
     },
   });
+
+  useEffect(() => {
+    async function fetchTransactionHash() {
+      if (!contract.isConfigured || !publicClient || !remittanceId || !contract.address) {
+        return;
+      }
+
+      try {
+        const eventAbi = parseAbiItem(
+          'event RemittanceLogged(uint256 indexed remittanceId, address indexed sender, address indexed recipient, string fromCurrency, string toCurrency, uint256 amountSent, uint256 amountReceived, string corridor)'
+        );
+        
+        const currentBlock = await publicClient.getBlockNumber();
+        const fromBlock = currentBlock > BigInt(1000000) ? currentBlock - BigInt(1000000) : BigInt(0);
+        
+        const logs = await publicClient.getLogs({
+          address: contract.address as `0x${string}`,
+          event: eventAbi,
+          args: {
+            remittanceId: remittanceId,
+          },
+          fromBlock: fromBlock,
+          toBlock: currentBlock,
+        });
+        
+        if (logs && logs.length > 0) {
+          setTxHash(logs[0].transactionHash);
+        }
+      } catch (err) {
+        // Silently fail - transaction hash is optional
+      }
+    }
+
+    fetchTransactionHash();
+  }, [contract.isConfigured, contract.address, publicClient, remittanceId]);
 
   const safeFormatEther = (value: any) => {
     if (value === undefined || value === null) {
@@ -126,6 +182,13 @@ export function useRemittanceDetails(remittanceId: bigint) {
       return '0';
     }
   };
+
+  const zeroHash = '0x' + '0'.repeat(64);
+  const contractMentoTxHash = (remittanceData as any)?.mentoTxHash;
+  const finalTxHash = txHash || 
+    (contractMentoTxHash && contractMentoTxHash !== zeroHash 
+     ? contractMentoTxHash 
+     : '');
 
   const remittance = remittanceData ? {
     id: (remittanceData as any).id,
@@ -140,7 +203,7 @@ export function useRemittanceDetails(remittanceId: bigint) {
     exchangeRate: safeFormatEther((remittanceData as any).exchangeRate),
     platformFee: safeFormatEther((remittanceData as any).platformFee),
     timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
-    mentoTxHash: (remittanceData as any).mentoTxHash,
+    mentoTxHash: finalTxHash,
     corridor: (remittanceData as any).corridor,
   } : null;
 

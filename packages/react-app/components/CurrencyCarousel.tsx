@@ -205,7 +205,7 @@ export function CurrencyCarousel() {
                         className="font-medium text-5xl"
                         style={{ 
                           color: '#F4D7ACBF',
-                          fontFamily: 'SF Pro Rounded',
+                          fontFamily: 'Inter',
                           fontWeight: 500,
                           fontSize: '48px',
                           lineHeight: '150%',
@@ -222,7 +222,7 @@ export function CurrencyCarousel() {
                         className="font-medium"
                         style={{ 
                           color: '#F18F01',
-                          fontFamily: 'SF Pro Rounded',
+                          fontFamily: 'Inter',
                           fontWeight: 600,
                           fontSize: '20px',
                           lineHeight: '150%',
@@ -239,7 +239,7 @@ export function CurrencyCarousel() {
                         className="font-medium"
                         style={{ 
                           color: '#050505',
-                          fontFamily: 'SF Pro Rounded',
+                          fontFamily: 'Inter',
                           fontWeight: 500,
                           fontSize: '28px',
                           lineHeight: '150%',
@@ -252,7 +252,7 @@ export function CurrencyCarousel() {
                         className="font-normal"
                         style={{ 
                           color: '#050505',
-                          fontFamily: 'SF Pro Rounded',
+                          fontFamily: 'Inter',
                           fontWeight: 400,
                           fontSize: '16px',
                           lineHeight: '150%',
@@ -268,7 +268,7 @@ export function CurrencyCarousel() {
                       className="font-normal leading-relaxed"
                       style={{ 
                         color: '#050505BF',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '14px',
                         lineHeight: '150%',

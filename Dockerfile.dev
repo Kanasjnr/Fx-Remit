@@ -1,0 +1,27 @@
+# Development Dockerfile for FX-Remit
+FROM node:18-alpine
+
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/react-app/package.json ./packages/react-app/
+COPY packages/hardhat/package.json ./packages/hardhat/
+
+# Copy sync-abis.js (needed for postinstall script)
+COPY packages/hardhat/sync-abis.js ./packages/hardhat/sync-abis.js
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Expose ports
+# 3000 - Next.js dev server
+# 8545 - Hardhat node
+EXPOSE 3000 8545
+
+# Default command (can be overridden in docker-compose)
+CMD ["pnpm", "react-app:dev"]
+

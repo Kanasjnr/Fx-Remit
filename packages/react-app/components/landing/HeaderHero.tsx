@@ -56,13 +56,13 @@ export default function HeaderHero() {
 
                 {/* Desktop Navigation */}
                 <nav className="flex space-x-8">
-                  <a href="#how-it-works" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                  <a href="#how-it-works" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'Inter', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                     How it Works
                   </a>
-                  <a href="#why-us" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                  <a href="#why-us" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'Inter', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                     Why Us
                   </a>
-                  <a href="#contact" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                  <a href="#contact" className="px-3 py-2 font-normal text-center" style={{ fontFamily: 'Inter', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                     Contact Us
                   </a>
                 </nav>
@@ -124,13 +124,13 @@ export default function HeaderHero() {
           <div className="md:hidden fixed top-20 left-4 right-4 z-40">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 px-4 py-3">
               <div className="space-y-3">
-                <a href="#how-it-works" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                <a href="#how-it-works" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'Inter', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                   How it Works
                 </a>
-                <a href="#why-us" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                <a href="#why-us" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'Inter', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                   Why Us
                 </a>
-                <a href="#contact" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'SF Pro Rounded', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
+                <a href="#contact" className="block px-3 py-2 font-normal text-center" style={{ fontFamily: 'Inter', fontSize: '18px', lineHeight: '150%', color: '#050505BF' }}>
                   Contact Us
                 </a>
                 <div className="flex justify-center">
@@ -186,7 +186,7 @@ export default function HeaderHero() {
             <h1 
               className="text-center text-black font-semibold text-[32px] leading-[150%] tracking-[0%] md:text-[64px] md:font-medium"
               style={{
-                fontFamily: 'SF Pro Rounded',
+                fontFamily: 'Inter',
                 margin: 0
               }}
             >
@@ -197,7 +197,7 @@ export default function HeaderHero() {
             {/* Subtitle */}
             <p 
               style={{
-                fontFamily: 'SF Pro Rounded',
+                fontFamily: 'Inter',
                 fontWeight: 400,
                 fontStyle: 'normal',
                 fontSize: '20px',

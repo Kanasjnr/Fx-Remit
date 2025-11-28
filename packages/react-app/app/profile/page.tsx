@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -76,14 +76,21 @@ function StatsCalculator({
           (sum, r) => sum + Number.parseFloat(r.amountReceived || '0'),
           0
         ),
-        totalFees: validRemittances.reduce((sum, r) => {
-          const fee = r.platformFee || '0';
-          if (typeof fee === 'string' && fee.includes('.')) {
-            return sum + Number(fee);
-          } else {
-            return sum + Number(formatEther(BigInt(fee)));
-          }
-        }, 0),
+        feesByCurrency: validRemittances.reduce(
+          (acc: Record<string, string>, r: any) => {
+            const cur = r.fromCurrency as string;
+            const fee = r.platformFee || '0';
+            const feeStr = typeof fee === 'string' && fee.includes('.')
+              ? fee
+              : formatEther(BigInt(fee));
+            const currentFee = acc[cur] || '0';
+            const currentFeeNum = parseFloat(currentFee);
+            const feeNum = parseFloat(feeStr);
+            acc[cur] = (currentFeeNum + feeNum).toString();
+            return acc;
+          },
+          {}
+        ),
         totalTransactions: validRemittances.length,
         corridors: validRemittances.map(
           (r) => `${r.fromCurrency}-${r.toCurrency}`
@@ -117,14 +124,14 @@ function StatsCalculator({
         favoriteCorridors,
         averageFeePercentage:
           stats.totalTransactions > 0
-            ? (stats.totalFees / stats.totalSent) * 100
+            ? (Object.values(stats.feesByCurrency).reduce((sum: number, feeStr: string) => sum + parseFloat(feeStr || '0'), 0) / stats.totalSent) * 100
             : 0,
       };
     } else {
       return {
         totalSent: 0,
         totalReceived: 0,
-        totalFees: 0,
+        feesByCurrency: {} as Record<string, string>,
         totalTransactions: 0,
         corridors: [],
         favoriteCorridors: [],
@@ -258,6 +265,7 @@ export default function ProfilePage() {
     totalSent: 0,
     totalReceived: 0,
     totalFees: 0,
+    feesByCurrency: {} as Record<string, string>,
     totalTransactions: 0,
     favoriteCorridors: [] as string[],
     averageFeePercentage: 0,
@@ -265,10 +273,13 @@ export default function ProfilePage() {
   });
 
   const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
+  const [usdFees, setUsdFees] = useState<number | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [avatarPublicId, setAvatarPublicId] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const usdEstimateCacheRef = useRef<{ key: string; value: number | null } | null>(null);
+  const usdFeesCacheRef = useRef<{ key: string; value: number | null } | null>(null);
   const [activeModal, setActiveModal] = useState<
     'totalSent' | 'totalTransactions' | 'fees' | null
   >(null);
@@ -276,12 +287,10 @@ export default function ProfilePage() {
   const [loadedRemittances, setLoadedRemittances] = useState<
     Record<string, any>
   >({});
-  // Only fetch remittances when we have a valid address
   const { remittanceIds, isLoading: isLoadingIds } = useUserRemittances(
     address && isConnected ? address : undefined
   );
 
-  // Memoize wallet connection state to prevent unnecessary re-renders
   const walletState = useMemo(
     () => ({
       isConnected,
@@ -292,12 +301,12 @@ export default function ProfilePage() {
     [isConnected, address, isMiniApp]
   );
 
-  // Handle initialization and wallet connection states
+  
   useEffect(() => {
     setIsInitializing(!walletState.shouldInitialize);
   }, [walletState.shouldInitialize]);
 
-  // Load avatar from localStorage when address is available
+  
   useEffect(() => {
     if (address) {
       const savedAvatarData = localStorage.getItem(`avatar_${address}`);
@@ -314,7 +323,6 @@ export default function ProfilePage() {
     }
   }, [address]);
 
-  // Removed primary balance (not needed)
 
   const handleRemittanceReady = useCallback((id: string, remittance: any) => {
     setLoadedRemittances((prev) => {
@@ -329,14 +337,27 @@ export default function ProfilePage() {
     setUserStats(stats);
   }, []);
 
-  // Compute USD estimate for Total Sent using current quotes (best-effort)
+  const totalsByCurrencyKey = useMemo(() => {
+    return JSON.stringify(userStats.totalsByCurrency || {});
+  }, [userStats.totalsByCurrency]);
+
+  const feesByCurrencyKey = useMemo(() => {
+    return JSON.stringify(userStats.feesByCurrency || {});
+  }, [userStats.feesByCurrency]);
+
   useEffect(() => {
+    if (usdEstimateCacheRef.current?.key === totalsByCurrencyKey) {
+      setUsdEstimate(usdEstimateCacheRef.current.value);
+      return;
+    }
+
     async function computeUsd() {
       try {
         const totals = userStats.totalsByCurrency || {};
         const entries = Object.entries(totals);
         if (!entries.length) {
           setUsdEstimate(0);
+          usdEstimateCacheRef.current = { key: totalsByCurrencyKey, value: 0 };
           return;
         }
         const provider = new providers.JsonRpcProvider(
@@ -362,12 +383,65 @@ export default function ProfilePage() {
           sumCusd += Number(formatEther(BigInt(out.toString())));
         }
         setUsdEstimate(sumCusd);
+        usdEstimateCacheRef.current = { key: totalsByCurrencyKey, value: sumCusd };
       } catch (e) {
         setUsdEstimate(null);
+        usdEstimateCacheRef.current = { key: totalsByCurrencyKey, value: null };
       }
     }
     computeUsd();
-  }, [userStats.totalsByCurrency]);
+  }, [totalsByCurrencyKey, userStats.totalsByCurrency]);
+
+  useEffect(() => {
+    if (usdFeesCacheRef.current?.key === feesByCurrencyKey) {
+      setUsdFees(usdFeesCacheRef.current.value);
+      return;
+    }
+
+    async function computeUsdFees() {
+      try {
+        const fees = userStats.feesByCurrency || {};
+        const entries = Object.entries(fees);
+        if (!entries.length) {
+          setUsdFees(0);
+          usdFeesCacheRef.current = { key: feesByCurrencyKey, value: 0 };
+          return;
+        }
+        const provider = new providers.JsonRpcProvider(
+          'https://forno.celo.org'
+        );
+        const mento = await Mento.create(provider);
+        const chainId = 42220 as const;
+        const cUSDAddress = getTokenAddress(chainId, 'cUSD' as Currency);
+        let sumCusd = 0;
+        for (const [cur, amtStr] of entries) {
+          const feeValue = amtStr || '0';
+          if (parseFloat(feeValue) <= 0) continue;
+          if (cur === 'cUSD') {
+            sumCusd += parseFloat(feeValue);
+            continue;
+          }
+          const fromToken = getTokenAddress(chainId, cur as Currency);
+          const amountInWei = parseEther(feeValue);
+          const out = await mento.getAmountOut(
+            fromToken,
+            cUSDAddress,
+            amountInWei.toString()
+          );
+          const usdValue = parseFloat(
+            formatEther(BigInt(out.toString()))
+          );
+          sumCusd += usdValue;
+        }
+        setUsdFees(sumCusd);
+        usdFeesCacheRef.current = { key: feesByCurrencyKey, value: sumCusd };
+      } catch (e) {
+        setUsdFees(null);
+        usdFeesCacheRef.current = { key: feesByCurrencyKey, value: null };
+      }
+    }
+    computeUsdFees();
+  }, [feesByCurrencyKey, userStats.feesByCurrency]);
 
   const handleCopyAddress = async () => {
     if (address) {
@@ -398,7 +472,6 @@ export default function ProfilePage() {
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Image size should be less than 5MB');
         return;
@@ -407,17 +480,13 @@ export default function ProfilePage() {
       setIsUploadingAvatar(true);
 
       try {
-        // Upload to Cloudinary
         const result = await uploadAvatar(file, address);
 
-        // Get optimized URL for display
         const optimizedUrl = getOptimizedAvatarUrl(result.public_id, 100);
 
-        // Update state
         setAvatar(optimizedUrl);
         setAvatarPublicId(result.public_id);
 
-        // Save to localStorage
         const avatarData = {
           url: optimizedUrl,
           publicId: result.public_id,
@@ -777,19 +846,6 @@ export default function ProfilePage() {
                         : 0}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700">
-                      Average transaction size
-                    </span>
-                    <span className="text-sm font-bold text-gray-900">
-                      {userStats.totalTransactions > 0
-                        ? formatCurrency(
-                            userStats.totalSent / userStats.totalTransactions,
-                            'USD'
-                          )
-                        : '$0.00'}
-                    </span>
-                  </div>
                 </div>
               </div>
             )}
@@ -799,7 +855,9 @@ export default function ProfilePage() {
                 {/* Total Fees */}
                 <div className="text-center py-4 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600">
-                    {formatCurrency(userStats.totalFees, 'USD')}
+                    {usdFees !== null
+                      ? `$${usdFees.toFixed(2)}`
+                      : '$0.00'}
                   </div>
                   <div className="text-sm text-orange-500 mt-1">
                     Total fees paid
@@ -821,11 +879,8 @@ export default function ProfilePage() {
                       Fee per transaction
                     </span>
                     <span className="text-sm font-bold text-gray-900">
-                      {userStats.totalTransactions > 0
-                        ? formatCurrency(
-                            userStats.totalFees / userStats.totalTransactions,
-                            'USD'
-                          )
+                      {userStats.totalTransactions > 0 && usdFees !== null
+                        ? `$${(usdFees / userStats.totalTransactions).toFixed(2)}`
                         : '$0.00'}
                     </span>
                   </div>

@@ -1,0 +1,65 @@
+services:
+  # Frontend Development Server
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: fx-remit-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/react-app/node_modules
+      - /app/packages/hardhat/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_WC_PROJECT_ID=${NEXT_PUBLIC_WC_PROJECT_ID:-}
+    command: pnpm react-app:dev
+    networks:
+      - fx-remit-network
+    depends_on:
+      - hardhat-node
+
+  # Hardhat Local Blockchain Node
+  hardhat-node:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: fx-remit-hardhat-node
+    ports:
+      - "8545:8545"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/react-app/node_modules
+      - /app/packages/hardhat/node_modules
+    environment:
+      - HARDHAT_NETWORK=localhost
+    command: pnpm hardhat:run:node
+    networks:
+      - fx-remit-network
+
+  # Optional: Run tests in container
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: fx-remit-test
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/react-app/node_modules
+      - /app/packages/hardhat/node_modules
+    environment:
+      - NODE_ENV=test
+    command: pnpm test
+    networks:
+      - fx-remit-network
+    profiles:
+      - test
+
+networks:
+  fx-remit-network:
+    driver: bridge
+

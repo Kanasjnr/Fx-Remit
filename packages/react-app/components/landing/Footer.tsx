@@ -63,7 +63,7 @@ export default function Footer() {
             text-align: center !important;
           }
           .footer-right-section {
-            width: 100% !important;
+            
             height: auto !important;
             left: 0 !important;
             gap: 20px !important;
@@ -181,7 +181,7 @@ export default function Footer() {
                 style={{
                   width: '353px',
                   height: '108px',
-                  fontFamily: 'SF Pro Rounded',
+                  fontFamily: 'Inter',
                   fontWeight: 400,
                   fontSize: '18px',
                   lineHeight: '150%',
@@ -197,7 +197,7 @@ export default function Footer() {
                 style={{
                   width: '353px',
                   height: '27px',
-                  fontFamily: 'SF Pro Rounded',
+                  fontFamily: 'Inter',
                   fontWeight: 400,
                   fontSize: '18px',
                   lineHeight: '150%',
@@ -216,13 +216,13 @@ export default function Footer() {
               style={{ 
                 right: '100px',
                 top: '80px',
-                width: '250px'
+                
               }}
             >
             {/* Product Links */}
               <div 
                 style={{
-                  width: '116px',
+                  
                   height: '188px',
                   gap: '20px',
                   opacity: 1
@@ -230,9 +230,9 @@ export default function Footer() {
               >
                 <h3 
                   style={{
-                    width: '116px',
+                   
                     height: '36px',
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '24px',
                     lineHeight: '150%',
@@ -249,9 +249,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                        
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -269,9 +269,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
-                        height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        
+                        
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -289,9 +289,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                        
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -309,9 +309,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                        
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -331,7 +331,7 @@ export default function Footer() {
             {/* Support Links */}
               <div 
                 style={{
-                  width: '116px',
+                  
                   height: '188px',
                   gap: '20px',
                   opacity: 1
@@ -339,9 +339,9 @@ export default function Footer() {
               >
                 <h3 
                   style={{
-                    width: '116px',
+                    
                     height: '36px',
-                    fontFamily: 'SF Pro Rounded',
+                    fontFamily: 'Inter',
                     fontWeight: 500,
                     fontSize: '24px',
                     lineHeight: '150%',
@@ -358,9 +358,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                       
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -378,9 +378,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                        
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -398,9 +398,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                        
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -418,9 +418,9 @@ export default function Footer() {
                     <a 
                       href="#" 
                       style={{
-                        width: '116px',
+                        
                         height: '27px',
-                        fontFamily: 'SF Pro Rounded',
+                        fontFamily: 'Inter',
                         fontWeight: 400,
                         fontSize: '18px',
                         lineHeight: '150%',
@@ -443,9 +443,9 @@ export default function Footer() {
           <div className="absolute footer-copyright" style={{ left: '515px', top: '410px' }}>
             <p 
               style={{
-                width: '291px',
+               
                 height: '27px',
-                fontFamily: 'SF Pro Rounded',
+                fontFamily: 'Inter',
                 fontWeight: 400,
                 fontSize: '18px',
                 lineHeight: '150%',
