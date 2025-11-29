@@ -30,12 +30,16 @@ import { uploadAvatar, getOptimizedAvatarUrl } from '@/lib/cloudinary';
 
 function RemittanceLoader({
   remittanceId,
+  version,
+  contractAddress,
   onRemittanceReady,
 }: {
   remittanceId: bigint;
+  version: 'v1' | 'v2';
+  contractAddress?: string | null;
   onRemittanceReady: (id: string, remittance: any) => void;
 }) {
-  const { remittance, isLoading } = useRemittanceDetails(remittanceId);
+  const { remittance, isLoading } = useRemittanceDetails(remittanceId, version, contractAddress || undefined);
   const id = remittanceId.toString();
   const [hasNotified, setHasNotified] = useState(false);
 
@@ -533,11 +537,13 @@ export default function ProfilePage() {
     <>
       {/* Load individual remittances */}
       {remittanceIds
-        .filter((id) => id && typeof id === 'bigint')
-        .map((remittanceId) => (
+        .filter((item) => item && item.id && typeof item.id === 'bigint')
+        .map((item) => (
           <RemittanceLoader
-            key={remittanceId.toString()}
-            remittanceId={remittanceId}
+            key={`${item.version}-${item.id.toString()}`}
+            remittanceId={item.id}
+            version={item.version}
+            contractAddress={item.contract}
             onRemittanceReady={handleRemittanceReady}
           />
         ))}

@@ -130,5 +130,29 @@ export const CURRENCIES: CurrencyOption[] = [
         tokenLogo: '/PUSO.svg',
         countryFlag: '/PH.svg',
     },
+    {
+        code: 'USDT',
+        name: 'Tether USD',
+        flag: '💵',
+        symbol: 'USD₮',
+        tokenLogo: '/cUSD .svg',
+        countryFlag: '/US.svg',
+    },
+    {
+        code: 'USDC',
+        name: 'USD Coin',
+        flag: '💵',
+        symbol: 'USDC',
+        tokenLogo: '/cUSD .svg',
+        countryFlag: '/US.svg',
+    },
+    {
+        code: 'CELO',
+        name: 'Celo',
+        flag: '🟢',
+        symbol: 'CELO',
+        tokenLogo: '/cUSD .svg',
+        countryFlag: '/US.svg',
+    },
 ] as const;
 

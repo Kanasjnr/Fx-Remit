@@ -7,6 +7,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useTokenBalance, useQuote } from '@/hooks/useMento';
 import { useTotalBalance } from '@/hooks/useTotalBalance';
 import { useEthersSwap } from '@/hooks/useEthersSwap';
+import { useFarcasterSwap } from '@/hooks/useFarcasterSwap';
 import { useFarcasterResolver } from '@/hooks/useFarcasterResolver';
 import type { Currency } from '@/lib/contracts';
 import { CURRENCIES } from '@/lib/currencies';
@@ -65,7 +66,17 @@ export default function SendPage() {
     toCurrency,
     amount
   );
-  const { swap, isWalletReady, walletStatus } = useEthersSwap();
+  
+  const isMiniPay = typeof window !== 'undefined' && (window as any).ethereum?.isMiniPay;
+  const isFarcaster = isMiniApp && !isMiniPay; 
+  
+  const farcasterSwap = useFarcasterSwap();
+  const ethersSwap = useEthersSwap();
+  const swapHook = isFarcaster ? farcasterSwap : ethersSwap;
+  const swap = swapHook.swap;
+  const isWalletReady = swapHook.isWalletReady;
+  const walletStatus = swapHook.walletStatus;
+  
   const { resolveUsername, isLoading: isResolvingUsername } =
     useFarcasterResolver();
 
@@ -423,12 +434,12 @@ export default function SendPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Platform fee (1.5%)</span>
                   <span className="text-gray-900 font-medium">
-                    {fromCurrencyInfo?.symbol}
+                    {toCurrencyInfo?.symbol}
                     {Number.parseFloat(quote.platformFee) < 0.01 &&
                     Number.parseFloat(quote.platformFee) > 0
                       ? Number.parseFloat(quote.platformFee).toFixed(4)
                       : Number.parseFloat(quote.platformFee).toFixed(2)}{' '}
-                    {fromCurrency}
+                    {toCurrency}
                   </span>
                 </div>
 
