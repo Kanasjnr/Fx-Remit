@@ -6,6 +6,37 @@ import { useDivvi } from './useDivvi';
 import { usePageVisibility } from './usePageVisibility';
 import { useRefreshTrigger } from './useRefreshTrigger';
 
+const CANONICAL_CURRENCY_MAP: Record<string, Currency> = Object.keys(
+  CURRENCY_INFO
+).reduce((acc, key) => {
+  const currency = key as Currency;
+  acc[currency] = currency;
+  acc[currency.toUpperCase()] = currency;
+  acc[currency.toLowerCase()] = currency;
+  return acc;
+}, {} as Record<string, Currency>);
+
+const DISPLAY_SYMBOL_MAP: Record<string, Currency> = Object.entries(
+  CURRENCY_INFO
+).reduce((acc, [currency, info]) => {
+  if (info.symbol) {
+    acc[info.symbol] = currency as Currency;
+  }
+  return acc;
+}, {} as Record<string, Currency>);
+
+const normalizeCurrency = (value: string): Currency => {
+  if (!value) return value as Currency;
+  const trimmed = value.trim();
+  return (
+    CANONICAL_CURRENCY_MAP[trimmed] ||
+    CANONICAL_CURRENCY_MAP[trimmed.toUpperCase()] ||
+    DISPLAY_SYMBOL_MAP[trimmed] ||
+    DISPLAY_SYMBOL_MAP[trimmed.toUpperCase()] ||
+    trimmed as Currency
+  );
+};
+
 export function useFXRemitContract() {
   const chainId = useChainId();
   const address = getContractAddress(chainId);
@@ -308,7 +339,15 @@ export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' 
     if (!isFromNative && fromDecimals === undefined) return null;
     if (!isToNative && toDecimals === undefined) return null;
     
+    const resolvedFromDecimals = Number(isFromNative ? 18 : fromDecimals ?? 18);
+    const resolvedToDecimals = Number(isToNative ? 18 : toDecimals ?? 18);
     
+    const normalizedFromCurrency = normalizeCurrency(
+      (remittanceData as any).fromCurrency
+    );
+    const normalizedToCurrency = normalizeCurrency(
+      (remittanceData as any).toCurrency
+    );
     
     return {
       id: (remittanceData as any).id,
@@ -316,15 +355,17 @@ export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' 
       recipient: (remittanceData as any).recipient,
       fromToken: fromTokenAddr,
       toToken: toTokenAddr,
-      fromCurrency: (remittanceData as any).fromCurrency,
-      toCurrency: (remittanceData as any).toCurrency,
-      amountSent: safeFormatAmount((remittanceData as any).amountSent, isFromNative ? 18 : (fromDecimals as number | bigint | undefined), 18),
-      amountReceived: safeFormatAmount((remittanceData as any).amountReceived, isToNative ? 18 : (toDecimals as number | bigint | undefined), 18),
+      fromCurrency: normalizedFromCurrency,
+      toCurrency: normalizedToCurrency,
+      amountSent: safeFormatAmount((remittanceData as any).amountSent, resolvedFromDecimals, 18),
+      amountReceived: safeFormatAmount((remittanceData as any).amountReceived, resolvedToDecimals, 18),
       exchangeRate: formatEther((remittanceData as any).exchangeRate || BigInt(0)), // Exchange rate is always 18 decimals
-      platformFee: safeFormatAmount((remittanceData as any).platformFee, isToNative ? 18 : (toDecimals as number | bigint | undefined), 18), // Fee is 1.5% of amount received (in toToken)
+      platformFee: safeFormatAmount((remittanceData as any).platformFee, resolvedToDecimals, 18), // Fee is 1.5% of amount received (in toToken)
       timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
       mentoTxHash: finalTxHash,
       corridor: (remittanceData as any).corridor,
+      fromDecimals: resolvedFromDecimals,
+      toDecimals: resolvedToDecimals,
     };
   }, [remittanceData, fromDecimals, toDecimals, finalTxHash]);
 

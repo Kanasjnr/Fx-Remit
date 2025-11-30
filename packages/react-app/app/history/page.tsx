@@ -121,8 +121,7 @@ export default function HistoryPage() {
   const isConnecting = status === 'connecting';
   const isAddressReady = isConnected && !!address;
   
-  // Only wait for connection if we're actually connecting AND not already connected
-  // Don't show "Connecting wallet..." if wallet is already connected
+  
   const [isWaitingForConnection, setIsWaitingForConnection] = useState(
     isConnecting && !isAddressReady
   );
@@ -137,7 +136,6 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (isAddressReady && address) {
-      // Wallet is connected, stop waiting immediately
       setIsWaitingForConnection(false);
       const failed = getFailedTransactions(address);
       const failedAsTransactions: Transaction[] = failed.map(failedTx => ({
@@ -324,7 +322,7 @@ export default function HistoryPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 relative">
+                          <div className="w-6 h-6 relative">
                             <Image
                               src={getCurrencyFlag(transaction.from)}
                               alt={`${transaction.from} flag`}
@@ -333,7 +331,7 @@ export default function HistoryPage() {
                             />
                           </div>
                           <ArrowRightIcon className="w-4 h-4 text-gray-400" />
-                          <div className="w-8 h-8 relative">
+                          <div className="w-6 h-6 relative">
                             <Image
                               src={getCurrencyFlag(transaction.to)}
                               alt={`${transaction.to} flag`}
