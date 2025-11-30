@@ -48,11 +48,8 @@ export default function WhyChooseFX() {
           </h2>
         </div>
 
-        {/* Feature Cards Container */}
         <div className="flex flex-col items-center gap-8 why-choose-cards">
-          {/* Top Row - Two side-by-side cards */}
           <div className="flex gap-8 why-choose-top-row">
-            {/* Top Left - Send money to 15+ countries */}
             <div
               className="relative why-choose-card-1"
               style={{
@@ -79,7 +76,6 @@ export default function WhyChooseFX() {
                 <div
                   className="why-choose-label"
                   style={{
-                    width: '161px',
                     height: '27px',
                     opacity: 1,
                     fontFamily: 'Inter',
@@ -90,7 +86,7 @@ export default function WhyChooseFX() {
                     color: '#F18F01',
                   }}
                 >
-                  Send money to
+                  Send money across
                 </div>
                 <div
                   className="why-choose-number"
@@ -106,7 +102,7 @@ export default function WhyChooseFX() {
                     color: '#2E5EAA',
                   }}
                 >
-                  15+
+                  18+
                 </div>
                 <p
                   className="why-choose-description"
@@ -122,9 +118,8 @@ export default function WhyChooseFX() {
                     color: '#050505',
                   }}
                 >
-                  countries where you can connect with millions of users around
-                  the globe through our expanding network of supported
-                  currencies
+                  currencies where you can connect with millions of users around
+                  the globe
                 </p>
               </div>
             </div>

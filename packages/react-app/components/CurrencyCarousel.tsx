@@ -100,6 +100,24 @@ const currencies: CurrencyCard[] = [
     name: "PH",
     fullName: "Philippine Peso",
     description: "philippine Peso decentralized stablecoin focused on remittances and digital commerce across Southeast Asia."
+  },
+  {
+    code: "USDT",
+    name: "US",
+    fullName: "Tether USD",
+    description: "Tether USD stablecoin providing stable value transfers and trading, one of the most widely used stablecoins globally."
+  },
+  {
+    code: "USDC",
+    name: "US",
+    fullName: "USD Coin",
+    description: "USD Coin stablecoin backed by US dollars, enabling fast and secure global payments and remittances."
+  },
+  {
+    code: "CELO",
+    name: "CELO",
+    fullName: "Celo Native Token",
+    description: "Celo native token powering the Celo blockchain, enabling fast and low-cost transactions across the network."
   }
 ];
 

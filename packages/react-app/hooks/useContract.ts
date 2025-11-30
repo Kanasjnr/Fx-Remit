@@ -1,10 +1,41 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, usePublicClient } from 'wagmi';
-import { parseEther, formatEther, parseAbiItem } from 'viem';
-import { FXREMIT_CONTRACT, getContractAddress, Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
-import { useEffect, useState } from 'react';
+import { parseEther, formatEther, formatUnits, parseAbiItem } from 'viem';
+import { FXREMIT_CONTRACT, FXREMIT_V2_CONTRACT, getContractAddress, getContractV2Address, Currency, getTokenAddress, CURRENCY_INFO, SupportedChainId } from '../lib/contracts';
+import { useEffect, useState, useMemo } from 'react';
 import { useDivvi } from './useDivvi';
 import { usePageVisibility } from './usePageVisibility';
 import { useRefreshTrigger } from './useRefreshTrigger';
+
+const CANONICAL_CURRENCY_MAP: Record<string, Currency> = Object.keys(
+  CURRENCY_INFO
+).reduce((acc, key) => {
+  const currency = key as Currency;
+  acc[currency] = currency;
+  acc[currency.toUpperCase()] = currency;
+  acc[currency.toLowerCase()] = currency;
+  return acc;
+}, {} as Record<string, Currency>);
+
+const DISPLAY_SYMBOL_MAP: Record<string, Currency> = Object.entries(
+  CURRENCY_INFO
+).reduce((acc, [currency, info]) => {
+  if (info.symbol) {
+    acc[info.symbol] = currency as Currency;
+  }
+  return acc;
+}, {} as Record<string, Currency>);
+
+const normalizeCurrency = (value: string): Currency => {
+  if (!value) return value as Currency;
+  const trimmed = value.trim();
+  return (
+    CANONICAL_CURRENCY_MAP[trimmed] ||
+    CANONICAL_CURRENCY_MAP[trimmed.toUpperCase()] ||
+    DISPLAY_SYMBOL_MAP[trimmed] ||
+    DISPLAY_SYMBOL_MAP[trimmed.toUpperCase()] ||
+    trimmed as Currency
+  );
+};
 
 export function useFXRemitContract() {
   const chainId = useChainId();
@@ -13,6 +44,18 @@ export function useFXRemitContract() {
   return {
     address,
     abi: FXREMIT_CONTRACT.abi,
+    chainId,
+    isConfigured: address !== null,
+  };
+}
+
+export function useFXRemitV2Contract() {
+  const chainId = useChainId();
+  const address = getContractV2Address(chainId);
+  
+  return {
+    address,
+    abi: FXREMIT_V2_CONTRACT.abi,
     chainId,
     isConfigured: address !== null,
   };
@@ -86,16 +129,18 @@ export function useLogRemittance() {
 }
 
 export function useUserRemittances(userAddress?: string) {
-  const contract = useFXRemitContract();
+  const contractV1 = useFXRemitContract();
+  const contractV2 = useFXRemitV2Contract();
   const { shouldPoll } = usePageVisibility();
   
-  const { data: remittanceIds, isLoading, error, refetch } = useReadContract({
-    address: contract.address as `0x${string}`,
-    abi: contract.abi,
+  // Fetch from V1
+  const { data: remittanceIdsV1, isLoading: isLoadingV1, error: errorV1, refetch: refetchV1 } = useReadContract({
+    address: contractV1.address as `0x${string}`,
+    abi: contractV1.abi,
     functionName: 'getUserRemittances',
     args: [userAddress],
     query: {
-      enabled: !!userAddress && contract.isConfigured && shouldPoll,
+      enabled: !!userAddress && contractV1.isConfigured && shouldPoll,
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: 120000,
@@ -103,28 +148,64 @@ export function useUserRemittances(userAddress?: string) {
     },
   });
 
+  // Fetch from V2
+  const { data: remittanceIdsV2, isLoading: isLoadingV2, error: errorV2, refetch: refetchV2 } = useReadContract({
+    address: contractV2.address as `0x${string}`,
+    abi: contractV2.abi,
+    functionName: 'getUserRemittances',
+    args: [userAddress],
+    query: {
+      enabled: !!userAddress && contractV2.isConfigured && shouldPoll,
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: 120000,
+      gcTime: 300000,
+    },
+  });
+
+  const mergedRemittanceIds = useMemo(() => {
+    const v1Ids = (remittanceIdsV1 as bigint[] || [])
+      .filter(id => id !== undefined && id !== null)
+      .map(id => ({ id, version: 'v1' as const, contract: contractV1.address }));
+    
+    const v2Ids = (remittanceIdsV2 as bigint[] || [])
+      .filter(id => id !== undefined && id !== null)
+      .map(id => ({ id, version: 'v2' as const, contract: contractV2.address }));
+    
+    return [...v1Ids, ...v2Ids];
+  }, [remittanceIdsV1, remittanceIdsV2, contractV1.address, contractV2.address]);
+
   useRefreshTrigger(() => {
-    if (userAddress && contract.isConfigured && shouldPoll) {
-      refetch();
+    if (userAddress && shouldPoll) {
+      if (contractV1.isConfigured) refetchV1();
+      if (contractV2.isConfigured) refetchV2();
     }
   });
 
   return {
-    remittanceIds: (remittanceIds as bigint[] || []).filter(id => id !== undefined && id !== null),
-    isLoading: contract.isConfigured ? isLoading : false,
-    error: contract.isConfigured ? error : null,
-    refetch: refetch as () => Promise<any>,
+    remittanceIds: mergedRemittanceIds,
+    isLoading: isLoadingV1 || isLoadingV2,
+    error: errorV1 || errorV2,
+    refetch: async () => {
+      await Promise.all([
+        contractV1.isConfigured ? refetchV1() : Promise.resolve(),
+        contractV2.isConfigured ? refetchV2() : Promise.resolve(),
+      ]);
+    },
   };
 }
 
-export function useRemittanceDetails(remittanceId: bigint) {
-  const contract = useFXRemitContract();
-  const { shouldPoll } = usePageVisibility();
+export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' = 'v1', contractAddress?: string) {
+  const contractV1 = useFXRemitContract();
+  const contractV2 = useFXRemitV2Contract();
   const publicClient = usePublicClient();
+  const { shouldPoll } = usePageVisibility();
   const [txHash, setTxHash] = useState<string>('');
   
+  const contract = version === 'v2' ? contractV2 : contractV1;
+  
   const { data: remittanceData, isLoading, error } = useReadContract({
-    address: contract.address as `0x${string}`,
+    address: (contractAddress || contract.address) as `0x${string}`,
     abi: contract.abi,
     functionName: 'getRemittance',
     args: [remittanceId],
@@ -137,6 +218,37 @@ export function useRemittanceDetails(remittanceId: bigint) {
     },
   });
 
+  const fromToken = remittanceData ? (remittanceData as any).fromToken : undefined;
+  const toToken = remittanceData ? (remittanceData as any).toToken : undefined;
+
+  const erc20Abi = [
+    {
+      inputs: [],
+      name: 'decimals',
+      outputs: [{ name: '', type: 'uint8' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ];
+
+  const { data: fromDecimals } = useReadContract({
+    address: fromToken as `0x${string}`,
+    abi: erc20Abi,
+    functionName: 'decimals',
+    query: {
+      enabled: !!fromToken && !!publicClient && !!remittanceData,
+    },
+  });
+
+  const { data: toDecimals } = useReadContract({
+    address: toToken as `0x${string}`,
+    abi: erc20Abi,
+    functionName: 'decimals',
+    query: {
+      enabled: !!toToken && !!publicClient && !!remittanceData,
+    },
+  });
+
   useEffect(() => {
     async function fetchTransactionHash() {
       if (!contract.isConfigured || !publicClient || !remittanceId || !contract.address) {
@@ -144,40 +256,66 @@ export function useRemittanceDetails(remittanceId: bigint) {
       }
 
       try {
-        const eventAbi = parseAbiItem(
-          'event RemittanceLogged(uint256 indexed remittanceId, address indexed sender, address indexed recipient, string fromCurrency, string toCurrency, uint256 amountSent, uint256 amountReceived, string corridor)'
-        );
-        
         const currentBlock = await publicClient.getBlockNumber();
         const fromBlock = currentBlock > BigInt(1000000) ? currentBlock - BigInt(1000000) : BigInt(0);
         
-        const logs = await publicClient.getLogs({
-          address: contract.address as `0x${string}`,
-          event: eventAbi,
-          args: {
-            remittanceId: remittanceId,
-          },
-          fromBlock: fromBlock,
-          toBlock: currentBlock,
-        });
+        let txHashFound = '';
         
-        if (logs && logs.length > 0) {
-          setTxHash(logs[0].transactionHash);
+        if (version === 'v2') {
+          const tokensTransferredAbi = parseAbiItem(
+            'event TokensTransferred(uint256 indexed remittanceId, address indexed token, address indexed to, uint256 amount)'
+          );
+          
+          const logs = await publicClient.getLogs({
+            address: contract.address as `0x${string}`,
+            event: tokensTransferredAbi,
+            args: {
+              remittanceId: remittanceId,
+            },
+            fromBlock: fromBlock,
+            toBlock: currentBlock,
+          });
+          
+          if (logs && logs.length > 0) {
+            txHashFound = logs[0].transactionHash;
+          }
+        } else {
+          const remittanceLoggedAbi = parseAbiItem(
+            'event RemittanceLogged(uint256 indexed remittanceId, address indexed sender, address indexed recipient, string fromCurrency, string toCurrency, uint256 amountSent, uint256 amountReceived, string corridor)'
+          );
+          
+          const logs = await publicClient.getLogs({
+            address: contract.address as `0x${string}`,
+            event: remittanceLoggedAbi,
+            args: {
+              remittanceId: remittanceId,
+            },
+            fromBlock: fromBlock,
+            toBlock: currentBlock,
+          });
+          
+          if (logs && logs.length > 0) {
+            txHashFound = logs[0].transactionHash;
+          }
+        }
+        
+        if (txHashFound) {
+          setTxHash(txHashFound);
         }
       } catch (err) {
-        // Silently fail - transaction hash is optional
       }
     }
 
     fetchTransactionHash();
-  }, [contract.isConfigured, contract.address, publicClient, remittanceId]);
+  }, [contract.isConfigured, contract.address, publicClient, remittanceId, version]);
 
-  const safeFormatEther = (value: any) => {
+  const safeFormatAmount = (value: any, decimals: number | bigint | undefined, fallbackDecimals: number = 18) => {
     if (value === undefined || value === null) {
       return '0';
     }
     try {
-      return formatEther(value);
+      const dec = decimals !== undefined ? Number(decimals) : fallbackDecimals;
+      return formatUnits(value, dec);
     } catch (err) {
       return '0';
     }
@@ -190,26 +328,50 @@ export function useRemittanceDetails(remittanceId: bigint) {
      ? contractMentoTxHash 
      : '');
 
-  const remittance = remittanceData ? {
-    id: (remittanceData as any).id,
-    sender: (remittanceData as any).sender,
-    recipient: (remittanceData as any).recipient,
-    fromToken: (remittanceData as any).fromToken,
-    toToken: (remittanceData as any).toToken,
-    fromCurrency: (remittanceData as any).fromCurrency,
-    toCurrency: (remittanceData as any).toCurrency,
-    amountSent: safeFormatEther((remittanceData as any).amountSent),
-    amountReceived: safeFormatEther((remittanceData as any).amountReceived),
-    exchangeRate: safeFormatEther((remittanceData as any).exchangeRate),
-    platformFee: safeFormatEther((remittanceData as any).platformFee),
-    timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
-    mentoTxHash: finalTxHash,
-    corridor: (remittanceData as any).corridor,
-  } : null;
+  const remittance = useMemo(() => {
+    if (!remittanceData) return null;
+    
+    const fromTokenAddr = (remittanceData as any).fromToken;
+    const toTokenAddr = (remittanceData as any).toToken;
+    const isFromNative = !fromTokenAddr || fromTokenAddr === '0x0000000000000000000000000000000000000000';
+    const isToNative = !toTokenAddr || toTokenAddr === '0x0000000000000000000000000000000000000000';
+    
+    if (!isFromNative && fromDecimals === undefined) return null;
+    if (!isToNative && toDecimals === undefined) return null;
+    
+    const resolvedFromDecimals = Number(isFromNative ? 18 : fromDecimals ?? 18);
+    const resolvedToDecimals = Number(isToNative ? 18 : toDecimals ?? 18);
+    
+    const normalizedFromCurrency = normalizeCurrency(
+      (remittanceData as any).fromCurrency
+    );
+    const normalizedToCurrency = normalizeCurrency(
+      (remittanceData as any).toCurrency
+    );
+    
+    return {
+      id: (remittanceData as any).id,
+      sender: (remittanceData as any).sender,
+      recipient: (remittanceData as any).recipient,
+      fromToken: fromTokenAddr,
+      toToken: toTokenAddr,
+      fromCurrency: normalizedFromCurrency,
+      toCurrency: normalizedToCurrency,
+      amountSent: safeFormatAmount((remittanceData as any).amountSent, resolvedFromDecimals, 18),
+      amountReceived: safeFormatAmount((remittanceData as any).amountReceived, resolvedToDecimals, 18),
+      exchangeRate: formatEther((remittanceData as any).exchangeRate || BigInt(0)), // Exchange rate is always 18 decimals
+      platformFee: safeFormatAmount((remittanceData as any).platformFee, resolvedToDecimals, 18), // Fee is 1.5% of amount received (in toToken)
+      timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
+      mentoTxHash: finalTxHash,
+      corridor: (remittanceData as any).corridor,
+      fromDecimals: resolvedFromDecimals,
+      toDecimals: resolvedToDecimals,
+    };
+  }, [remittanceData, fromDecimals, toDecimals, finalTxHash]);
 
   return {
     remittance: remittance,
-    isLoading: contract.isConfigured ? isLoading : false,
+    isLoading: contract.isConfigured ? (isLoading || (!!fromToken && fromDecimals === undefined) || (!!toToken && toDecimals === undefined)) : false,
     error: contract.isConfigured ? error : null,
   };
 }

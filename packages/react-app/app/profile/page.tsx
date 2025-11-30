@@ -7,7 +7,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useUserRemittances, useRemittanceDetails } from '@/hooks/useContract';
 import type { Currency } from '@/lib/contracts';
 import { getTokenAddress } from '@/lib/contracts';
-import { formatEther, parseEther } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import Link from 'next/link';
 import {
   CurrencyDollarIcon,
@@ -30,12 +30,20 @@ import { uploadAvatar, getOptimizedAvatarUrl } from '@/lib/cloudinary';
 
 function RemittanceLoader({
   remittanceId,
+  version,
+  contractAddress,
   onRemittanceReady,
 }: {
   remittanceId: bigint;
+  version: 'v1' | 'v2';
+  contractAddress?: string | null;
   onRemittanceReady: (id: string, remittance: any) => void;
 }) {
-  const { remittance, isLoading } = useRemittanceDetails(remittanceId);
+  const { remittance, isLoading } = useRemittanceDetails(
+    remittanceId,
+    version,
+    contractAddress || undefined
+  );
   const id = remittanceId.toString();
   const [hasNotified, setHasNotified] = useState(false);
 
@@ -67,6 +75,9 @@ function StatsCalculator({
     );
 
     if (validRemittances.length > 0) {
+      const decimalsByCurrency: Record<string, number> = {};
+      const feeDecimalsByCurrency: Record<string, number> = {};
+
       const stats = {
         totalSent: validRemittances.reduce(
           (sum, r) => sum + Number.parseFloat(r.amountSent || '0'),
@@ -78,14 +89,20 @@ function StatsCalculator({
         ),
         feesByCurrency: validRemittances.reduce(
           (acc: Record<string, string>, r: any) => {
-            const cur = r.fromCurrency as string;
-            const fee = r.platformFee || '0';
-            const feeStr = typeof fee === 'string' && fee.includes('.')
-              ? fee
-              : formatEther(BigInt(fee));
+            const cur = r.toCurrency as string;
+            const fee = r.platformFee ?? '0';
+            const decimals =
+              typeof r.toDecimals === 'number' ? r.toDecimals : 18;
+            if (cur && feeDecimalsByCurrency[cur] === undefined) {
+              feeDecimalsByCurrency[cur] = decimals;
+            }
+            const feeStr =
+              typeof fee === 'string'
+                ? fee
+                : formatUnits(BigInt(fee), decimals);
             const currentFee = acc[cur] || '0';
-            const currentFeeNum = parseFloat(currentFee);
-            const feeNum = parseFloat(feeStr);
+            const currentFeeNum = Number.parseFloat(currentFee);
+            const feeNum = Number.parseFloat(feeStr || '0');
             acc[cur] = (currentFeeNum + feeNum).toString();
             return acc;
           },
@@ -99,6 +116,11 @@ function StatsCalculator({
           (acc: Record<string, number>, r: any) => {
             const cur = r.fromCurrency as string;
             const amt = Number.parseFloat(r.amountSent || '0');
+            if (cur && decimalsByCurrency[cur] === undefined) {
+              const decimals =
+                typeof r.fromDecimals === 'number' ? r.fromDecimals : 18;
+              decimalsByCurrency[cur] = decimals;
+            }
             acc[cur] = (acc[cur] || 0) + amt;
             return acc;
           },
@@ -119,13 +141,29 @@ function StatsCalculator({
         .slice(0, 3)
         .map(([corridor]) => corridor);
 
+      const averageFeePercentage = (() => {
+        const feePercentages = validRemittances.map((r) => {
+          const fee = Number.parseFloat(r.platformFee || '0');
+          const received = Number.parseFloat(r.amountReceived || '0');
+          const baseAmount = fee + received;
+          if (baseAmount <= 0) {
+            return 0;
+          }
+          return (fee / baseAmount) * 100;
+        });
+        if (!feePercentages.length) {
+          return 0;
+        }
+        const sum = feePercentages.reduce((total, value) => total + value, 0);
+        return sum / feePercentages.length;
+      })();
+
       return {
         ...stats,
         favoriteCorridors,
-        averageFeePercentage:
-          stats.totalTransactions > 0
-            ? (Object.values(stats.feesByCurrency).reduce((sum: number, feeStr: string) => sum + parseFloat(feeStr || '0'), 0) / stats.totalSent) * 100
-            : 0,
+        averageFeePercentage,
+        decimalsByCurrency,
+        feeDecimalsByCurrency,
       };
     } else {
       return {
@@ -137,6 +175,8 @@ function StatsCalculator({
         favoriteCorridors: [],
         averageFeePercentage: 0,
         totalsByCurrency: {},
+        decimalsByCurrency: {} as Record<string, number>,
+        feeDecimalsByCurrency: {} as Record<string, number>,
       };
     }
   }, [remittances]);
@@ -176,8 +216,10 @@ const exportTransactionsToCSV = (transactions: any[], userAddress: string) => {
   // Convert transactions to CSV rows
   const csvRows = transactions.map((tx) => [
     tx.id || 'N/A',
-    tx.timestamp ? new Date(tx.timestamp).toLocaleDateString() : 'N/A',
-    tx.timestamp ? new Date(tx.timestamp).toLocaleTimeString() : 'N/A',
+    ...(() => {
+      const { date, time } = formatTimestampForCsv(tx.timestamp);
+      return [date, time];
+    })(),
     tx.sender || 'N/A',
     tx.recipient || 'N/A',
     tx.fromCurrency || 'N/A',
@@ -215,45 +257,44 @@ const exportTransactionsToCSV = (transactions: any[], userAddress: string) => {
   toast.success(`Exported ${transactions.length} transactions to CSV`);
 };
 
-// Helper functions
-const getCurrencyFlag = (currency: string) => {
-  const flags: Record<string, string> = {
-    USD: '🇺🇸',
-    EUR: '🇪🇺',
-    GBP: '🇬🇧',
-    NGN: '🇳🇬',
-    GHS: '🇬🇭',
-    KES: '🇰🇪',
-    UGX: '🇺🇬',
-    TZS: '🇹🇿',
-    ZAR: '🇿🇦',
-    CELO: '🌾',
-    cUSD: '💵',
-    cEUR: '💶',
-    cREAL: '💴',
-  };
-  return flags[currency] || '💱';
+const formatTokenAmountDisplay = (
+  rawAmount: number,
+  currency: string,
+  decimalsMap: Record<string, number>,
+) => {
+  const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
+  const decimals = decimalsMap[currency] ?? 4;
+  const formatter = new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: amount !== 0 && decimals >= 2 ? 2 : 0,
+    maximumFractionDigits: Math.min(Math.max(decimals, 2), 6),
+  });
+  return `${formatter.format(amount)}${currency}`;
 };
 
-const formatCurrency = (amount: number, currency: string) => {
-  const symbols: Record<string, string> = {
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    NGN: '₦',
-    GHS: '₵',
-    KES: 'KSh',
-    UGX: 'USh',
-    TZS: 'TSh',
-    ZAR: 'R',
-    CELO: 'CELO',
-    cUSD: 'cUSD',
-    cEUR: 'cEUR',
-    cREAL: 'cREAL',
-  };
+const formatTimestampForCsv = (timestamp: any) => {
+  if (!timestamp) {
+    return { date: 'N/A', time: 'N/A' };
+  }
 
-  const symbol = symbols[currency] || currency;
-  return `${symbol}${amount.toFixed(2)}`;
+  let dateObj: Date;
+  if (timestamp instanceof Date) {
+    dateObj = timestamp;
+  } else if (typeof timestamp === 'number') {
+    dateObj = new Date(
+      timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp
+    );
+  } else {
+    dateObj = new Date(timestamp);
+  }
+
+  if (Number.isNaN(dateObj.getTime())) {
+    return { date: 'N/A', time: 'N/A' };
+  }
+
+  return {
+    date: dateObj.toLocaleDateString(),
+    time: dateObj.toLocaleTimeString(),
+  };
 };
 
 export default function ProfilePage() {
@@ -270,6 +311,8 @@ export default function ProfilePage() {
     favoriteCorridors: [] as string[],
     averageFeePercentage: 0,
     totalsByCurrency: {} as Record<string, number>,
+    decimalsByCurrency: {} as Record<string, number>,
+    feeDecimalsByCurrency: {} as Record<string, number>,
   });
 
   const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
@@ -278,8 +321,13 @@ export default function ProfilePage() {
   const [avatarPublicId, setAvatarPublicId] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const usdEstimateCacheRef = useRef<{ key: string; value: number | null } | null>(null);
-  const usdFeesCacheRef = useRef<{ key: string; value: number | null } | null>(null);
+  const usdEstimateCacheRef = useRef<{
+    key: string;
+    value: number | null;
+  } | null>(null);
+  const usdFeesCacheRef = useRef<{ key: string; value: number | null } | null>(
+    null
+  );
   const [activeModal, setActiveModal] = useState<
     'totalSent' | 'totalTransactions' | 'fees' | null
   >(null);
@@ -291,6 +339,21 @@ export default function ProfilePage() {
     address && isConnected ? address : undefined
   );
 
+  const expectedRemittanceCount = useMemo(() => {
+    return remittanceIds.filter(
+      (item) => item && item.id && typeof item.id === 'bigint'
+    ).length;
+  }, [remittanceIds]);
+
+  const loadedRemittanceCount = useMemo(() => {
+    return Object.keys(loadedRemittances).length;
+  }, [loadedRemittances]);
+
+  const isStatsLoading =
+    isLoadingIds ||
+    (expectedRemittanceCount > 0 &&
+      loadedRemittanceCount < expectedRemittanceCount);
+
   const walletState = useMemo(
     () => ({
       isConnected,
@@ -301,12 +364,10 @@ export default function ProfilePage() {
     [isConnected, address, isMiniApp]
   );
 
-  
   useEffect(() => {
     setIsInitializing(!walletState.shouldInitialize);
   }, [walletState.shouldInitialize]);
 
-  
   useEffect(() => {
     if (address) {
       const savedAvatarData = localStorage.getItem(`avatar_${address}`);
@@ -323,7 +384,6 @@ export default function ProfilePage() {
     }
   }, [address]);
 
-
   const handleRemittanceReady = useCallback((id: string, remittance: any) => {
     setLoadedRemittances((prev) => {
       if (prev[id] !== remittance) {
@@ -338,12 +398,18 @@ export default function ProfilePage() {
   }, []);
 
   const totalsByCurrencyKey = useMemo(() => {
-    return JSON.stringify(userStats.totalsByCurrency || {});
-  }, [userStats.totalsByCurrency]);
+    return JSON.stringify({
+      totals: userStats.totalsByCurrency || {},
+      decimals: userStats.decimalsByCurrency || {},
+    });
+  }, [userStats.totalsByCurrency, userStats.decimalsByCurrency]);
 
   const feesByCurrencyKey = useMemo(() => {
-    return JSON.stringify(userStats.feesByCurrency || {});
-  }, [userStats.feesByCurrency]);
+    return JSON.stringify({
+      fees: userStats.feesByCurrency || {},
+      decimals: userStats.feeDecimalsByCurrency || {},
+    });
+  }, [userStats.feesByCurrency, userStats.feeDecimalsByCurrency]);
 
   useEffect(() => {
     if (usdEstimateCacheRef.current?.key === totalsByCurrencyKey) {
@@ -354,6 +420,7 @@ export default function ProfilePage() {
     async function computeUsd() {
       try {
         const totals = userStats.totalsByCurrency || {};
+        const decimalsMap = userStats.decimalsByCurrency || {};
         const entries = Object.entries(totals);
         if (!entries.length) {
           setUsdEstimate(0);
@@ -375,15 +442,20 @@ export default function ProfilePage() {
             continue;
           }
           const fromToken = getTokenAddress(chainId, cur as Currency);
+          const decimals = decimalsMap[cur] ?? 18;
+          const amountInWei = parseUnits(String(amount), decimals);
           const out = await mento.getAmountOut(
             fromToken,
             cUSD,
-            parseEther(String(amount))
+            amountInWei.toString()
           );
-          sumCusd += Number(formatEther(BigInt(out.toString())));
+          sumCusd += Number(formatUnits(BigInt(out.toString()), 18));
         }
         setUsdEstimate(sumCusd);
-        usdEstimateCacheRef.current = { key: totalsByCurrencyKey, value: sumCusd };
+        usdEstimateCacheRef.current = {
+          key: totalsByCurrencyKey,
+          value: sumCusd,
+        };
       } catch (e) {
         setUsdEstimate(null);
         usdEstimateCacheRef.current = { key: totalsByCurrencyKey, value: null };
@@ -401,6 +473,7 @@ export default function ProfilePage() {
     async function computeUsdFees() {
       try {
         const fees = userStats.feesByCurrency || {};
+        const decimalsMap = userStats.feeDecimalsByCurrency || {};
         const entries = Object.entries(fees);
         if (!entries.length) {
           setUsdFees(0);
@@ -416,21 +489,21 @@ export default function ProfilePage() {
         let sumCusd = 0;
         for (const [cur, amtStr] of entries) {
           const feeValue = amtStr || '0';
-          if (parseFloat(feeValue) <= 0) continue;
+          const feeNumeric = parseFloat(feeValue);
+          if (feeNumeric <= 0) continue;
           if (cur === 'cUSD') {
-            sumCusd += parseFloat(feeValue);
+            sumCusd += feeNumeric;
             continue;
           }
           const fromToken = getTokenAddress(chainId, cur as Currency);
-          const amountInWei = parseEther(feeValue);
+          const decimals = decimalsMap[cur] ?? 18;
+          const amountInWei = parseUnits(feeValue, decimals);
           const out = await mento.getAmountOut(
             fromToken,
             cUSDAddress,
             amountInWei.toString()
           );
-          const usdValue = parseFloat(
-            formatEther(BigInt(out.toString()))
-          );
+          const usdValue = Number(formatUnits(BigInt(out.toString()), 18));
           sumCusd += usdValue;
         }
         setUsdFees(sumCusd);
@@ -533,17 +606,19 @@ export default function ProfilePage() {
     <>
       {/* Load individual remittances */}
       {remittanceIds
-        .filter((id) => id && typeof id === 'bigint')
-        .map((remittanceId) => (
+        .filter((item) => item && item.id && typeof item.id === 'bigint')
+        .map((item) => (
           <RemittanceLoader
-            key={remittanceId.toString()}
-            remittanceId={remittanceId}
+            key={`${item.version}-${item.id.toString()}`}
+            remittanceId={item.id}
+            version={item.version}
+            contractAddress={item.contract}
             onRemittanceReady={handleRemittanceReady}
           />
         ))}
 
-      {/* Only calculate stats when loading is done */}
-      {!isLoadingIds && (
+      {/* Only calculate stats when remittances are ready */}
+      {!isStatsLoading && (
         <StatsCalculator
           remittances={loadedRemittances}
           onStatsReady={handleStatsReady}
@@ -631,53 +706,64 @@ export default function ProfilePage() {
               </div>
 
               <div className="p-6 space-y-4">
-                {/* Total sent */}
-                <button
-                  onClick={() => setActiveModal('totalSent')}
-                  className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <BanknotesIcon className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      Total sent
-                    </span>
+                {isStatsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-sm text-gray-600">
+                      Calculating your wallet metrics...
+                    </p>
                   </div>
-                  <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-                </button>
+                ) : (
+                  <>
+                    {/* Total sent */}
+                    <button
+                      onClick={() => setActiveModal('totalSent')}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <BanknotesIcon className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          Total sent
+                        </span>
+                      </div>
+                      <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                    </button>
 
-                {/* Total transactions */}
-                <button
-                  onClick={() => setActiveModal('totalTransactions')}
-                  className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <ChartBarIcon className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      Total transactions
-                    </span>
-                  </div>
-                  <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-                </button>
+                    {/* Total transactions */}
+                    <button
+                      onClick={() => setActiveModal('totalTransactions')}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <ChartBarIcon className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          Total transactions
+                        </span>
+                      </div>
+                      <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                    </button>
 
-                {/* Fees */}
-                <button
-                  onClick={() => setActiveModal('fees')}
-                  className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <QuestionMarkCircleIcon className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">
-                      Fees
-                    </span>
-                  </div>
-                  <ChevronRightIcon className="w-5 h-5 text-gray-400" />
-                </button>
+                    {/* Fees */}
+                    <button
+                      onClick={() => setActiveModal('fees')}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors duration-200 border border-gray-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <QuestionMarkCircleIcon className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          Fees
+                        </span>
+                      </div>
+                      <ChevronRightIcon className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -790,8 +876,11 @@ export default function ProfilePage() {
                             className="bg-gray-100 rounded-full px-3 py-2 text-center"
                           >
                             <div className="text-xs font-medium text-gray-600">
-                              {amount.toFixed(1)}
-                              {currency}
+                                {formatTokenAmountDisplay(
+                                  amount,
+                                  currency,
+                                  userStats.decimalsByCurrency
+                                )}
                             </div>
                           </div>
                         )
@@ -855,9 +944,7 @@ export default function ProfilePage() {
                 {/* Total Fees */}
                 <div className="text-center py-4 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600">
-                    {usdFees !== null
-                      ? `$${usdFees.toFixed(2)}`
-                      : '$0.00'}
+                    {usdFees !== null ? `$${usdFees.toFixed(2)}` : '$0.00'}
                   </div>
                   <div className="text-sm text-orange-500 mt-1">
                     Total fees paid
@@ -880,7 +967,9 @@ export default function ProfilePage() {
                     </span>
                     <span className="text-sm font-bold text-gray-900">
                       {userStats.totalTransactions > 0 && usdFees !== null
-                        ? `$${(usdFees / userStats.totalTransactions).toFixed(2)}`
+                        ? `$${(usdFees / userStats.totalTransactions).toFixed(
+                            2
+                          )}`
                         : '$0.00'}
                     </span>
                   </div>
