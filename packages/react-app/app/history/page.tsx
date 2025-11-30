@@ -6,7 +6,9 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useUserRemittances, useRemittanceDetails } from '@/hooks/useContract';
 import type { Currency } from '@/lib/contracts';
 import { CURRENCY_INFO } from '@/lib/contracts';
+import { CURRENCIES } from '@/lib/currencies';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
+import Image from 'next/image';
 import { getFailedTransactions } from '@/providers/TransactionStatusProvider';
 import Link from 'next/link';
 import {
@@ -52,40 +54,56 @@ function RemittanceItem({
   const processedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const dataKey = remittance
-      ? `${remittance.id}-${remittance.fromCurrency}-${remittance.toCurrency}`
-      : null;
+    if (!remittance || !remittance.fromCurrency || !remittance.toCurrency) {
+      if (!isLoading && !remittance && processedRef.current !== 'null') {
+        processedRef.current = 'null';
+        onTransactionReady(id, null);
+      }
+      return;
+    }
 
-    if (
-      remittance &&
-      remittance.fromCurrency &&
-      remittance.toCurrency &&
-      processedRef.current !== dataKey
-    ) {
-      const zeroHash = '0x' + '0'.repeat(64);
-      const txHash =
-        remittance.mentoTxHash && remittance.mentoTxHash !== zeroHash
-          ? remittance.mentoTxHash
-          : '';
-      const tx: Transaction = {
-        id: remittance.id ? remittance.id.toString() : id,
-        from: remittance.fromCurrency as Currency,
-        to: remittance.toCurrency as Currency,
-        amount: Number.parseFloat(remittance.amountSent),
-        received: Number.parseFloat(remittance.amountReceived),
-        fee: Number.parseFloat(remittance.platformFee),
-        status: 'completed',
-        date: remittance.timestamp.toLocaleDateString(),
-        time: remittance.timestamp.toLocaleTimeString(),
-        hash: txHash,
-        recipient: remittance.recipient,
-      };
+    const zeroHash = '0x' + '0'.repeat(64);
+    const txHash =
+      remittance.mentoTxHash && remittance.mentoTxHash !== zeroHash
+        ? remittance.mentoTxHash
+        : '';
+    
+    const amountSent = Number.parseFloat(remittance.amountSent);
+    const amountReceived = Number.parseFloat(remittance.amountReceived);
+    const platformFee = Number.parseFloat(remittance.platformFee);
+    
+    if (isNaN(amountSent) || isNaN(amountReceived) || isNaN(platformFee)) {
+      console.warn('[History] Invalid amounts, skipping transaction:', {
+        amountSent: remittance.amountSent,
+        amountReceived: remittance.amountReceived,
+        platformFee: remittance.platformFee,
+      });
+      return;
+    }
+    
+    const dataKey = `${remittance.id}-${remittance.fromCurrency}-${remittance.toCurrency}-${amountSent}-${amountReceived}-${txHash}`;
+    
+    
+    
+    const tx: Transaction = {
+      id: remittance.id ? remittance.id.toString() : id,
+      from: remittance.fromCurrency as Currency,
+      to: remittance.toCurrency as Currency,
+      amount: amountSent,
+      received: amountReceived,
+      fee: platformFee,
+      status: 'completed',
+      date: remittance.timestamp.toLocaleDateString(),
+      time: remittance.timestamp.toLocaleTimeString(),
+      hash: txHash,
+      recipient: remittance.recipient,
+    };
+    
+    
 
+    if (processedRef.current !== dataKey) {
       processedRef.current = dataKey;
       onTransactionReady(id, tx);
-    } else if (!isLoading && !remittance && processedRef.current !== 'null') {
-      processedRef.current = 'null';
-      onTransactionReady(id, null);
     }
   }, [remittanceId, isLoading, id, onTransactionReady, remittance]);
 
@@ -93,20 +111,33 @@ function RemittanceItem({
 }
 
 export default function HistoryPage() {
-  const { address } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const { isMiniApp } = useFarcasterMiniApp();
   const [filter, setFilter] = useState('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [failedTransactions, setFailedTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [isWaitingForConnection, setIsWaitingForConnection] = useState(true);
+  const isConnecting = status === 'connecting';
+  const isAddressReady = isConnected && !!address;
+  
+  // Only wait for connection if we're actually connecting AND not already connected
+  // Don't show "Connecting wallet..." if wallet is already connected
+  const [isWaitingForConnection, setIsWaitingForConnection] = useState(
+    isConnecting && !isAddressReady
+  );
 
   const { remittanceIds, isLoading: isLoadingIds } =
-    useUserRemittances(address);
+    useUserRemittances(isAddressReady ? address : undefined);
+
+  const totalExpectedTransactions = useMemo(() => {
+    return remittanceIds
+      .filter((item) => item && item.id && typeof item.id === 'bigint').length;
+  }, [remittanceIds]);
 
   useEffect(() => {
-    if (address) {
+    if (isAddressReady && address) {
+      // Wallet is connected, stop waiting immediately
       setIsWaitingForConnection(false);
       const failed = getFailedTransactions(address);
       const failedAsTransactions: Transaction[] = failed.map(failedTx => ({
@@ -124,10 +155,14 @@ export default function HistoryPage() {
         errorReason: failedTx.errorReason,
       }));
       setFailedTransactions(failedAsTransactions);
-    } else if (!isMiniApp) {
-      setIsWaitingForConnection(false);
+    } else {
+ 
+      setIsWaitingForConnection(isConnecting && !isAddressReady);
+      if (!isConnecting) {
+        setFailedTransactions([]);
+      }
     }
-  }, [address, isMiniApp]);
+  }, [isAddressReady, address, isConnecting, isMiniApp]);
 
   const handleTransactionReady = useCallback(
     (id: string, transaction: Transaction | null) => {
@@ -166,8 +201,20 @@ export default function HistoryPage() {
     setSelectedTransaction(transaction);
   };
 
+  const hasTransactionsInFlight =
+    isAddressReady &&
+    totalExpectedTransactions > 0 &&
+    transactions.length < totalExpectedTransactions;
+  const isHydrating =
+    isWaitingForConnection || isLoadingIds || hasTransactionsInFlight;
+  const showNoTransactionsState =
+    !isHydrating && isAddressReady && filteredTransactions.length === 0;
+  const showConnectWalletState =
+    !isHydrating && !isAddressReady && !isMiniApp;
+
   const getCurrencyFlag = (currency: Currency) => {
-    return CURRENCY_INFO[currency]?.flag || '🌍';
+    const currencyOption = CURRENCIES.find(c => c.code === currency);
+    return currencyOption?.countryFlag || '/US.svg';
   };
 
   const getCurrencySymbol = (currency: Currency) => {
@@ -228,23 +275,19 @@ export default function HistoryPage() {
         <main className="px-4 py-4">
           <div className="max-w-md mx-auto">
             <div className="space-y-0">
-              {(isWaitingForConnection || isLoadingIds) && (
+              {isHydrating && (
                 <div className="text-center py-16">
                   <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
                   <p className="text-gray-700 text-base md:text-lg font-medium">
-                    {isWaitingForConnection
-                      ? 'Connecting wallet...'
-                      : 'Loading transactions...'}
+                    Fetching your transaction history...
                   </p>
                   <p className="text-gray-500 text-sm mt-2">
-                    {isWaitingForConnection
-                      ? 'Please wait while we connect to your wallet'
-                      : 'Fetching your transfer history'}
+                    Hang tight while we load your transfers.
                   </p>
                 </div>
               )}
 
-              {!isWaitingForConnection && !isLoadingIds && address && filteredTransactions.length === 0 && (
+              {showNoTransactionsState && (
                 <div className="text-center py-12">
                   <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 border border-gray-200 shadow-sm">
                     <DocumentTextIcon className="w-10 h-10 text-gray-400" />
@@ -258,7 +301,7 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {!isWaitingForConnection && !isLoadingIds && !address && !isMiniApp && (
+              {showConnectWalletState && (
                 <div className="text-center py-12">
                   <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 border border-gray-200 shadow-sm">
                     <WalletIcon className="w-10 h-10 text-gray-400" />
@@ -272,7 +315,7 @@ export default function HistoryPage() {
                 </div>
               )}
 
-              {!isWaitingForConnection && !isLoadingIds && filteredTransactions.map((transaction) => (
+              {!isHydrating && isAddressReady && filteredTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
                     className="bg-white border-b border-gray-200 py-4 px-4 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -281,9 +324,23 @@ export default function HistoryPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
-                          <div className="text-2xl">{getCurrencyFlag(transaction.from)}</div>
+                          <div className="w-8 h-8 relative">
+                            <Image
+                              src={getCurrencyFlag(transaction.from)}
+                              alt={`${transaction.from} flag`}
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
                           <ArrowRightIcon className="w-4 h-4 text-gray-400" />
-                          <div className="text-2xl">{getCurrencyFlag(transaction.to)}</div>
+                          <div className="w-8 h-8 relative">
+                            <Image
+                              src={getCurrencyFlag(transaction.to)}
+                              alt={`${transaction.to} flag`}
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
@@ -340,7 +397,7 @@ export default function HistoryPage() {
                           </div>
                         ) : (
                           <div className="text-sm text-blue-600 font-medium">
-                            They receive{' '}
+                            They received{' '}
                             <span className="font-bold text-black">
                               {getCurrencySymbol(transaction.to)}
                               {transaction.received?.toFixed(2) || '0.00'}

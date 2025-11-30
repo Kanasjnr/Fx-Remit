@@ -3,7 +3,6 @@ import type { Currency } from './contracts';
 export interface CurrencyOption {
     code: Currency;
     name: string;
-    flag: string;
     symbol: string;
     tokenLogo: string;
     countryFlag: string;
@@ -13,7 +12,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cUSD',
         name: 'US Dollar',
-        flag: '🇺🇸',
         symbol: '$',
         tokenLogo: '/cUSD .svg',
         countryFlag: '/US.svg',
@@ -21,7 +19,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cEUR',
         name: 'Euro',
-        flag: '🇪🇺',
         symbol: '€',
         tokenLogo: '/cEUR.svg',
         countryFlag: '/EUR.svg',
@@ -29,7 +26,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cGBP',
         name: 'British Pound',
-        flag: '🇬🇧',
         symbol: '£',
         tokenLogo: '/cGBP.svg',
         countryFlag: '/GB .svg',
@@ -37,7 +33,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cCAD',
         name: 'Canadian Dollar',
-        flag: '🇨🇦',
         symbol: 'C$',
         tokenLogo: '/cCAD.svg',
         countryFlag: '/CA .svg',
@@ -45,7 +40,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cAUD',
         name: 'Australian Dollar',
-        flag: '🇦🇺',
         symbol: 'A$',
         tokenLogo: '/cAUD.svg',
         countryFlag: '/AU.svg',
@@ -53,7 +47,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cCHF',
         name: 'Swiss Franc',
-        flag: '🇨🇭',
         symbol: 'CHF',
         tokenLogo: '/cCHF.svg',
         countryFlag: '/CH.svg',
@@ -61,7 +54,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cJPY',
         name: 'Japanese Yen',
-        flag: '🇯🇵',
         symbol: '¥',
         tokenLogo: '/cJPY.svg',
         countryFlag: '/JP.svg',
@@ -69,7 +61,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cREAL',
         name: 'Brazilian Real',
-        flag: '🇧🇷',
         symbol: 'R$',
         tokenLogo: '/cREAL.svg',
         countryFlag: '/BR.svg',
@@ -77,7 +68,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cCOP',
         name: 'Colombian Peso',
-        flag: '🇨🇴',
         symbol: 'COP$',
         tokenLogo: '/cCOP.svg',
         countryFlag: '/CO.svg',
@@ -85,7 +75,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cKES',
         name: 'Kenyan Shilling',
-        flag: '🇰🇪',
         symbol: 'KSh',
         tokenLogo: '/cKES.svg',
         countryFlag: '/KE.svg',
@@ -93,7 +82,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cNGN',
         name: 'Nigerian Naira',
-        flag: '🇳🇬',
         symbol: '₦',
         tokenLogo: '/cNGN.svg',
         countryFlag: '/NG.svg',
@@ -101,7 +89,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cZAR',
         name: 'South African Rand',
-        flag: '🇿🇦',
         symbol: 'R',
         tokenLogo: '/cZAR.svg',
         countryFlag: '/SA.svg',
@@ -109,7 +96,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'cGHS',
         name: 'Ghanaian Cedi',
-        flag: '🇬🇭',
         symbol: '₵',
         tokenLogo: '/cGHS.svg',
         countryFlag: '/GH .svg',
@@ -117,7 +103,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'eXOF',
         name: 'CFA Franc',
-        flag: '🌍',
         symbol: 'XOF',
         tokenLogo: '/eXOF.svg',
         countryFlag: '/CF.svg',
@@ -125,7 +110,6 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'PUSO',
         name: 'Philippine Peso',
-        flag: '🇵🇭',
         symbol: '₱',
         tokenLogo: '/PUSO.svg',
         countryFlag: '/PH.svg',
@@ -133,25 +117,22 @@ export const CURRENCIES: CurrencyOption[] = [
     {
         code: 'USDT',
         name: 'Tether USD',
-        flag: '💵',
         symbol: 'USD₮',
-        tokenLogo: '/cUSD .svg',
+        tokenLogo: '/USDT.svg',
         countryFlag: '/US.svg',
     },
     {
         code: 'USDC',
         name: 'USD Coin',
-        flag: '💵',
         symbol: 'USDC',
-        tokenLogo: '/cUSD .svg',
+        tokenLogo: '/USDC.svg',
         countryFlag: '/US.svg',
     },
     {
         code: 'CELO',
         name: 'Celo',
-        flag: '🟢',
         symbol: 'CELO',
-        tokenLogo: '/cUSD .svg',
+        tokenLogo: '/CELO.svg',
         countryFlag: '/US.svg',
     },
 ] as const;

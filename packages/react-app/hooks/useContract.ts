@@ -132,7 +132,6 @@ export function useUserRemittances(userAddress?: string) {
     },
   });
 
-  // Merge results with version tag
   const mergedRemittanceIds = useMemo(() => {
     const v1Ids = (remittanceIdsV1 as bigint[] || [])
       .filter(id => id !== undefined && id !== null)
@@ -232,7 +231,6 @@ export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' 
         let txHashFound = '';
         
         if (version === 'v2') {
-          // V2: Use TokensTransferred event (indexed by remittanceId)
           const tokensTransferredAbi = parseAbiItem(
             'event TokensTransferred(uint256 indexed remittanceId, address indexed token, address indexed to, uint256 amount)'
           );
@@ -251,7 +249,6 @@ export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' 
             txHashFound = logs[0].transactionHash;
           }
         } else {
-          // V1: Use RemittanceLogged event (indexed by remittanceId)
           const remittanceLoggedAbi = parseAbiItem(
             'event RemittanceLogged(uint256 indexed remittanceId, address indexed sender, address indexed recipient, string fromCurrency, string toCurrency, uint256 amountSent, uint256 amountReceived, string corridor)'
           );
@@ -275,8 +272,6 @@ export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' 
           setTxHash(txHashFound);
         }
       } catch (err) {
-        console.error(`Failed to fetch transaction hash for ${version}:`, err);
-        // Silently fail - transaction hash is optional
       }
     }
 
@@ -302,22 +297,36 @@ export function useRemittanceDetails(remittanceId: bigint, version: 'v1' | 'v2' 
      ? contractMentoTxHash 
      : '');
 
-  const remittance = remittanceData ? {
-    id: (remittanceData as any).id,
-    sender: (remittanceData as any).sender,
-    recipient: (remittanceData as any).recipient,
-    fromToken: (remittanceData as any).fromToken,
-    toToken: (remittanceData as any).toToken,
-    fromCurrency: (remittanceData as any).fromCurrency,
-    toCurrency: (remittanceData as any).toCurrency,
-    amountSent: safeFormatAmount((remittanceData as any).amountSent, fromDecimals as number | bigint | undefined, 18),
-    amountReceived: safeFormatAmount((remittanceData as any).amountReceived, toDecimals as number | bigint | undefined, 18),
-    exchangeRate: formatEther((remittanceData as any).exchangeRate || BigInt(0)), // Exchange rate is always 18 decimals
-    platformFee: safeFormatAmount((remittanceData as any).platformFee, fromDecimals as number | bigint | undefined, 18), // Fee is in fromToken
-    timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
-    mentoTxHash: finalTxHash,
-    corridor: (remittanceData as any).corridor,
-  } : null;
+  const remittance = useMemo(() => {
+    if (!remittanceData) return null;
+    
+    const fromTokenAddr = (remittanceData as any).fromToken;
+    const toTokenAddr = (remittanceData as any).toToken;
+    const isFromNative = !fromTokenAddr || fromTokenAddr === '0x0000000000000000000000000000000000000000';
+    const isToNative = !toTokenAddr || toTokenAddr === '0x0000000000000000000000000000000000000000';
+    
+    if (!isFromNative && fromDecimals === undefined) return null;
+    if (!isToNative && toDecimals === undefined) return null;
+    
+    
+    
+    return {
+      id: (remittanceData as any).id,
+      sender: (remittanceData as any).sender,
+      recipient: (remittanceData as any).recipient,
+      fromToken: fromTokenAddr,
+      toToken: toTokenAddr,
+      fromCurrency: (remittanceData as any).fromCurrency,
+      toCurrency: (remittanceData as any).toCurrency,
+      amountSent: safeFormatAmount((remittanceData as any).amountSent, isFromNative ? 18 : (fromDecimals as number | bigint | undefined), 18),
+      amountReceived: safeFormatAmount((remittanceData as any).amountReceived, isToNative ? 18 : (toDecimals as number | bigint | undefined), 18),
+      exchangeRate: formatEther((remittanceData as any).exchangeRate || BigInt(0)), // Exchange rate is always 18 decimals
+      platformFee: safeFormatAmount((remittanceData as any).platformFee, isToNative ? 18 : (toDecimals as number | bigint | undefined), 18), // Fee is 1.5% of amount received (in toToken)
+      timestamp: new Date(Number((remittanceData as any).timestamp) * 1000),
+      mentoTxHash: finalTxHash,
+      corridor: (remittanceData as any).corridor,
+    };
+  }, [remittanceData, fromDecimals, toDecimals, finalTxHash]);
 
   return {
     remittance: remittance,
