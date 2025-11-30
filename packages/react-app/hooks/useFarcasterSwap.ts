@@ -27,8 +27,8 @@ import {
   getPermit2Domain,
   createPermit2Message,
   checkPermit2Approval,
-  approvePermit2,
   getPermit2Nonce,
+  PERMIT2_ADDRESS,
 } from '../lib/permit2';
 
 const CELO_CHAIN_ID = 42220;
@@ -42,6 +42,19 @@ const DECIMALS_ABI = [
     name: 'decimals',
     outputs: [{ name: '', type: 'uint8' }],
     stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+
+const ERC20_APPROVE_ABI = [
+  {
+    inputs: [
+      { internalType: 'address', name: 'spender', type: 'address' },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
 ] as const;
@@ -113,21 +126,6 @@ async function preparePermit2ForFarcaster(
   chainId: number,
   walletClient: any
 ) {
-  const permit2Allowance = await checkPermit2Approval(
-    provider,
-    fromTokenAddress,
-    signerAddress,
-    ethers
-  );
-
-  if (permit2Allowance < BigInt(amountInWei.toString())) {
-    // Note: For Farcaster, Permit2 approval should be done separately
-    // This is a one-time setup per token
-    throw new Error(
-      'Permit2 approval required. Please approve Permit2 for this token first.'
-    );
-  }
-
   const deadline = Math.floor(Date.now() / 1000) + PERMIT_DEADLINE_HOURS * 3600;
   const nonce = await getPermit2Nonce(provider, signerAddress);
   const permit2Message = createPermit2Message(
@@ -275,6 +273,31 @@ export function useFarcasterSwap() {
       throw new Error('FXRemitV2 address not configured');
     }
 
+    const permit2Allowance = await checkPermit2Approval(
+      provider,
+      fromTokenAddress,
+      signerAddress,
+      ethers
+    );
+
+    const batchedCalls: { to: `0x${string}`; data: `0x${string}` }[] = [];
+
+    if (permit2Allowance < BigInt(amountInWei.toString())) {
+      const approvalData = encodeFunctionData({
+        abi: ERC20_APPROVE_ABI as any,
+        functionName: 'approve',
+        args: [
+          PERMIT2_ADDRESS as `0x${string}`,
+          ethers.constants.MaxUint256,
+        ],
+      });
+
+      batchedCalls.push({
+        to: fromTokenAddress as `0x${string}`,
+        data: approvalData as `0x${string}`,
+      });
+    }
+
     // Prepare Permit2 signature
     const { permitSignature, nonce, deadline } = await preparePermit2ForFarcaster(
       provider,
@@ -331,15 +354,13 @@ export function useFarcasterSwap() {
       });
 
       const dataWithReferral = addReferralTagToTransaction(rawSwapData);
-      const calls = [
-        {
-          to: fxRemitV2Address as `0x${string}`,
-          data: dataWithReferral as `0x${string}`,
-        },
-      ];
+      batchedCalls.push({
+        to: fxRemitV2Address as `0x${string}`,
+        data: dataWithReferral as `0x${string}`,
+      });
 
       const callsResult = await sendCallsAsync({
-        calls,
+        calls: batchedCalls,
         chainId: celoChainId,
       });
       const callsId =
@@ -409,20 +430,18 @@ export function useFarcasterSwap() {
       });
 
       const dataWithReferral = addReferralTagToTransaction(rawSwapData);
-      const calls = [
-        {
-          to: fxRemitV2Address as `0x${string}`,
-          data: dataWithReferral as `0x${string}`,
-        },
-      ];
+      batchedCalls.push({
+        to: fxRemitV2Address as `0x${string}`,
+        data: dataWithReferral as `0x${string}`,
+      });
 
       console.log('Submitting Farcaster batch transaction (multi-hop):', {
         chainId: celoChainId,
-        callsCount: calls.length,
+        callsCount: batchedCalls.length,
       });
 
       const callsResult = await sendCallsAsync({
-        calls,
+        calls: batchedCalls,
         chainId: celoChainId,
       });
       const callsId =
@@ -430,7 +449,7 @@ export function useFarcasterSwap() {
 
       console.log('Farcaster multi-hop batch submitted successfully:', {
         callsId,
-        txCount: calls.length,
+        txCount: batchedCalls.length,
       });
 
       if (!callsId) {
