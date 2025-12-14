@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface FarcasterUser {
   fid: number;
@@ -21,7 +21,7 @@ export function useFarcasterResolver(): UseFarcasterResolverResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const resolveUsername = async (username: string): Promise<string | null> => {
+  const resolveUsername = useCallback(async (username: string) => {
     if (!username.startsWith('@')) {
       return username;
     }
@@ -41,10 +41,16 @@ export function useFarcasterResolver(): UseFarcasterResolverResult {
       );
 
       if (!response.ok) {
-        if (response.status === 402) {
-          throw new Error('API access requires payment');
+        if (response.status === 404) {
+          throw new Error(`Username ${username} not found. Check the spelling or use a wallet address`);
         }
-        throw new Error(`Failed to resolve username: ${response.statusText}`);
+        if (response.status === 402) {
+          throw new Error('Username lookup service temporarily unavailable');
+        }
+        if (response.status >= 500) {
+          throw new Error('Service temporarily down. Please try again in a moment');
+        }
+        throw new Error('Unable to resolve username. Please try again');
       }
 
       const data = await response.json();
@@ -59,9 +65,11 @@ export function useFarcasterResolver(): UseFarcasterResolverResult {
         if (user.custody_address) {
           return user.custody_address;
         }
+        
+        throw new Error(`${username} has no verified wallet address. Ask them to connect one`);
       }
 
-      return null;
+      throw new Error('Unable to find wallet address for this username');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to resolve username';
       setError(errorMessage);
@@ -69,7 +77,7 @@ export function useFarcasterResolver(): UseFarcasterResolverResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     resolveUsername,

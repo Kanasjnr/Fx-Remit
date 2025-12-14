@@ -200,6 +200,21 @@ Try it: https://farcaster.xyz/miniapps/4dRh4D2PiPCK/fx-remit`;
 function TxStatusOverlay() {
   const { state, clear } = useTransactionStatus();
   const { isMiniApp } = useFarcasterMiniApp();
+  const [elapsedTime, setElapsedTime] = React.useState(0);
+
+  React.useEffect(() => {
+    if (state.status !== "processing" || !state.startedAt) {
+      setElapsedTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - state.startedAt!) / 1000);
+      setElapsedTime(elapsed);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state.status, state.startedAt]);
 
   if (state.status === "idle") return null;
 
@@ -209,6 +224,14 @@ function TxStatusOverlay() {
 
   const bg = isSuccess ? "bg-blue-600" : isFailure ? "bg-red-600" : "bg-blue-600";
   const title = state.title ?? (isProcessing ? "Processing…" : isSuccess ? "Success" : "Failed");
+  
+  const getProcessingMessage = () => {
+    if (!isProcessing) return state.message;
+    if (elapsedTime >= 30) {
+      return "This is taking longer than usual. The network might be busy. Please wait...";
+    }
+    return state.message ?? "This may take 15-30 seconds.";
+  };
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-white">
@@ -233,7 +256,14 @@ function TxStatusOverlay() {
         {/* Text */}
         <h2 className="text-4xl font-extrabold text-center text-gray-900">{title}</h2>
         {isProcessing && (
-          <p className="mt-4 text-center text-gray-600">{state.message}</p>
+          <>
+            <p className="mt-4 text-center text-gray-600">{getProcessingMessage()}</p>
+            {elapsedTime > 0 && (
+              <p className="mt-2 text-center text-sm text-gray-400">
+                {elapsedTime}s elapsed
+              </p>
+            )}
+          </>
         )}
         {isSuccess && (
           <p className="mt-4 text-center text-gray-600">{state.message}</p>
@@ -278,18 +308,42 @@ function TxStatusOverlay() {
             </div>
           ) : (
             <div className="space-y-4">
-              <button
-                className="w-full rounded-2xl bg-red-600 hover:bg-red-700 py-4 text-white font-semibold"
-                onClick={() => state.callbacks?.onRetry?.()}
-              >
-                Try again
-              </button>
-              <button
-                className="w-full rounded-2xl bg-gray-100 hover:bg-gray-200 py-4 text-gray-800 font-semibold"
-                onClick={() => clear()}
-              >
-                Close
-              </button>
+              {state.title?.includes('Verify') || state.errorReason?.includes('Celoscan') ? (
+                <>
+                  <a
+                    href="https://celoscan.io/address/0xD8726F627b5A14c17Cb848EE3c564283CBA8e057#internaltx"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 py-4 text-white font-semibold flex items-center justify-center space-x-2"
+                  >
+                    <span>Check on Celoscan</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <button
+                    className="w-full rounded-2xl bg-gray-100 hover:bg-gray-200 py-4 text-gray-800 font-semibold"
+                    onClick={() => clear()}
+                  >
+                    Close
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="w-full rounded-2xl bg-red-600 hover:bg-red-700 py-4 text-white font-semibold"
+                    onClick={() => state.callbacks?.onRetry?.()}
+                  >
+                    Try again
+                  </button>
+                  <button
+                    className="w-full rounded-2xl bg-gray-100 hover:bg-gray-200 py-4 text-gray-800 font-semibold"
+                    onClick={() => clear()}
+                  >
+                    Close
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

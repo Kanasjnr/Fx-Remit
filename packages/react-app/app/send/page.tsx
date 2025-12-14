@@ -77,7 +77,7 @@ export default function SendPage() {
   const isWalletReady = swapHook.isWalletReady;
   const walletStatus = swapHook.walletStatus;
   
-  const { resolveUsername, isLoading: isResolvingUsername } =
+  const { resolveUsername, isLoading: isResolvingUsername, error: resolverError } =
     useFarcasterResolver();
 
   const fromCurrencyInfo = currencies.find((c) => c.code === fromCurrency);
@@ -118,21 +118,38 @@ export default function SendPage() {
     setShowResolveButton(value.startsWith('@') && value.length > 1);
   };
 
+  const handleRecipientBlur = useCallback(() => {
+    if (recipient.startsWith('@') && recipient.length > 1) {
+      handleResolveUsername();
+    }
+  }, [recipient, handleResolveUsername]);
+
+  const handleRecipientKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && recipient.startsWith('@') && recipient.length > 1) {
+      e.preventDefault();
+      handleResolveUsername();
+    }
+  }, [recipient, handleResolveUsername]);
+
   useEffect(() => {
     if (callsStatus && pendingCallsId) {
       const hasReceipts = callsStatus.receipts && callsStatus.receipts.length > 0;
       const allSuccess = hasReceipts && callsStatus.receipts?.every((r) => r.status === 'success');
 
       if (hasReceipts && allSuccess) {
+        const txHash = callsStatus.receipts?.[0]?.transactionHash;
+        setPendingCallsId(undefined);
+        setIsProcessing(false);
+        
         markSuccess({
           title: 'Success',
           message: 'Your transfer completed successfully!',
-          txHash: callsStatus.receipts?.[0]?.transactionHash,
+          txHash,
         });
-        setPendingCallsId(undefined);
+        
         setAmount('');
         setRecipient('');
-        setIsProcessing(false);
+        
         setTimeout(() => {
           triggerDataRefresh();
         }, 2000);
@@ -148,21 +165,22 @@ export default function SendPage() {
   }, [callsStatus, pendingCallsId, markSuccess, markFailure, isMiniApp]);
 
   useEffect(() => {
-    if (pendingCallsId) {
-      const fallbackTimer = setTimeout(() => {
-        markFailure({
-          reason: isMiniApp 
-            ? `Transfer status unclear. Please check Celoscan to verify if your transfer was successful.`
-            : `Transaction status unclear. Please check Celoscan to verify if your transaction was successful.`,
-          title: 'Please Verify on Celoscan',
-        });
-        setPendingCallsId(undefined);
-        setIsProcessing(false);
-      }, 30000);
+    if (!pendingCallsId) return;
+    
+    const fallbackTimer = setTimeout(() => {
+      console.warn('Transaction status check timed out:', pendingCallsId);
+      markFailure({
+        reason: isMiniApp 
+          ? `Transfer submitted but status is unclear. Your funds may have already been transferred. Check Celoscan before retrying to avoid sending duplicate transfers.`
+          : `Transaction submitted but status is unclear. Check Celoscan before retrying to avoid duplicate transactions.`,
+        title: 'Verify on Celoscan First',
+      });
+      setPendingCallsId(undefined);
+      setIsProcessing(false);
+    }, 60000);
 
-      return () => clearTimeout(fallbackTimer);
-    }
-  }, [pendingCallsId, markFailure, isMiniApp]);
+    return () => clearTimeout(fallbackTimer);
+  }, [pendingCallsId, markFailure, isMiniApp, setPendingCallsId, setIsProcessing]);
 
   const handleSend = async () => {
     if (!walletState.canSend || !amount || !recipient || !quote) {
@@ -211,7 +229,6 @@ export default function SendPage() {
       setAmount('');
       setRecipient('');
       setIsProcessing(false);
-      // Trigger refresh after a short delay to ensure transaction is indexed
       setTimeout(() => {
         triggerDataRefresh();
       }, 2000);
@@ -375,6 +392,8 @@ export default function SendPage() {
                     type="text"
                     value={recipient}
                     onChange={(e) => handleRecipientChange(e.target.value)}
+                    onBlur={handleRecipientBlur}
+                    onKeyDown={handleRecipientKeyDown}
                     placeholder="@username or 0x..."
                     className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
                       showResolveButton ? 'pr-24' : 'pr-4'
@@ -395,10 +414,16 @@ export default function SendPage() {
                     </div>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Enter a wallet address (0x...) or Farcaster username
-                  (@username)
-                </p>
+                {resolverError ? (
+                  <p className="mt-2 text-xs text-red-600">
+                    {resolverError}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Enter a wallet address (0x...) or Farcaster username
+                    (@username)
+                  </p>
+                )}
               </div>
             </div>
           </div>
