@@ -48,14 +48,22 @@ A world where sending money across borders is as easy as sending a text message,
 ## **Key Features**
 
 ### **Multi-Currency Support**
-- **15 supported currencies** including USD, EUR, KES, NGN, GHS, and more
+- **18 supported currencies** including USD, EUR, KES, NGN, GHS, USDT, USDC, CELO, and more
 - **Real-time exchange rates** powered by Mento Protocol
 - **Automatic currency conversion** with competitive rates
+
+### **Farcaster Mini App Integration**
+- **Native Farcaster support** - Works seamlessly in Warpcast
+- **Username resolution** - Send to @username instead of addresses
+- **Batch transactions** - Approve + swap in one signature (EIP-5792)
+- **Auto-connect** - No manual wallet connection needed
+- **Share on Farcaster** - Built-in social sharing
 
 ### **Lightning Fast Transfers**
 - **Instant transactions** on the Celo blockchain
 - **Sub-second confirmation times** with Celo's 5-second block time
 - **24/7 availability** - no banking hours limitations
+- **Smart status tracking** - Progressive feedback on transaction status
 
 ### **Ultra-Low Fees**
 - **1.5% platform fee** - significantly lower than traditional services
@@ -63,6 +71,7 @@ A world where sending money across borders is as easy as sending a text message,
 - **Gas fees under $0.01** thanks to Celo's efficient network
 
 ### **Enterprise-Grade Security**
+- **V2 contract with Permit2** - Gas-efficient token approvals
 - **Audited smart contracts** with multiple security layers
 - **Non-custodial** - you control your funds
 - **Pausable contracts** for emergency situations
@@ -73,42 +82,52 @@ A world where sending money across borders is as easy as sending a text message,
 - **Historical transaction data**
 - **Corridor volume analytics**
 - **Platform-wide statistics**
+- **Divvi referral tracking** - Earn rewards for referrals
 
 ### **Modern User Experience**
 - **Responsive web interface** works on all devices
+- **Multiple platforms** - Web, Farcaster Mini App, MiniPay
 - **Wallet integration** with popular crypto wallets
 - **Real-time balance updates**
 - **Transaction history** with detailed records
+- **Progressive UX** - Clear status updates and smart timeout handling
 
 ---
 
 
 ## **Supported Currencies**
 
-FX-Remit supports **15 currencies** across major economic regions:
+FX-Remit supports **18 currencies** across major economic regions:
 
 ### **Major Global Currencies**
-| Currency | Symbol | Flag | Full Name |
-|----------|---------|------|-----------|
-| cUSD | $ | 🇺🇸 | US Dollar |
-| cEUR | € | 🇪🇺 | Euro |
-| cGBP | £ | 🇬🇧 | British Pound |
-| cCAD | C$ | 🇨🇦 | Canadian Dollar |
-| cAUD | A$ | 🇦🇺 | Australian Dollar |
-| cCHF | CHF | 🇨🇭 | Swiss Franc |
-| cJPY | ¥ | 🇯🇵 | Japanese Yen |
+| Currency | Symbol | Full Name |
+|----------|---------|-----------|
+| cUSD | $ | US Dollar |
+| cEUR | € | Euro |
+| cGBP | £ | British Pound |
+| cCAD | C$ | Canadian Dollar |
+| cAUD | A$ | Australian Dollar |
+| cCHF | CHF | Swiss Franc |
+| cJPY | ¥ | Japanese Yen |
 
 ### **Emerging Markets**
-| Currency | Symbol | Flag | Full Name |
-|----------|---------|------|-----------|
-| cREAL | R$ | 🇧🇷 | Brazilian Real |
-| cCOP | COP$ | 🇨🇴 | Colombian Peso |
-| cKES | KSh | 🇰🇪 | Kenyan Shilling |
-| cNGN | ₦ | 🇳🇬 | Nigerian Naira |
-| cZAR | R | 🇿🇦 | South African Rand |
-| cGHS | ₵ | 🇬🇭 | Ghanaian Cedi |
-| eXOF | XOF | 🌍 | CFA Franc |
-| PUSO | ₱ | 🇵🇭 | Philippine Peso |
+| Currency | Symbol | Full Name |
+|----------|---------|-----------|
+| cREAL | R$ | Brazilian Real |
+| cCOP | COP$ | Colombian Peso |
+| cKES | KSh | Kenyan Shilling |
+| cNGN | ₦ | Nigerian Naira |
+| cZAR | R | South African Rand |
+| cGHS | ₵ | Ghanaian Cedi |
+| eXOF | XOF | CFA Franc |
+| PUSO | ₱ | Philippine Peso |
+
+### **Stablecoins & Native Token**
+| Currency | Symbol | Full Name |
+|----------|---------|-----------|
+| USDT | USD₮ | Tether USD |
+| USDC | USDC | USD Coin |
+| CELO | CELO | Celo Native Token |
 
 ### **Popular Corridors**
 - **USD ↔ KES** - US to Kenya
@@ -126,36 +145,58 @@ FX-Remit follows a **modern decentralized architecture** with clear separation o
 ### **System Overview**
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │  Smart Contract │    │ Mento Protocol  │
-│   (Next.js)     │◄──►│   (FXRemit.sol) │◄──►│   (DEX/AMM)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│  Farcaster Mini  │    │   Web Frontend   │    │    MiniPay       │
+│      App         │    │    (Next.js)     │    │     (Celo)       │
+└────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌────────────▼────────────┐
+                    │  FXRemitV2 Contract     │
+                    │  (Permit2 + Mento)      │
+                    └────────────┬────────────┘
+                                 │
+         ┌───────────────────────┼───────────────────────┐
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│     User        │    │   Analytics     │    │  Liquidity      │
-│   Interface     │    │   & History     │    │   Providers     │
+│ Mento Protocol  │    │  Neynar API     │    │ Divvi Referrals │
+│   (DEX/AMM)     │    │  (@username)    │    │   (Rewards)     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ### **Core Components**
 
-#### **1. Smart Contract Layer (`FXRemit.sol`)**
+#### **1. Smart Contract Layer (`FXRemitV2.sol`)**
+- **Permit2 Integration**: Gas-efficient token approvals
+- **Batch Transactions**: Single signature for approve + swap (EIP-5792)
 - **Transaction Logging**: Records all remittance transactions
 - **Analytics Engine**: Tracks volume, fees, and corridor statistics  
 - **Security Framework**: Reentrancy protection, pausable, access control
 - **User Management**: Individual transaction history and statistics
 
 #### **2. Frontend Application (`Next.js`)**
+- **Multi-Platform**: Web, Farcaster Mini App, MiniPay support
 - **User Interface**: Modern, responsive React application
 - **Wallet Integration**: Seamless connection with crypto wallets
 - **Real-time Updates**: Live balance and transaction status
 - **State Management**: Efficient data flow with React Query
+- **Progressive UX**: Smart timeout handling and status updates
 
-#### **3. Blockchain Integration**
+#### **3. Farcaster Mini App**
+- **Native Integration**: Runs inside Warpcast app
+- **Auto-Connect**: Automatic wallet connection
+- **Username Resolution**: Send to @username via Neynar API
+- **Social Features**: Share transactions on Farcaster
+- **Optimized UX**: Tailored for mobile experience
+
+#### **4. Blockchain Integration**
 - **Celo Network**: Fast, low-cost transactions
 - **Mento Protocol**: Decentralized exchange for currency swaps
+- **Permit2**: Efficient token approval system
 - **Web3 Infrastructure**: Wagmi, Viem, RainbowKit integration
+- **Divvi Protocol**: Referral reward system
 
 ---
 
@@ -180,6 +221,10 @@ FX-Remit follows a **modern decentralized architecture** with clear separation o
 - **[Viem](https://viem.sh/)** - TypeScript interface for Ethereum
 - **[RainbowKit](https://www.rainbowkit.com/)** - Wallet connection library
 - **[TanStack Query](https://tanstack.com/query)** - Data fetching and caching
+- **[Farcaster Mini App SDK](https://docs.farcaster.xyz/developers/frames/v2/spec)** - Farcaster integration
+- **[Divvi Referral SDK](https://www.divvi.xyz/)** - Referral reward system
+- **[Permit2](https://github.com/Uniswap/permit2)** - Efficient token approvals
+- **[Neynar API](https://neynar.com/)** - Farcaster username resolution
 
 ### **Development Tools**
 - **[pnpm](https://pnpm.io/)** - Fast, disk space efficient package manager
@@ -326,9 +371,15 @@ FX-Remit uses environment variables for configuration. You'll need to set up var
 # WalletConnect Configuration
 NEXT_PUBLIC_WC_PROJECT_ID=your_walletconnect_project_id
 
-# Smart Contract Addresses
-NEXT_PUBLIC_FXREMIT_CONTRACT_ALFAJORES=0x...
-NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET=0x...
+# Smart Contract Addresses - V2
+NEXT_PUBLIC_FXREMIT_V2_CONTRACT_ALFAJORES=0x...
+NEXT_PUBLIC_FXREMIT_V2_CONTRACT_MAINNET=0xD8726F627b5A14c17Cb848EE3c564283CBA8e057
+
+# Farcaster Integration
+NEXT_PUBLIC_NEYNAR_API_KEY=your_neynar_api_key
+
+# Divvi Referral System
+NEXT_PUBLIC_DIVVI_CONSUMER_ADDRESS=your_divvi_address
 
 # Mento Token Addresses - Alfajores Testnet
 NEXT_PUBLIC_CUSD_ALFAJORES=0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1
@@ -374,6 +425,16 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 2. Create an account and generate an API key
 3. Add it to your `.env` file for contract verification
 
+#### **4. Neynar API Key (For Farcaster)**
+1. Visit [Neynar](https://neynar.com/)
+2. Create an account and generate an API key
+3. Add it to your `.env` file to enable @username resolution
+
+#### **5. Divvi Setup (Optional - For Referrals)**
+1. Register at [Divvi](https://www.divvi.xyz/)
+2. Get your consumer address
+3. Add it to your `.env` file to enable referral tracking
+
 ---
 
 ## **Smart Contract Deployment**
@@ -381,9 +442,14 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 ### **Deployed Contracts**
 
 #### **Celo Mainnet**
-- **FXRemit Contract**: [`0x1245211aBAe5013e7f5523013b78F50AB44C2c57`](https://celoscan.io/address/0x1245211aBAe5013e7f5523013b78F50AB44C2c57)
+- **FXRemit V2 Contract**: [`0xD8726F627b5A14c17Cb848EE3c564283CBA8e057`](https://celoscan.io/address/0xD8726F627b5A14c17Cb848EE3c564283CBA8e057)
 - **Network**: Celo Mainnet
 - **Status**: ✅ Verified and Active
+- **Features**: Permit2 integration, batch transactions, referral tracking
+
+#### **Legacy Contract**
+- **FXRemit V1**: [`0x1245211aBAe5013e7f5523013b78F50AB44C2c57`](https://celoscan.io/address/0x1245211aBAe5013e7f5523013b78F50AB44C2c57)
+- **Status**: ⚠️ Deprecated - Migrate to V2
 
 ### **Deployment Process**
 
@@ -427,9 +493,9 @@ The deployment script (`packages/hardhat/scripts/deploy.ts`) includes:
 
 ### **Contract Functions**
 
-#### **Core Functions**
-- `swapAndSend(...)` - Single-hop swap + send with deadline and provider allowlist
-- `swapAndSendPath(...)` - Two-hop swap (via intermediate) + send with deadline and provider allowlist
+#### **Core Functions (V2)**
+- `swapAndSend(...)` - Single-hop swap + send with Permit2
+- `swapAndSendPath(...)` - Two-hop swap (via intermediate) with Permit2
 - `getRemittance()` - Get details of a specific remittance
 - `getUserRemittances()` - Get all user's remittances
 - `getPlatformStats()` - Get platform-wide statistics
@@ -480,9 +546,11 @@ pnpm run react-app:start
 - Currency selection (from/to)
 - Amount input with balance display
 - Real-time exchange rate quotes
-- Recipient address input
-- Transaction execution
-- Success/error feedback
+- Recipient address or @username input
+- Auto-resolve Farcaster usernames
+- Transaction execution with batch support
+- Progressive status updates
+- Success/error feedback with share option
 
 #### **Transaction History (`/history`)**
 - User's transaction history
@@ -504,10 +572,20 @@ pnpm run react-app:start
 - `useUserRemittances()` - Get user's remittances
 - `usePlatformStats()` - Platform statistics
 
+#### **Swap Hooks**
+- `useEthersSwap()` - Web wallet swap (standard)
+- `useFarcasterSwap()` - Farcaster Mini App swap (batch)
+- `useQuote()` - Get exchange rate quote
+- `useTokenBalance()` - Get token balance
+
+#### **Farcaster Hooks (`hooks/useFarcasterX.ts`)**
+- `useFarcasterMiniApp()` - Detect Mini App environment
+- `useFarcasterResolver()` - Resolve @username to address
+- `useFarcasterSwap()` - Execute batch swap in Mini App
+
 #### **Mento Hooks (`hooks/useMento.ts`)**
 - `useTokenBalance()` - Get token balance
 - `useQuote()` - Get exchange rate quote
-- `useTokenSwap()` - Execute token swap
 - `useExchangeRate()` - Real-time exchange rates
 
 ### **UI Components**
@@ -534,9 +612,15 @@ pnpm run react-app:start
 # Required
 NEXT_PUBLIC_WC_PROJECT_ID=                    # WalletConnect Project ID
 
-# Contract Addresses
-NEXT_PUBLIC_FXREMIT_CONTRACT_ALFAJORES=       # FXRemit contract on Alfajores
-NEXT_PUBLIC_FXREMIT_CONTRACT_MAINNET=0x8f33981b04e1DF30007cf4049658360124B0aE19
+# Contract Addresses - V2
+NEXT_PUBLIC_FXREMIT_V2_CONTRACT_ALFAJORES=    # FXRemit V2 contract on Alfajores
+NEXT_PUBLIC_FXREMIT_V2_CONTRACT_MAINNET=0xD8726F627b5A14c17Cb848EE3c564283CBA8e057
+
+# Farcaster Integration
+NEXT_PUBLIC_NEYNAR_API_KEY=                   # Neynar API for @username resolution
+
+# Divvi Referral System (Optional)
+NEXT_PUBLIC_DIVVI_CONSUMER_ADDRESS=           # Your Divvi consumer address
 
 # Alfajores Testnet Token Addresses
 NEXT_PUBLIC_CUSD_ALFAJORES=0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1
@@ -601,18 +685,32 @@ CELO_ALFAJORES_URL=https://alfajores-forno.celo-testnet.org
 #### **Step 3: Enter Details**
 ```
 Amount: 100.00 cUSD
-Recipient: 0x742d35Cc6634C0532925a3b8D4c5DcfbC0e04f
+Recipient: @username or 0x742d35Cc6634C0532925a3b8D4c5DcfbC0e04f
 Exchange Rate: 1 cUSD = 132.45 cKES
 You Send: 100.00 cUSD
 Recipient Gets: 132.45 cKES
+Platform Fee: 1.99 cKES (1.5%)
 ```
+
+**Using Farcaster Usernames:**
+- Type `@username` in the recipient field
+- Press Enter or click away to auto-resolve
+- The address will be fetched automatically
+- Works with any Farcaster user who has a verified wallet
 
 #### **Step 4: Execute Transaction**
 1. Review transaction details
 2. Click "Send Money"
-3. Confirm in your wallet
-4. Wait for transaction confirmation
-5. Share transaction receipt
+3. **In Farcaster Mini App**: Single signature for approve + swap
+4. **On Web**: May need two signatures (approve, then swap)
+5. Wait for transaction confirmation (typically 15-30 seconds)
+6. If status unclear after 60s, verify on Celoscan before retrying
+7. Share transaction on Farcaster (if using Mini App)
+
+**Progressive Status Updates:**
+- 0-30s: "Processing your transfer..."
+- 30-60s: "This is taking longer than usual. The network might be busy..."
+- 60s+: "Status unclear - Check Celoscan before retrying"
 
 ### **Viewing Transaction History**
 
@@ -648,138 +746,79 @@ Each transaction includes:
 
 ---
 
-## **API Reference**
+## **Using FX-Remit in Farcaster**
 
-### **Smart Contract API**
+### **Accessing the Mini App**
+1. Open Warpcast app on your mobile device
+2. Navigate to the FX-Remit Mini App
+3. Wallet automatically connects
+4. Start sending money instantly!
 
-#### **Write Functions**
+### **Farcaster-Specific Features**
 
-##### `logRemittance()`
-Records a completed remittance transaction.
+#### **1. Full Currency Support**
+All 18 currencies available on web are supported in the Mini App:
+- **Major Currencies**: cUSD, cEUR, cGBP, cCAD, cAUD, cCHF, cJPY
+- **Emerging Markets**: cREAL, cCOP, cKES, cNGN, cZAR, cGHS, eXOF, PUSO
+- **Stablecoins**: USDT, USDC
+- **Native Token**: CELO
+- **All Trading Pairs**: Any currency can be sent to any other currency
+- **Real-time Rates**: Same exchange rates as web version
 
-```solidity
-function logRemittance(
-    address recipient,
-    address fromToken,
-    address toToken,
-    string memory fromCurrency,
-    string memory toCurrency,
-    uint256 amountSent,
-    uint256 amountReceived,
-    uint256 exchangeRate,
-    uint256 platformFee,
-    bytes32 mentoTxHash,
-    string memory corridor
-) external returns (uint256 remittanceId)
+Send USD to Kenya, EUR to Nigeria, USDT to Ghana - all from within Warpcast!
+
+#### **2. Username Resolution**
+Send money to any Farcaster user by their @username:
+```
+Recipient: @vitalik  → Auto-resolves to wallet address
+Recipient: @dwr      → Auto-resolves to wallet address
 ```
 
-**Parameters:**
-- `recipient`: Address receiving the funds
-- `fromToken`: Source token contract address
-- `toToken`: Destination token contract address
-- `fromCurrency`: Source currency symbol (e.g., "cUSD")
-- `toCurrency`: Destination currency symbol (e.g., "cKES")
-- `amountSent`: Amount sent (in wei)
-- `amountReceived`: Amount received (in wei)
-- `exchangeRate`: Exchange rate used (scaled by 1e18)
-- `platformFee`: Platform fee (in wei)
-- `mentoTxHash`: Mento transaction hash
-- `corridor`: Trading corridor (e.g., "USD-KES")
+#### **3. Batch Transactions (EIP-5792)**
+Single signature approves and executes the swap:
+- **Traditional**: Sign approve → Wait → Sign swap → Wait
+- **Farcaster Mini App**: Sign once → Done! ✅
 
-#### **Read Functions**
+Benefits:
+- **Faster**: One signature instead of two
+- **Better UX**: Less friction for users
+- **Gas efficient**: Optimized for Celo network
 
-##### `getRemittance()`
-Get details of a specific remittance.
+#### **4. Share on Farcaster**
+After successful transfer:
+1. Click "Share on Farcaster"
+2. Auto-generates cast with transfer details
+3. Share with your followers
+4. Increase platform visibility
 
-```solidity
-function getRemittance(uint256 remittanceId) 
-    external view returns (Remittance memory)
-```
+#### **5. Progressive Status Updates**
+Real-time feedback during transaction:
+- **0-30s**: Normal processing message
+- **30-60s**: "Taking longer than usual" message
+- **60s+**: Link to verify on Celoscan
 
-##### `getUserRemittances()`
-Get all remittance IDs for a user.
+### **Troubleshooting**
 
-```solidity
-function getUserRemittances(address user) 
-    external view returns (uint256[] memory)
-```
+#### **"Status Unclear" Message**
+If you see this after 60 seconds:
+1. **Don't retry immediately!**
+2. Click "Check on Celoscan"
+3. Verify if transaction succeeded
+4. If succeeded: Don't send again (duplicate transfer)
+5. If failed: Safe to retry
 
-##### `getPlatformStats()`
-Get platform-wide statistics.
+#### **Username Not Found**
+If @username doesn't resolve:
+- Check spelling is correct
+- Ensure user has verified wallet on Farcaster
+- Try using wallet address instead (0x...)
 
-```solidity
-function getPlatformStats() external view returns (
-    uint256 totalVolume,
-    uint256 totalFees,
-    uint256 totalTransactions,
-    uint256 totalRemittances
-)
-```
-
-### **React Hooks API**
-
-#### **Contract Hooks**
-
-##### `useLogRemittance()`
-Hook for logging remittance transactions.
-
-```typescript
-const { logRemittance, isPending, isConfirmed, error } = useLogRemittance();
-
-await logRemittance({
-    recipient: '0x...',
-    fromCurrency: 'cUSD',
-    toCurrency: 'cKES',
-    amountSent: '100',
-    amountReceived: '13245',
-    exchangeRate: '132.45',
-    platformFee: '1.5',
-    mentoTxHash: '0x...',
-    corridor: 'USD-KES'
-});
-```
-
-##### `useUserRemittances()`
-Hook for fetching user's remittances.
-
-```typescript
-const { remittances, isLoading, error } = useUserRemittances(userAddress);
-```
-
-##### `usePlatformStats()`
-Hook for fetching platform statistics.
-
-```typescript
-const { stats, isLoading, error } = usePlatformStats();
-// stats: { totalVolume, totalFees, totalTransactions, totalRemittances }
-```
-
-#### **Mento Hooks**
-
-##### `useTokenBalance()`
-Hook for getting token balance.
-
-```typescript
-const { balance, isLoading } = useTokenBalance('cUSD');
-```
-
-##### `useQuote()`
-Hook for getting exchange rate quotes.
-
-```typescript
-const { quote, isLoading } = useQuote('cUSD', 'cKES', '100');
-// quote: { amountOut, exchangeRate, platformFee, priceImpact }
-```
-
-##### `useTokenSwap()`
-Hook for executing token swaps.
-
-```typescript
-const { swap, isSwapping } = useTokenSwap();
-
-const result = await swap('cUSD', 'cKES', '100', recipientAddress);
-// result: { hash, amountOut, exchangeRate }
-```
+#### **Transaction Taking Long**
+Network might be congested:
+- Wait for "taking longer" message (after 30s)
+- Don't close the app
+- Transaction will complete or timeout after 60s
+- Check Celoscan if timeout occurs
 
 ---
 
@@ -914,24 +953,7 @@ pnpm run deploy --network celo
 
 ---
 
-## **Security**
 
-### **Smart Contract Security**
-
-#### **Security Features**
-- **Reentrancy Protection**: Using OpenZeppelin's ReentrancyGuard
-- **Access Control**: Owner-only administrative functions
-- **Pausable Contracts**: Emergency pause capability
-- **Input Validation**: Comprehensive parameter validation
-- **Overflow Protection**: SafeMath equivalent in Solidity 0.8+
-
-#### **Audit Checklist**
-- [ ] **Reentrancy vulnerabilities**
-- [ ] **Integer overflow/underflow**
-- [ ] **Access control issues**
-- [ ] **Front-running vulnerabilities**
-- [ ] **Gas optimization**
-- [ ] **Denial of service attacks**
 
 ### **Frontend Security**
 
