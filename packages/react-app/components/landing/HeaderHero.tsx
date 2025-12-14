@@ -207,8 +207,8 @@ export default function HeaderHero() {
                 color: '#050505BF'
               }}
             >
-              Send money to 15+ countries with ultra-low 1.5% fees, lightning-fast settlements 
-              and enterprise-grade security. Powered by Celo blockchain and Mento Protocol.
+              Send money across 18 currencies with ultra-low 1.5% fees, lightning-fast settlements 
+              and enterprise-grade security.
             </p>
 
             {/* CTA Button */}

@@ -208,34 +208,33 @@ export function useFarcasterSwap() {
     recipientAddress?: string
   ): Promise<SwapResult> => {
     if (!walletReadiness.isConnected) {
-      throw new Error('Wallet not connected');
+      throw new Error('Please connect your wallet to continue');
     }
 
     if (!walletClient) {
-      throw new Error('Wallet client not available');
+      throw new Error('Connection lost. Please refresh the page and try again');
     }
 
     if (!sendCallsAsync) {
-      throw new Error('Farcaster Mini App requires sendCallsAsync capability');
+      throw new Error('Your wallet doesn\'t support batch transactions. Please update your Farcaster app');
     }
 
     if (!address) {
-      throw new Error('Wallet address not available');
+      throw new Error('Unable to detect wallet address. Please reconnect');
     }
 
-    try {
-      const currentChainId = await walletClient.getChainId();
-      if (currentChainId !== CELO_CHAIN_ID) {
+    const currentChainId = await walletClient.getChainId();
+    if (currentChainId !== CELO_CHAIN_ID) {
+      try {
         await walletClient.switchChain({ id: CELO_CHAIN_ID });
+        const verifyChainId = await walletClient.getChainId();
+        if (verifyChainId !== CELO_CHAIN_ID) {
+          throw new Error('Network switch incomplete');
+        }
+      } catch (e) {
+        console.error('Failed to switch to Celo:', e);
+        throw new Error('Please switch to Celo network in your wallet and try again');
       }
-    } catch (e) {
-      console.error('Chain switch failed:', e);
-      throw new Error('Please switch your wallet to Celo network');
-    }
-
-    // Ensure we're on Celo (chainId 42220)
-    if (chainId !== CELO_CHAIN_ID) {
-      throw new Error(`Invalid chain. Expected Celo (${CELO_CHAIN_ID}), got ${chainId}`);
     }
 
     const celoChainId = CELO_CHAIN_ID;
@@ -249,7 +248,7 @@ export function useFarcasterSwap() {
     const exchanges = await mento.getExchanges();
 
     if (exchanges.length === 0) {
-      throw new Error('No exchanges available');
+      throw new Error('Exchange service temporarily unavailable. Please try again in a moment');
     }
 
     const [fromDecimals, toDecimals] = await Promise.all([
@@ -270,7 +269,7 @@ export function useFarcasterSwap() {
 
     const fxRemitV2Address = getContractV2Address(celoChainId);
     if (!fxRemitV2Address) {
-      throw new Error('FXRemitV2 address not configured');
+      throw new Error('Service configuration error. Please contact support');
     }
 
     const permit2Allowance = await checkPermit2Approval(
@@ -281,8 +280,9 @@ export function useFarcasterSwap() {
     );
 
     const batchedCalls: { to: `0x${string}`; data: `0x${string}` }[] = [];
+    const needsApproval = permit2Allowance < BigInt(amountInWei.toString());
 
-    if (permit2Allowance < BigInt(amountInWei.toString())) {
+    if (needsApproval) {
       const approvalData = encodeFunctionData({
         abi: ERC20_APPROVE_ABI as any,
         functionName: 'approve',
@@ -298,7 +298,6 @@ export function useFarcasterSwap() {
       });
     }
 
-    // Prepare Permit2 signature
     const { permitSignature, nonce, deadline } = await preparePermit2ForFarcaster(
       provider,
       fromTokenAddress,
@@ -323,7 +322,7 @@ export function useFarcasterSwap() {
 
     if (!tradablePair) {
       throw new Error(
-        `No tradable pair found for ${fromCurrency} → ${toCurrency}`
+        `Cannot exchange ${fromCurrency} to ${toCurrency} right now. Try a different currency pair`
       );
     }
 
@@ -331,7 +330,6 @@ export function useFarcasterSwap() {
     const finalRecipient = recipientAddress ?? signerAddress;
 
     if (tradablePair.path.length === 1) {
-      // Single-hop swap
       const hop = tradablePair.path[0];
       const rawSwapData = encodeFunctionData({
         abi: FXRemitV2ABI as any,
@@ -359,6 +357,15 @@ export function useFarcasterSwap() {
         data: dataWithReferral as `0x${string}`,
       });
 
+      console.log('Submitting transfer:', {
+        from: fromCurrency,
+        to: toCurrency,
+        amount,
+        path: 'direct',
+        calls: batchedCalls.length,
+        approval: needsApproval
+      });
+
       const callsResult = await sendCallsAsync({
         calls: batchedCalls,
         chainId: celoChainId,
@@ -367,8 +374,10 @@ export function useFarcasterSwap() {
         typeof callsResult === 'string' ? callsResult : callsResult?.id;
 
       if (!callsId) {
-        throw new Error('No callsId returned - transaction may have failed');
+        throw new Error('Transfer submission failed. Please try again');
       }
+
+      console.log('Transfer submitted:', callsId);
 
       return {
         success: true,
@@ -380,7 +389,6 @@ export function useFarcasterSwap() {
       };
     }
 
-    // Multi-hop swap
     if (tradablePair.path.length === 2) {
       const multiHopPath = findMultiHopPath(
         tradablePair,
@@ -389,7 +397,7 @@ export function useFarcasterSwap() {
       );
 
       if (!multiHopPath) {
-        throw new Error('Could not determine multi-hop path');
+        throw new Error('Exchange route unavailable for this currency pair. Try again later');
       }
 
       const { firstHop: hop1, secondHop: hop2, intermediateToken } = multiHopPath;
@@ -435,9 +443,13 @@ export function useFarcasterSwap() {
         data: dataWithReferral as `0x${string}`,
       });
 
-      console.log('Submitting Farcaster batch transaction (multi-hop):', {
-        chainId: celoChainId,
-        callsCount: batchedCalls.length,
+      console.log('Submitting transfer:', {
+        from: fromCurrency,
+        to: toCurrency,
+        amount,
+        path: 'multi-hop',
+        calls: batchedCalls.length,
+        approval: needsApproval
       });
 
       const callsResult = await sendCallsAsync({
@@ -447,14 +459,11 @@ export function useFarcasterSwap() {
       const callsId =
         typeof callsResult === 'string' ? callsResult : callsResult?.id;
 
-      console.log('Farcaster multi-hop batch submitted successfully:', {
-        callsId,
-        txCount: batchedCalls.length,
-      });
-
       if (!callsId) {
-        throw new Error('No callsId returned - transaction may have failed');
+        throw new Error('Transfer submission failed. Please try again');
       }
+
+      console.log('Transfer submitted:', callsId);
 
       return {
         success: true,
@@ -466,9 +475,7 @@ export function useFarcasterSwap() {
       };
     }
 
-    throw new Error(
-      `Unsupported path length: ${tradablePair.path.length}`
-    );
+    throw new Error('This currency pair is not supported at the moment');
   };
 
   return {
