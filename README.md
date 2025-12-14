@@ -878,7 +878,7 @@ GitHub Actions workflow includes:
 3. **Deploy with one click**
 
 ```bash
-# Or deploy manually
+
 pnpm run react-app:build
 npx vercel --prod
 ```
@@ -1049,11 +1049,7 @@ SOFTWARE.
 - **Wiki**: Additional guides and tutorials
 - **FAQ**: Common questions and answers
 
-#### **Community Support**
-- **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: Community discussions
-- **Discord**: Real-time chat support
-- **Telegram**: Community group
+
 
 #### **Useful Links**
 - **[Celo Documentation](https://docs.celo.org/)** - Celo blockchain docs
@@ -1065,16 +1061,16 @@ SOFTWARE.
 
 #### **Team**
 - **Lead Developer**: [@kanas](https://github.com/kanas)
-- **Email**: support@fx-remit.com
+- **Email**: nasihudeen04@gmail.com
 - **Twitter**: [@FXRemit](https://twitter.com/FXRemit)
 
 #### **Bug Reports**
 - **GitHub Issues**: [Report a bug](https://github.com/your-username/fx-remit/issues/new?template=bug_report.md)
-- **Email**: bugs@fx-remit.com
+- **Email**: team@fx-remit.xyz
 
 #### **Feature Requests**
 - **GitHub Issues**: [Request a feature](https://github.com/your-username/fx-remit/issues/new?template=feature_request.md)
-- **Email**: features@fx-remit.com
+- **Email**: team@fx-remit.xyz
 
 ---
 
