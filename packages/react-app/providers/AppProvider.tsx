@@ -4,63 +4,118 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, connectorsForWallets } from '@rainbow-me/rainbowkit';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import { WagmiProvider, createConfig, http, createStorage } from 'wagmi';
 import { celo } from 'wagmi/chains';
-import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { MiniAppConnector } from '@/components/MiniAppConnector';
 import { TransactionStatusProvider } from './TransactionStatusProvider';
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
-import {
-  injectedWallet,
-  metaMaskWallet,
-  walletConnectWallet,
-  coinbaseWallet,
-  trustWallet,
-} from '@rainbow-me/rainbowkit/wallets';
+// SSR-safe storage that only uses localStorage on the client
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
 
-const webConnectors = connectorsForWallets(
-  [
-    {
-      groupName: 'Recommended for Celo',
-      wallets: [walletConnectWallet, metaMaskWallet],
-    },
-    {
-      groupName: 'Popular Wallets',
-      wallets: [coinbaseWallet, trustWallet, injectedWallet],
-    },
-  ],
-  {
-    appName: 'FX Remit - Global Money Transfers ',
-    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? '044601f65212332475a09bc14ceb3c34',
+// Create storage only on client side
+const getStorage = () => {
+  if (typeof window === 'undefined') {
+    return createStorage({ storage: noopStorage });
   }
-);
+  return createStorage({ storage: localStorage });
+};
 
-const desktopConfig = createConfig({
-  connectors: webConnectors,
-  chains: [celo],
-  transports: { [celo.id]: http('https://forno.celo.org') },
-});
-
+// Lazy initialization of configs to avoid SSR issues
+let desktopConfigInstance: ReturnType<typeof createConfig> | null = null;
 let miniAppConfigInstance: ReturnType<typeof createConfig> | null = null;
+
+// Only create configs on client side - dynamically imports wallet connectors
+// to avoid indexedDB access during static generation
+async function getDesktopConfig() {
+  // Guard against SSR
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (!desktopConfigInstance) {
+    // Dynamically import wallet connectors to prevent indexedDB access during SSR
+    const {
+      injectedWallet,
+      metaMaskWallet,
+      walletConnectWallet,
+      coinbaseWallet,
+      trustWallet,
+    } = await import('@rainbow-me/rainbowkit/wallets');
+
+    const webConnectors = connectorsForWallets(
+      [
+        {
+          groupName: 'Recommended for Celo',
+          wallets: [walletConnectWallet, metaMaskWallet],
+        },
+        {
+          groupName: 'Popular Wallets',
+          wallets: [coinbaseWallet, trustWallet, injectedWallet],
+        },
+      ],
+      {
+        appName: 'FX Remit - Global Money Transfers ',
+        projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? '044601f65212332475a09bc14ceb3c34',
+      }
+    );
+
+    desktopConfigInstance = createConfig({
+      connectors: webConnectors,
+      chains: [celo],
+      transports: { [celo.id]: http('https://forno.celo.org') },
+      storage: getStorage(),
+      ssr: true,
+    });
+  }
+  return desktopConfigInstance;
+}
+
+async function getMiniAppConfig() {
+  // Guard against SSR
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (!miniAppConfigInstance) {
+    const { farcasterMiniApp } = await import('@farcaster/miniapp-wagmi-connector');
+    miniAppConfigInstance = createConfig({
+      connectors: [farcasterMiniApp()],
+      chains: [celo],
+      transports: { [celo.id]: http('https://forno.celo.org') },
+      storage: getStorage(),
+      ssr: true,
+    });
+  }
+  return miniAppConfigInstance;
+}
 
 function useWagmiConfig() {
   const { isMiniApp } = useFarcasterMiniApp();
+  const [config, setConfig] = useState<ReturnType<typeof createConfig> | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-  return useMemo(() => {
+  // Ensure we only run config creation on the client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+
     if (isMiniApp) {
-      if (!miniAppConfigInstance) {
-        miniAppConfigInstance = createConfig({
-          connectors: [miniAppConnector()],
-          chains: [celo],
-          transports: { [celo.id]: http('https://forno.celo.org') },
-        });
-      }
-      return miniAppConfigInstance;
+      getMiniAppConfig().then(setConfig);
+    } else {
+      getDesktopConfig().then(setConfig);
     }
-    return desktopConfig;
-  }, [isMiniApp]);
+  }, [isMiniApp, isClient]);
+
+  return config;
 }
 
 const queryClient = new QueryClient();
@@ -68,18 +123,27 @@ const queryClient = new QueryClient();
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { isMiniApp } = useFarcasterMiniApp();
   const config = useWagmiConfig();
-  
+
+  // Show loading state while config is being initialized
+  if (!config) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         {isMiniApp ? (
-          
+
           <TransactionStatusProvider>
             <MiniAppConnector />
             {children}
           </TransactionStatusProvider>
         ) : (
-        
+
           <RainbowKitProvider>
             <TransactionStatusProvider>
               {children}
