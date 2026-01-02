@@ -1,7 +1,7 @@
 import '@/styles/globals.css';
 import 'react-toastify/dist/ReactToastify.css';
 
-import { AppProvider } from '@/providers/AppProvider';
+import { ClientAppProvider } from '@/providers/ClientAppProvider';
 import { ToastContainer } from 'react-toastify';
 import type { Metadata } from 'next';
 import { FarcasterReady } from '@/components/FarcasterReady';
@@ -36,7 +36,7 @@ export default function RootLayout({
       </head>
       <body>
         <FarcasterReady />
-        <AppProvider>
+        <ClientAppProvider>
           {children}
           <ToastContainer
             position="top-right"
@@ -50,7 +50,7 @@ export default function RootLayout({
             pauseOnHover
             theme="dark"
           />
-        </AppProvider>
+        </ClientAppProvider>
       </body>
     </html>
   );
