@@ -1,31 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { useConnect, useAccount } from "wagmi"
-import { injected } from "wagmi/connectors"
-import { useFarcasterMiniApp } from "@/hooks/useFarcasterMiniApp"
+import { useState } from "react"
 
 export default function HeaderHero() {
-  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [hideConnectBtn, setHideConnectBtn] = useState(false)
-  const { connect } = useConnect()
-  const { isConnected } = useAccount()
-  const { isMiniApp } = useFarcasterMiniApp()
-
-  useEffect(() => {
-    if (window.ethereum && window.ethereum.isMiniPay) {
-      setHideConnectBtn(true)
-      
-      connect({ connector: injected() })
-    }
-  }, [connect])
-
-  const handleLaunchApp = () => {
-    router.push("/send")
-  }
+  
+  const FARCASTER_MINIAPP_URL = "https://farcaster.xyz/miniapps/4dRh4D2PiPCK/fx-remit"
 
   return (
     <section className="relative min-h-screen overflow-hidden">
@@ -69,22 +49,14 @@ export default function HeaderHero() {
 
                 {/* Desktop CTA Button */}
                 <div>
-                  {isConnected ? (
-                    <button 
-                      onClick={handleLaunchApp}
-                      className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
-                    >
-                      Launch App
-                  </button>
-                  ) : (
-                    !hideConnectBtn && !isMiniApp && (
-                      <ConnectButton
-                        showBalance={false}
-                        accountStatus="avatar"
-                        chainStatus="icon"
-                      />
-                    )
-                  )}
+                  <a
+                    href={FARCASTER_MINIAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors inline-block"
+                  >
+                    Launch App
+                  </a>
                 </div>
               </div>
             </div>
@@ -134,22 +106,14 @@ export default function HeaderHero() {
                   Contact Us
                 </a>
                 <div className="flex justify-center">
-                  {isConnected ? (
-                    <button 
-                      onClick={handleLaunchApp}
-                      className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
-                    >
-                      Launch App
-                </button>
-                  ) : (
-                    !hideConnectBtn && !isMiniApp && (
-                      <ConnectButton
-                        showBalance={false}
-                        accountStatus="avatar"
-                        chainStatus="icon"
-                      />
-                    )
-                  )}
+                  <a
+                    href={FARCASTER_MINIAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white text-blue-600 border border-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors inline-block"
+                  >
+                    Launch App
+                  </a>
                 </div>
               </div>
             </div>
@@ -212,8 +176,10 @@ export default function HeaderHero() {
             </p>
 
             {/* CTA Button */}
-            <button
-              onClick={handleLaunchApp}
+            <a
+              href={FARCASTER_MINIAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontFamily: 'Inter',
                 fontWeight: 500,
@@ -232,7 +198,11 @@ export default function HeaderHero() {
                 paddingLeft: '10px',
                 border: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#1e4a8c';
@@ -242,7 +212,7 @@ export default function HeaderHero() {
               }}
             >
               Start sending money
-            </button>
+            </a>
 
             {/* Mobile Phone Illustration */}
             <div className="flex justify-center" style={{ marginTop: '-150px' }}>

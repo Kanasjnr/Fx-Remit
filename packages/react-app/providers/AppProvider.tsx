@@ -9,6 +9,7 @@ import { celo } from 'wagmi/chains';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import { MiniAppConnector } from '@/components/MiniAppConnector';
 import { TransactionStatusProvider } from './TransactionStatusProvider';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { useState, useEffect } from 'react';
 
 // SSR-safe storage that only uses localStorage on the client
@@ -26,12 +27,9 @@ const getStorage = () => {
   return createStorage({ storage: localStorage });
 };
 
-// Lazy initialization of configs to avoid SSR issues
 let desktopConfigInstance: ReturnType<typeof createConfig> | null = null;
 let miniAppConfigInstance: ReturnType<typeof createConfig> | null = null;
 
-// Only create configs on client side - dynamically imports wallet connectors
-// to avoid indexedDB access during static generation
 async function getDesktopConfig() {
   // Guard against SSR
   if (typeof window === 'undefined') {
@@ -39,7 +37,6 @@ async function getDesktopConfig() {
   }
 
   if (!desktopConfigInstance) {
-    // Dynamically import wallet connectors to prevent indexedDB access during SSR
     const {
       injectedWallet,
       metaMaskWallet,
@@ -100,7 +97,6 @@ function useWagmiConfig() {
   const [config, setConfig] = useState<ReturnType<typeof createConfig> | null>(null);
   const [isClient, setIsClient] = useState(false);
 
-  // Ensure we only run config creation on the client
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -124,13 +120,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { isMiniApp } = useFarcasterMiniApp();
   const config = useWagmiConfig();
 
-  // Show loading state while config is being initialized
   if (!config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-gray-500">Loading...</div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
