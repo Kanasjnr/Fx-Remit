@@ -34,7 +34,7 @@
 
 ## **About FX-Remit**
 
-FX-Remit is a **next-generation cross-border remittance platform** built on the Celo blockchain that enables users to send money globally with unprecedented speed, security, and low fees. By leveraging the **Mento Protocol**, FX-Remit provides seamless currency exchanges between 15 different supported currencies, making international money transfers accessible to everyone.
+FX-Remit is a **next-generation cross-border remittance platform** built on the Celo blockchain that enables users to send money globally with unprecedented speed, security, and low fees. By leveraging the **Mento Protocol**, FX-Remit provides seamless currency exchanges between 15 different supported currencies pluss USDT,USDC and the CELO token, making international money transfers accessible to everyone.
  
 
 ### **Mission**
@@ -147,14 +147,14 @@ FX-Remit follows a **modern decentralized architecture** with clear separation o
 ```
 ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
 │  Farcaster Mini  │    │   Web Frontend   │    │    MiniPay       │
-│      App         │    │    (Next.js)     │    │     (Celo)       │
+│      App         │    │    (Next.js)     │    │                  │
 └────────┬─────────┘    └────────┬─────────┘    └────────┬─────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
                                  │
                     ┌────────────▼────────────┐
                     │  FXRemitV2 Contract     │
-                    │  (Permit2 + Mento)      │
+                    │                         │
                     └────────────┬────────────┘
                                  │
          ┌───────────────────────┼───────────────────────┐
