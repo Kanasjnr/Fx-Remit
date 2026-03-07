@@ -66,17 +66,17 @@ export default function SendPage() {
     toCurrency,
     amount
   );
-  
+
   const isMiniPay = typeof window !== 'undefined' && (window as any).ethereum?.isMiniPay;
-  const isFarcaster = isMiniApp && !isMiniPay; 
-  
+  const isFarcaster = isMiniApp && !isMiniPay;
+
   const farcasterSwap = useFarcasterSwap();
   const ethersSwap = useEthersSwap();
   const swapHook = isFarcaster ? farcasterSwap : ethersSwap;
   const swap = swapHook.swap;
   const isWalletReady = swapHook.isWalletReady;
-  const walletStatus = swapHook.walletStatus;
-  
+  const _walletStatus = swapHook.walletStatus;
+
   const { resolveUsername, isLoading: isResolvingUsername, error: resolverError } =
     useFarcasterResolver();
 
@@ -140,16 +140,16 @@ export default function SendPage() {
         const txHash = callsStatus.receipts?.[0]?.transactionHash;
         setPendingCallsId(undefined);
         setIsProcessing(false);
-        
+
         markSuccess({
           title: 'Success',
           message: 'Your transfer completed successfully!',
           txHash,
         });
-        
+
         setAmount('');
         setRecipient('');
-        
+
         setTimeout(() => {
           triggerDataRefresh();
         }, 2000);
@@ -166,11 +166,11 @@ export default function SendPage() {
 
   useEffect(() => {
     if (!pendingCallsId) return;
-    
+
     const fallbackTimer = setTimeout(() => {
       console.warn('Transaction status check timed out:', pendingCallsId);
       markFailure({
-        reason: isMiniApp 
+        reason: isMiniApp
           ? `Transfer submitted but status is unclear. Your funds may have already been transferred. Check Celoscan before retrying to avoid sending duplicate transfers.`
           : `Transaction submitted but status is unclear. Check Celoscan before retrying to avoid duplicate transactions.`,
         title: 'Verify on Celoscan First',
@@ -352,11 +352,10 @@ export default function SendPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    className={`w-full p-4 bg-gray-50 border rounded-xl text-gray-900 text-lg placeholder-gray-400 pr-16 focus:ring-2  ${
-                      insufficientBalance
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
-                    }`}
+                    className={`w-full p-4 bg-gray-50 border rounded-xl text-gray-900 text-lg placeholder-gray-400 pr-16 focus:ring-2  ${insufficientBalance
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                      : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
                   />
 
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
@@ -395,9 +394,8 @@ export default function SendPage() {
                     onBlur={handleRecipientBlur}
                     onKeyDown={handleRecipientKeyDown}
                     placeholder="@username or 0x..."
-                    className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
-                      showResolveButton ? 'pr-24' : 'pr-4'
-                    }`}
+                    className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${showResolveButton ? 'pr-24' : 'pr-4'
+                      }`}
                   />
                   {showResolveButton && !isResolvingUsername && (
                     <button
@@ -461,7 +459,7 @@ export default function SendPage() {
                   <span className="text-gray-900 font-medium">
                     {toCurrencyInfo?.symbol}
                     {Number.parseFloat(quote.platformFee) < 0.01 &&
-                    Number.parseFloat(quote.platformFee) > 0
+                      Number.parseFloat(quote.platformFee) > 0
                       ? Number.parseFloat(quote.platformFee).toFixed(4)
                       : Number.parseFloat(quote.platformFee).toFixed(2)}{' '}
                     {toCurrency}
