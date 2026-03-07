@@ -10,7 +10,7 @@ export function FarcasterReady() {
 
         await sdk.actions.ready();
 
-        const isInMiniApp = await sdk.isInMiniApp();
+        await sdk.isInMiniApp();
       } catch (error) {
         console.log(
           ' Farcaster SDK:',

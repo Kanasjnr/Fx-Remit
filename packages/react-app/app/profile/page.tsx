@@ -10,15 +10,10 @@ import { getTokenAddress } from '@/lib/contracts';
 import { formatUnits, parseUnits } from 'viem';
 import Link from 'next/link';
 import {
-  CurrencyDollarIcon,
-  ArrowRightOnRectangleIcon,
   ClipboardDocumentIcon,
   ChartBarIcon,
   ArrowLeftIcon,
   ChevronRightIcon,
-  ArrowTopRightOnSquareIcon,
-  DocumentArrowDownIcon,
-  ShieldCheckIcon,
   QuestionMarkCircleIcon,
   BanknotesIcon,
   XCircleIcon,
@@ -37,7 +32,7 @@ function RemittanceLoader({
   remittanceId: bigint;
   version: 'v1' | 'v2';
   contractAddress?: string | null;
-  onRemittanceReady: (id: string, remittance: any) => void;
+  onRemittanceReady: (_id: string, _remittance: any) => void;
 }) {
   const { remittance, isLoading } = useRemittanceDetails(
     remittanceId,
@@ -67,7 +62,7 @@ function StatsCalculator({
   onStatsReady,
 }: {
   remittances: Record<string, any>;
-  onStatsReady: (stats: any) => void;
+  onStatsReady: (_stats: any) => void;
 }) {
   const calculatedStats = useMemo(() => {
     const validRemittances = Object.values(remittances).filter(
@@ -245,9 +240,8 @@ const exportTransactionsToCSV = (transactions: any[], userAddress: string) => {
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.href = url;
-  link.download = `fx-remit-transactions-${userAddress.slice(0, 8)}-${
-    new Date().toISOString().split('T')[0]
-  }.csv`;
+  link.download = `fx-remit-transactions-${userAddress.slice(0, 8)}-${new Date().toISOString().split('T')[0]
+    }.csv`;
   link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
@@ -301,7 +295,7 @@ export default function ProfilePage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { isMiniApp } = useFarcasterMiniApp();
-  const [copied, setCopied] = useState(false);
+  const [_copied, setCopied] = useState(false);
   const [userStats, setUserStats] = useState({
     totalSent: 0,
     totalReceived: 0,
@@ -318,7 +312,7 @@ export default function ProfilePage() {
   const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
   const [usdFees, setUsdFees] = useState<number | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [avatarPublicId, setAvatarPublicId] = useState<string | null>(null);
+  const [_avatarPublicId, setAvatarPublicId] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const usdEstimateCacheRef = useRef<{
@@ -376,7 +370,7 @@ export default function ProfilePage() {
           const avatarData = JSON.parse(savedAvatarData);
           setAvatar(avatarData.url);
           setAvatarPublicId(avatarData.publicId);
-        } catch (error) {
+        } catch (_error) {
           // Handle old format (just URL string)
           setAvatar(savedAvatarData);
         }
@@ -456,7 +450,7 @@ export default function ProfilePage() {
           key: totalsByCurrencyKey,
           value: sumCusd,
         };
-      } catch (e) {
+      } catch (_e) {
         setUsdEstimate(null);
         usdEstimateCacheRef.current = { key: totalsByCurrencyKey, value: null };
       }
@@ -508,7 +502,7 @@ export default function ProfilePage() {
         }
         setUsdFees(sumCusd);
         usdFeesCacheRef.current = { key: feesByCurrencyKey, value: sumCusd };
-      } catch (e) {
+      } catch (_e) {
         setUsdFees(null);
         usdFeesCacheRef.current = { key: feesByCurrencyKey, value: null };
       }
@@ -523,13 +517,13 @@ export default function ProfilePage() {
         setCopied(true);
         toast.success('Address copied to clipboard!');
         setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to copy address');
       }
     }
   };
 
-  const handleDisconnect = () => {
+  const _handleDisconnect = () => {
     disconnect();
     toast.success('Wallet disconnected');
   };
@@ -682,8 +676,8 @@ export default function ProfilePage() {
                       {isInitializing
                         ? 'Connecting...'
                         : address
-                        ? `${address.slice(0, 6)}...${address.slice(-6)}`
-                        : 'Not Connected'}
+                          ? `${address.slice(0, 6)}...${address.slice(-6)}`
+                          : 'Not Connected'}
                     </div>
                   </div>
                 </div>
@@ -876,11 +870,11 @@ export default function ProfilePage() {
                             className="bg-gray-100 rounded-full px-3 py-2 text-center"
                           >
                             <div className="text-xs font-medium text-gray-600">
-                                {formatTokenAmountDisplay(
-                                  amount,
-                                  currency,
-                                  userStats.decimalsByCurrency
-                                )}
+                              {formatTokenAmountDisplay(
+                                amount,
+                                currency,
+                                userStats.decimalsByCurrency
+                              )}
                             </div>
                           </div>
                         )
@@ -968,8 +962,8 @@ export default function ProfilePage() {
                     <span className="text-sm font-bold text-gray-900">
                       {userStats.totalTransactions > 0 && usdFees !== null
                         ? `$${(usdFees / userStats.totalTransactions).toFixed(
-                            2
-                          )}`
+                          2
+                        )}`
                         : '$0.00'}
                     </span>
                   </div>

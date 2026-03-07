@@ -5,7 +5,6 @@ import { useAccount } from 'wagmi';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useUserRemittances, useRemittanceDetails } from '@/hooks/useContract';
 import type { Currency } from '@/lib/contracts';
-import { CURRENCY_INFO } from '@/lib/contracts';
 import { CURRENCIES } from '@/lib/currencies';
 import { useFarcasterMiniApp } from '@/hooks/useFarcasterMiniApp';
 import Image from 'next/image';
@@ -20,7 +19,6 @@ import {
   ArrowTopRightOnSquareIcon,
   DocumentTextIcon,
   WalletIcon,
-  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 
 interface Transaction {
@@ -47,7 +45,7 @@ function RemittanceItem({
   remittanceId: bigint;
   version: 'v1' | 'v2';
   contractAddress?: string | null;
-  onTransactionReady: (id: string, transaction: Transaction | null) => void;
+  onTransactionReady: (_id: string, _transaction: Transaction | null) => void;
 }) {
   const { remittance, isLoading } = useRemittanceDetails(remittanceId, version, contractAddress || undefined);
   const id = remittanceId.toString();
@@ -67,11 +65,11 @@ function RemittanceItem({
       remittance.mentoTxHash && remittance.mentoTxHash !== zeroHash
         ? remittance.mentoTxHash
         : '';
-    
+
     const amountSent = Number.parseFloat(remittance.amountSent);
     const amountReceived = Number.parseFloat(remittance.amountReceived);
     const platformFee = Number.parseFloat(remittance.platformFee);
-    
+
     if (isNaN(amountSent) || isNaN(amountReceived) || isNaN(platformFee)) {
       console.warn('[History] Invalid amounts, skipping transaction:', {
         amountSent: remittance.amountSent,
@@ -80,11 +78,11 @@ function RemittanceItem({
       });
       return;
     }
-    
+
     const dataKey = `${remittance.id}-${remittance.fromCurrency}-${remittance.toCurrency}-${amountSent}-${amountReceived}-${txHash}`;
-    
-    
-    
+
+
+
     const tx: Transaction = {
       id: remittance.id ? remittance.id.toString() : id,
       from: remittance.fromCurrency as Currency,
@@ -98,8 +96,8 @@ function RemittanceItem({
       hash: txHash,
       recipient: remittance.recipient,
     };
-    
-    
+
+
 
     if (processedRef.current !== dataKey) {
       processedRef.current = dataKey;
@@ -120,8 +118,8 @@ export default function HistoryPage() {
     useState<Transaction | null>(null);
   const isConnecting = status === 'connecting';
   const isAddressReady = isConnected && !!address;
-  
-  
+
+
   const [isWaitingForConnection, setIsWaitingForConnection] = useState(
     isConnecting && !isAddressReady
   );
@@ -154,7 +152,7 @@ export default function HistoryPage() {
       }));
       setFailedTransactions(failedAsTransactions);
     } else {
- 
+
       setIsWaitingForConnection(isConnecting && !isAddressReady);
       if (!isConnecting) {
         setFailedTransactions([]);
@@ -164,7 +162,7 @@ export default function HistoryPage() {
 
   const handleTransactionReady = useCallback(
     (id: string, transaction: Transaction | null) => {
-    setTransactions((prev) => {
+      setTransactions((prev) => {
         const filtered = prev.filter((t) => t.id !== id);
         return transaction ? [...filtered, transaction] : filtered;
       });
@@ -174,7 +172,7 @@ export default function HistoryPage() {
 
   const filteredTransactions = useMemo(() => {
     const allTransactions = [...transactions, ...failedTransactions];
-    
+
     const sortedTransactions = allTransactions.sort((a, b) => {
       const parseDateTime = (date: string, time: string) => {
         try {
@@ -185,7 +183,7 @@ export default function HistoryPage() {
           return new Date(`${date} ${time}`).getTime();
         }
       };
-      
+
       const dateA = parseDateTime(a.date, a.time);
       const dateB = parseDateTime(b.date, b.time);
       return dateB - dateA;
@@ -258,11 +256,10 @@ export default function HistoryPage() {
               <button
                 key={tab}
                 onClick={() => setFilter(tab.toLowerCase())}
-                className={`text-sm font-medium pb-2 border-b-2 transition-colors ${
-                  filter === tab.toLowerCase()
+                className={`text-sm font-medium pb-2 border-b-2 transition-colors ${filter === tab.toLowerCase()
                     ? 'text-blue-600 border-blue-600'
                     : 'text-gray-500 border-transparent hover:text-gray-700'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -314,99 +311,99 @@ export default function HistoryPage() {
               )}
 
               {!isHydrating && isAddressReady && filteredTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="bg-white border-b border-gray-200 py-4 px-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => handleTransactionClick(transaction)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 relative">
-                            <Image
-                              src={getCurrencyFlag(transaction.from)}
-                              alt={`${transaction.from} flag`}
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
-                          <ArrowRightIcon className="w-4 h-4 text-gray-400" />
-                          <div className="w-6 h-6 relative">
-                            <Image
-                              src={getCurrencyFlag(transaction.to)}
-                              alt={`${transaction.to} flag`}
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
+                <div
+                  key={transaction.id}
+                  className="bg-white border-b border-gray-200 py-4 px-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => handleTransactionClick(transaction)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 relative">
+                          <Image
+                            src={getCurrencyFlag(transaction.from)}
+                            alt={`${transaction.from} flag`}
+                            fill
+                            className="object-contain"
+                          />
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {transaction.from} - {transaction.to}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {transaction.date} at {transaction.time}
-                          </div>
-                          <div className="flex items-center space-x-1 mt-1">
-                            {transaction.status === 'completed' && (
-                              <>
-                                <div className="w-4 h-4 bg-green-500 rounded flex items-center justify-center">
-                                  <CheckCircleIcon className="w-3 h-3 text-white" />
-                                </div>
-                                <span className="text-xs text-green-600 font-medium">
-                                  Completed
-                                </span>
-                              </>
-                            )}
-                            {transaction.status === 'failed' && (
-                              <>
-                                <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center">
-                                  <XCircleIcon className="w-3 h-3 text-white" />
-                                </div>
-                                <span className="text-xs text-red-600 font-medium">
-                                  Failed
-                                </span>
-                              </>
-                            )}
-                            {transaction.status === 'pending' && (
-                              <>
-                                <div className="w-4 h-4 bg-yellow-500 rounded flex items-center justify-center">
-                                  <ClockIcon className="w-3 h-3 text-white" />
-                                </div>
-                                <span className="text-xs text-yellow-600 font-medium">Pending</span>
-                              </>
-                            )}
-                          </div>
+                        <ArrowRightIcon className="w-4 h-4 text-gray-400" />
+                        <div className="w-6 h-6 relative">
+                          <Image
+                            src={getCurrencyFlag(transaction.to)}
+                            alt={`${transaction.to} flag`}
+                            fill
+                            className="object-contain"
+                          />
                         </div>
                       </div>
-
-                      <div className="text-right">
-                        <div className="text-sm text-blue-600 font-medium">
-                          You sent{' '}
-                          <span className="font-bold text-black">
-                            {getCurrencySymbol(transaction.from)}
-                            {transaction.amount?.toFixed(2) || '0.00'}
-                            {transaction.from}
-                          </span>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {transaction.from} - {transaction.to}
                         </div>
-                        {transaction.status === 'failed' ? (
-                          <div className="text-sm text-red-600 font-medium">
-                            Transaction failed
-                          </div>
-                        ) : (
-                          <div className="text-sm text-blue-600 font-medium">
-                            They received{' '}
-                            <span className="font-bold text-black">
-                              {getCurrencySymbol(transaction.to)}
-                              {transaction.received?.toFixed(2) || '0.00'}
-                              {transaction.to}
-                            </span>
-                          </div>
-                        )}
+                        <div className="text-xs text-gray-500">
+                          {transaction.date} at {transaction.time}
+                        </div>
+                        <div className="flex items-center space-x-1 mt-1">
+                          {transaction.status === 'completed' && (
+                            <>
+                              <div className="w-4 h-4 bg-green-500 rounded flex items-center justify-center">
+                                <CheckCircleIcon className="w-3 h-3 text-white" />
+                              </div>
+                              <span className="text-xs text-green-600 font-medium">
+                                Completed
+                              </span>
+                            </>
+                          )}
+                          {transaction.status === 'failed' && (
+                            <>
+                              <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center">
+                                <XCircleIcon className="w-3 h-3 text-white" />
+                              </div>
+                              <span className="text-xs text-red-600 font-medium">
+                                Failed
+                              </span>
+                            </>
+                          )}
+                          {transaction.status === 'pending' && (
+                            <>
+                              <div className="w-4 h-4 bg-yellow-500 rounded flex items-center justify-center">
+                                <ClockIcon className="w-3 h-3 text-white" />
+                              </div>
+                              <span className="text-xs text-yellow-600 font-medium">Pending</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    <div className="text-right">
+                      <div className="text-sm text-blue-600 font-medium">
+                        You sent{' '}
+                        <span className="font-bold text-black">
+                          {getCurrencySymbol(transaction.from)}
+                          {transaction.amount?.toFixed(2) || '0.00'}
+                          {transaction.from}
+                        </span>
+                      </div>
+                      {transaction.status === 'failed' ? (
+                        <div className="text-sm text-red-600 font-medium">
+                          Transaction failed
+                        </div>
+                      ) : (
+                        <div className="text-sm text-blue-600 font-medium">
+                          They received{' '}
+                          <span className="font-bold text-black">
+                            {getCurrencySymbol(transaction.to)}
+                            {transaction.received?.toFixed(2) || '0.00'}
+                            {transaction.to}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           </div>
         </main>
