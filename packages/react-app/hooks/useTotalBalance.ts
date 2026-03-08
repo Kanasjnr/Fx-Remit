@@ -47,17 +47,39 @@ export function useTotalBalance() {
           const celoNativeAddress =
             '0x471EcE3750Da237f93B8E339c536989b8978a438';
 
-          const celoToCusd = await mento.getAmountOut(
-            celoNativeAddress,
-            cUSDAddress,
-            celoAmountWei.toString()
-          );
+          try {
+            const celoToCusd = await mento.getAmountOut(
+              celoNativeAddress,
+              cUSDAddress,
+              celoAmountWei.toString()
+            );
 
-          const celoUsdValue = parseFloat(
-            formatEther(BigInt(celoToCusd.toString()))
-          );
-          totalUsd += celoUsdValue;
+            const celoUsdValue = parseFloat(
+              formatEther(BigInt(celoToCusd.toString()))
+            );
+            totalUsd += celoUsdValue;
+          } catch (e) {
+            console.warn('Could not fetch CELO price from Mento', e);
+          }
         }
+
+        let fiatRates: Record<string, number> = {};
+        try {
+          const res = await fetch('https://open.er-api.com/v6/latest/USD');
+          const data = await res.json();
+          if (data && data.rates) {
+            fiatRates = data.rates;
+          }
+        } catch (e) {
+          console.error('Failed to fetch fallback fiat rates', e);
+        }
+
+        const mapCurrencyToFiatTicker = (code: string) => {
+          if (code === 'PUSO') return 'PHP';
+          if (code === 'eXOF') return 'XOF';
+          if (code.startsWith('c')) return code.slice(1);
+          return code;
+        };
 
         const balancePromises = CURRENCIES.map(async (currency) => {
           try {
@@ -94,34 +116,31 @@ export function useTotalBalance() {
               }),
             ]);
 
-            const balanceValue = formatUnits(balance as bigint, decimals as number);
+            const balanceValue = formatUnits(
+              balance as bigint,
+              decimals as number
+            );
             const balanceNum = parseFloat(balanceValue);
 
             if (balanceNum <= 0) {
               return 0;
             }
 
-            if (currency.code === 'cUSD') {
+            if (
+              currency.code === 'cUSD' ||
+              currency.code === 'USDT' ||
+              currency.code === 'USDC'
+            ) {
               return balanceNum;
             }
 
-            if (currency.code === 'USDT' || currency.code === 'USDC') {
-              return balanceNum;
+            const fiatTicker = mapCurrencyToFiatTicker(currency.code);
+            if (fiatTicker && fiatRates[fiatTicker]) {
+              const rate = fiatRates[fiatTicker];
+              const usdValue = balanceNum / rate;
+              return usdValue;
             }
-
-            const fromToken = getTokenAddress(chainId, currency.code);
-            const amountInWei = parseUnits(balanceValue, decimals as number);
-
-            const amountOut = await mento.getAmountOut(
-              fromToken,
-              cUSDAddress,
-              amountInWei.toString()
-            );
-
-            const usdValue = parseFloat(
-              formatEther(BigInt(amountOut.toString()))
-            );
-            return usdValue;
+            return 0;
           } catch (err) {
             console.warn(`Failed to fetch balance for ${currency.code}:`, err);
             return 0;
